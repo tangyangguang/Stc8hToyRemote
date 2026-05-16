@@ -101,3 +101,17 @@ TOY_REMOTE_BRAKE_CLEAR_SPEED   brake = 1, speed = 0
 ```
 
 controller 采样按键后先把输入归约到 `toy_remote_control_t`，receiver 只接收归约后的 `brake` 和 `speed`。这样无线协议保持简单，后续如果按键硬件变化，不影响 receiver 协议解析。
+
+## 转向 ADC 归约
+
+controller 侧使用 `toy_remote_control_set_steering_from_adc()` 把 10-bit ADC 值归约成舵机角度：
+
+```text
+ADC 0      -> 0 degree
+ADC 512    -> 90 degree
+ADC 1023   -> 180 degree
+ADC >1023  -> 180 degree
+reverse=1  -> 角度反向
+```
+
+该函数只做线性映射、限幅和可选反向，不处理舵机中值校准、死区或端点减少角度。校准属于后续配置模式，需要持久化设计后再实现。

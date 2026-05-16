@@ -41,6 +41,32 @@ stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc
     return toy_remote_validate_control(control);
 }
 
+stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *control, stc8h_u16 adc_value, stc8h_u8 reverse)
+{
+    stc8h_u32 scaled;
+
+    if (control == 0) {
+        return STC8H_ERROR;
+    }
+    if (reverse > 1u) {
+        return STC8H_ERROR;
+    }
+
+    if (adc_value > TOY_REMOTE_STEERING_ADC_MAX) {
+        adc_value = TOY_REMOTE_STEERING_ADC_MAX;
+    }
+
+    scaled = (stc8h_u32)adc_value * TOY_REMOTE_STEERING_MAX;
+    scaled = (scaled + (TOY_REMOTE_STEERING_ADC_MAX / 2u)) / TOY_REMOTE_STEERING_ADC_MAX;
+
+    if (reverse != 0u) {
+        scaled = TOY_REMOTE_STEERING_MAX - scaled;
+    }
+
+    control->steering_angle = (stc8h_u8)scaled;
+    return toy_remote_validate_control(control);
+}
+
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control)
 {
     if (control == 0) {

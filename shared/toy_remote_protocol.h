@@ -16,6 +16,7 @@
 #define TOY_REMOTE_STEERING_MIN 0u
 #define TOY_REMOTE_STEERING_CENTER 90u
 #define TOY_REMOTE_STEERING_MAX 180u
+#define TOY_REMOTE_STEERING_ADC_MAX 1023u
 
 #define TOY_REMOTE_LINK_STATE_IDLE 0u
 #define TOY_REMOTE_LINK_STATE_CONNECTING 1u
@@ -47,6 +48,7 @@ typedef struct {
 
 void toy_remote_control_set_safe(toy_remote_control_t *control);
 stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action);
+stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *control, stc8h_u16 adc_value, stc8h_u8 reverse);
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control);
 stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status);
 

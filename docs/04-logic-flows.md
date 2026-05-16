@@ -45,6 +45,7 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
   - `TOY_REMOTE_BRAKE_RELEASE`：松开刹车，不改变速度。
   - `TOY_REMOTE_BRAKE_HOLD_SPEED`：刹车但不清速度。
   - `TOY_REMOTE_BRAKE_CLEAR_SPEED`：刹车并把速度清零。
+- 转向 ADC 在 controller 侧归约为 `0..180` 舵机角度；反向只改变映射方向，不改变无线字段。
 - 显示只要求状态可观察，不复刻旧段码编码。
 
 ## controller 配置模式线索

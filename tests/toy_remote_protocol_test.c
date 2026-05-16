@@ -84,6 +84,45 @@ static void test_control_release_brake_keeps_speed(void)
     assert(toy_remote_validate_control(&control) == STC8H_OK);
 }
 
+static void test_control_set_steering_from_adc_maps_full_range(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 0u, 0u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_MIN);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 1023u, 0u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_MAX);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 512u, 0u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_CENTER);
+}
+
+static void test_control_set_steering_from_adc_can_reverse(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 0u, 1u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_MAX);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 1023u, 1u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_MIN);
+}
+
+static void test_control_set_steering_from_adc_clamps_high_adc(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+
+    assert(toy_remote_control_set_steering_from_adc(&control, 2000u, 0u) == STC8H_OK);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_MAX);
+}
+
 int main(void)
 {
     test_control_pack_rejects_invalid_range();
@@ -92,5 +131,8 @@ int main(void)
     test_control_apply_brake_hold_preserves_speed();
     test_control_apply_brake_clear_zeros_speed();
     test_control_release_brake_keeps_speed();
+    test_control_set_steering_from_adc_maps_full_range();
+    test_control_set_steering_from_adc_can_reverse();
+    test_control_set_steering_from_adc_clamps_high_adc();
     return 0;
 }
