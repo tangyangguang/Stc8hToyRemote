@@ -14,6 +14,9 @@ cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol
 - 控制 payload 越界字段被拒绝。
 - 安全默认控制值合法且为中性输出。
 - 状态 payload 非法小数电压被拒绝。
+- 刹车动作归约符合 release、hold speed、clear speed 语义。
+- 转向 ADC 归约覆盖 0、中心、满量程、反向和高值限幅。
+- 电压 centivolts 归约能拆分整数/小数并对显示范围限幅。
 
 ## 固件构建验证
 

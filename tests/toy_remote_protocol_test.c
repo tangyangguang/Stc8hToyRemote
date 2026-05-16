@@ -123,6 +123,34 @@ static void test_control_set_steering_from_adc_clamps_high_adc(void)
     assert(control.steering_angle == TOY_REMOTE_STEERING_MAX);
 }
 
+static void test_status_set_voltage_centivolts_splits_int_and_decimal(void)
+{
+    toy_remote_status_t status;
+
+    status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
+    status.voltage_int = 0u;
+    status.voltage_dec = 0u;
+
+    assert(toy_remote_status_set_voltage_centivolts(&status, 742u) == STC8H_OK);
+    assert(status.voltage_int == 7u);
+    assert(status.voltage_dec == 42u);
+    assert(toy_remote_validate_status(&status) == STC8H_OK);
+}
+
+static void test_status_set_voltage_centivolts_caps_display_range(void)
+{
+    toy_remote_status_t status;
+
+    status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
+    status.voltage_int = 0u;
+    status.voltage_dec = 0u;
+
+    assert(toy_remote_status_set_voltage_centivolts(&status, 30000u) == STC8H_OK);
+    assert(status.voltage_int == TOY_REMOTE_VOLTAGE_INT_MAX);
+    assert(status.voltage_dec == TOY_REMOTE_VOLTAGE_DEC_MAX);
+    assert(toy_remote_validate_status(&status) == STC8H_OK);
+}
+
 int main(void)
 {
     test_control_pack_rejects_invalid_range();
@@ -134,5 +162,7 @@ int main(void)
     test_control_set_steering_from_adc_maps_full_range();
     test_control_set_steering_from_adc_can_reverse();
     test_control_set_steering_from_adc_clamps_high_adc();
+    test_status_set_voltage_centivolts_splits_int_and_decimal();
+    test_status_set_voltage_centivolts_caps_display_range();
     return 0;
 }

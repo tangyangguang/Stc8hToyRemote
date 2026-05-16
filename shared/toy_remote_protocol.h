@@ -23,6 +23,7 @@
 #define TOY_REMOTE_LINK_STATE_CONNECTED 2u
 #define TOY_REMOTE_LINK_STATE_LOST 3u
 
+#define TOY_REMOTE_VOLTAGE_INT_MAX 99u
 #define TOY_REMOTE_VOLTAGE_DEC_MAX 99u
 
 #define TOY_REMOTE_BRAKE_RELEASE 0u
@@ -49,6 +50,7 @@ typedef struct {
 void toy_remote_control_set_safe(toy_remote_control_t *control);
 stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action);
 stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *control, stc8h_u16 adc_value, stc8h_u8 reverse);
+stc8h_status_t toy_remote_status_set_voltage_centivolts(toy_remote_status_t *status, stc8h_u16 centivolts);
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control);
 stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status);
 

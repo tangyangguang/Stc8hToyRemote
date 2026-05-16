@@ -62,8 +62,10 @@ byte3 voltage_dec
 
 - `version`: 当前为 `1`
 - `link_state`: `0` idle, `1` connecting, `2` connected, `3` lost
-- `voltage_int`: 电压整数部分
+- `voltage_int`: 电压整数部分，`0..99`
 - `voltage_dec`: `0..99`
+
+`toy_remote_status_set_voltage_centivolts()` 统一把百分之一伏表示拆成 `voltage_int` 和 `voltage_dec`。例如 `742` 表示 7.42V。超过 99.99V 时夹到 99.99V。
 
 ## 校验规则
 

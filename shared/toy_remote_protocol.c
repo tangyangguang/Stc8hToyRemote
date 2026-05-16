@@ -107,10 +107,28 @@ stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status)
     if (status->link_state > TOY_REMOTE_LINK_STATE_LOST) {
         return STC8H_ERROR;
     }
+    if (status->voltage_int > TOY_REMOTE_VOLTAGE_INT_MAX) {
+        return STC8H_ERROR;
+    }
     if (status->voltage_dec > TOY_REMOTE_VOLTAGE_DEC_MAX) {
         return STC8H_ERROR;
     }
     return STC8H_OK;
+}
+
+stc8h_status_t toy_remote_status_set_voltage_centivolts(toy_remote_status_t *status, stc8h_u16 centivolts)
+{
+    if (status == 0) {
+        return STC8H_ERROR;
+    }
+
+    if (centivolts > 9999u) {
+        centivolts = 9999u;
+    }
+
+    status->voltage_int = (stc8h_u8)(centivolts / 100u);
+    status->voltage_dec = (stc8h_u8)(centivolts % 100u);
+    return toy_remote_validate_status(status);
 }
 
 stc8h_status_t toy_remote_pack_control(stc8h_u8 *payload, const toy_remote_control_t *control)
