@@ -12,6 +12,7 @@ legacy/old-prj/
 my_stc8h_lib_For_V2.4/
 toy_RemoteController_V2_Tx_joystick(v24_2Brake_PinSW2_VoltCheck_Postback)/
 toy_RemoteController_V2_Rx_AT8236(V24_Postback_IRQ_P32)/
+Tx遥控器端V2.x功能说明.txt
 ```
 
 ## 使用方式
@@ -29,6 +30,7 @@ toy_RemoteController_V2_Rx_AT8236(V24_Postback_IRQ_P32)/
 - receiver 回传状态，例如电池电压。
 - receiver 长时间收不到控制包后必须进入安全状态。
 - nRF24L01 通信需要可靠发送、失败恢复和可诊断状态。
+- `Tx遥控器端V2.x功能说明.txt` 记录了 Tx V2.0~V2.3 的需求线索；若与旧代码不一致，以重新评估后的当前需求为准，不以旧实现为准。
 
 ## 需求评估规则
 
