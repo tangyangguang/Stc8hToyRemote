@@ -166,6 +166,14 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 - 明确掉线超时和 receiver 安全状态。
 - controller 高频发送最新控制状态，receiver 低频或按需回传状态。
 
+阶段 3 first build:
+
+- controller 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_SEND_DATA`，把 `toy_remote_control_t` 手工打包为业务 payload 后交给 `proto_rf_link_send_data()`。
+- receiver 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_POLL`，收到 `DATA` 后解包为 `toy_remote_control_t`。
+- `shared/toy_remote_protocol` 默认保留完整 API；STC8H1K08 固件按阶段通过 `TOY_REMOTE_ENABLE_*` 只编译当前使用的业务协议 API，避免 SDCC wrapper 把未用函数参数区占进 DSEG。
+- receiver 当前以轮询空闲计数实现临时掉线保护：超过 `APP_RECEIVER_IDLE_POLL_LIMIT` 未收到有效控制包时写入安全控制值。后续接入 timer tick 后要改成明确毫秒超时。
+- `HELLO`、`STATUS` 和真实反向状态回传暂未启用；需要先完成反向链路或 ACK payload 的应用层策略，再逐项打开对应 `PROTO_RF_LINK_ENABLE_*`。
+
 ### 阶段 4：迁移业务
 
 - controller 迁移摇杆、EC11、按键、TM1637 显示。

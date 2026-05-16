@@ -1,10 +1,13 @@
 #include "toy_remote_protocol.h"
 
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL || TOY_REMOTE_ENABLE_VALIDATE_STATUS
 static stc8h_status_t toy_remote_validate_bool(stc8h_u8 value)
 {
     return (value <= 1u) ? STC8H_OK : STC8H_ERROR;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_CONTROL_SET_SAFE
 void toy_remote_control_set_safe(toy_remote_control_t *control)
 {
     if (control == 0) {
@@ -20,7 +23,9 @@ void toy_remote_control_set_safe(toy_remote_control_t *control)
     control->aux_pwm = 0u;
     control->request_voltage = 0u;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_CONTROL_APPLY_BRAKE
 stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action)
 {
     if (control == 0) {
@@ -40,7 +45,9 @@ stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc
 
     return toy_remote_validate_control(control);
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_CONTROL_SET_STEERING_FROM_ADC
 stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *control, stc8h_u16 adc_value, stc8h_u8 reverse)
 {
     stc8h_u32 scaled;
@@ -66,7 +73,9 @@ stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *co
     control->steering_angle = (stc8h_u8)scaled;
     return toy_remote_validate_control(control);
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_CONTROL_ADJUST_SPEED
 stc8h_status_t toy_remote_control_adjust_speed(toy_remote_control_t *control, stc8h_s16 delta)
 {
     stc8h_s16 speed;
@@ -85,7 +94,9 @@ stc8h_status_t toy_remote_control_adjust_speed(toy_remote_control_t *control, st
     control->speed = (stc8h_u8)speed;
     return STC8H_OK;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control)
 {
     if (control == 0) {
@@ -117,7 +128,9 @@ stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control)
     }
     return STC8H_OK;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_VALIDATE_STATUS
 stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status)
 {
     if (status == 0) {
@@ -134,7 +147,9 @@ stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status)
     }
     return STC8H_OK;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_STATUS_SET_VOLTAGE
 stc8h_status_t toy_remote_status_set_voltage_centivolts(toy_remote_status_t *status, stc8h_u16 centivolts)
 {
     if (status == 0) {
@@ -149,7 +164,9 @@ stc8h_status_t toy_remote_status_set_voltage_centivolts(toy_remote_status_t *sta
     status->voltage_dec = (stc8h_u8)(centivolts % 100u);
     return toy_remote_validate_status(status);
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_PACK_CONTROL
 stc8h_status_t toy_remote_pack_control(stc8h_u8 *payload, const toy_remote_control_t *control)
 {
     if ((payload == 0) || (toy_remote_validate_control(control) != STC8H_OK)) {
@@ -167,7 +184,9 @@ stc8h_status_t toy_remote_pack_control(stc8h_u8 *payload, const toy_remote_contr
     payload[8] = control->request_voltage;
     return STC8H_OK;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_UNPACK_CONTROL
 stc8h_status_t toy_remote_unpack_control(toy_remote_control_t *control, const stc8h_u8 *payload, stc8h_u8 len)
 {
     if ((control == 0) || (payload == 0) || (len < TOY_REMOTE_CONTROL_PAYLOAD_SIZE)) {
@@ -187,7 +206,9 @@ stc8h_status_t toy_remote_unpack_control(toy_remote_control_t *control, const st
     control->request_voltage = payload[8];
     return toy_remote_validate_control(control);
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_PACK_STATUS
 stc8h_status_t toy_remote_pack_status(stc8h_u8 *payload, const toy_remote_status_t *status)
 {
     if ((payload == 0) || (toy_remote_validate_status(status) != STC8H_OK)) {
@@ -200,7 +221,9 @@ stc8h_status_t toy_remote_pack_status(stc8h_u8 *payload, const toy_remote_status
     payload[3] = status->voltage_dec;
     return STC8H_OK;
 }
+#endif
 
+#if TOY_REMOTE_ENABLE_UNPACK_STATUS
 stc8h_status_t toy_remote_unpack_status(toy_remote_status_t *status, const stc8h_u8 *payload, stc8h_u8 len)
 {
     if ((status == 0) || (payload == 0) || (len < TOY_REMOTE_STATUS_PAYLOAD_SIZE)) {
@@ -215,3 +238,4 @@ stc8h_status_t toy_remote_unpack_status(toy_remote_status_t *status, const stc8h
     status->voltage_dec = payload[3];
     return toy_remote_validate_status(status);
 }
+#endif
