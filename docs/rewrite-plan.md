@@ -1,4 +1,13 @@
-# 需求和重写设计
+# 重写路线图
+
+本文件只记录阶段路线。详细需求和设计见：
+
+- [需求说明](01-requirements.md)
+- [架构设计](02-architecture.md)
+- [协议设计](03-protocol.md)
+- [重要逻辑流程](04-logic-flows.md)
+- [节能设计](05-power.md)
+- [验证计划](06-verification.md)
 
 ## 1. 项目目标
 

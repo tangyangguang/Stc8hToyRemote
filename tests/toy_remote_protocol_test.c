@@ -1,0 +1,53 @@
+#include "toy_remote_protocol.h"
+
+#include <assert.h>
+
+static void test_control_pack_rejects_invalid_range(void)
+{
+    stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = (stc8h_u8)(TOY_REMOTE_CONTROL_SPEED_MAX + 1u);
+
+    assert(toy_remote_validate_control(&control) == STC8H_ERROR);
+    assert(toy_remote_pack_control(payload, &control) == STC8H_ERROR);
+}
+
+static void test_control_safe_defaults_are_neutral(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+
+    assert(control.direction == TOY_REMOTE_DIRECTION_FORWARD);
+    assert(control.speed == 0u);
+    assert(control.brake == 0u);
+    assert(control.steering_angle == TOY_REMOTE_STEERING_CENTER);
+    assert(control.light == 0u);
+    assert(control.buzzer == 0u);
+    assert(control.aux_pwm == 0u);
+    assert(control.request_voltage == 0u);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
+static void test_status_rejects_invalid_decimal_voltage(void)
+{
+    stc8h_u8 payload[TOY_REMOTE_STATUS_PAYLOAD_SIZE];
+    toy_remote_status_t status;
+
+    status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
+    status.voltage_int = 8u;
+    status.voltage_dec = 100u;
+
+    assert(toy_remote_validate_status(&status) == STC8H_ERROR);
+    assert(toy_remote_pack_status(payload, &status) == STC8H_ERROR);
+}
+
+int main(void)
+{
+    test_control_pack_rejects_invalid_range();
+    test_control_safe_defaults_are_neutral();
+    test_status_rejects_invalid_decimal_voltage();
+    return 0;
+}

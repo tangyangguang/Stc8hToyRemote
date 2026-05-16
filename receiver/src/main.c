@@ -1,8 +1,5 @@
 #include "app_radio.h"
-#include "drv_nrf24l01.h"
-#include "proto_rf_link.h"
 #include "stc8h_spi.h"
-#include "toy_remote_protocol.h"
 
 static STC8H_XDATA stc8h_u8 packet[APP_RADIO_PACKET_SIZE];
 static stc8h_u8 last_seq;
