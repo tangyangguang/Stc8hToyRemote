@@ -133,3 +133,15 @@ receiver：
 - controller: flash `7622/8192`
 - receiver: flash `8005/8192`
 - 两端均无 DSEG/OSEG 链接错误。
+
+2026-05-16 切换基础库 fixed-block EEPROM，并恢复 controller 保存 `tx_id/last_channel` 后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `8164/8192`
+- receiver: flash `7791/8192`
+- 两端均无 DSEG/OSEG 链接错误。

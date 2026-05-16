@@ -1,11 +1,10 @@
 #include "app_config.h"
 #include "stc8h_eeprom.h"
 
-#define APP_CONFIG_LEN 9u
-#define APP_CONFIG_MAGIC0 0x52u
+#define APP_CONFIG_LEN 8u
+#define APP_CONFIG_MAGIC0 0x54u
 #define APP_CONFIG_MAGIC1 0x43u
 #define APP_CONFIG_VERSION 1u
-#define APP_CONFIG_DEFAULT_CHANNEL 40u
 
 static STC8H_DATA stc8h_u8 app_config_buf[APP_CONFIG_LEN];
 
@@ -23,9 +22,8 @@ static stc8h_u8 app_config_checksum(void)
 
 static void app_config_set_defaults(app_config_t *config)
 {
-    config->bound_tx_id = 0u;
-    config->rf_channel = APP_CONFIG_DEFAULT_CHANNEL;
-    config->servo_reverse = 0u;
+    config->tx_id = APP_TX_ID;
+    config->last_channel = APP_DEFAULT_RF_CHANNEL;
 }
 
 stc8h_status_t app_config_load(app_config_t *config)
@@ -47,10 +45,9 @@ stc8h_status_t app_config_load(app_config_t *config)
         return STC8H_ERROR;
     }
 
-    config->bound_tx_id = (stc8h_u16)((stc8h_u16)app_config_buf[4] | ((stc8h_u16)app_config_buf[5] << 8));
-    config->rf_channel = app_config_buf[6];
-    config->servo_reverse = app_config_buf[7];
-    if ((config->rf_channel > 125u) || (config->servo_reverse > 1u)) {
+    config->tx_id = (stc8h_u16)((stc8h_u16)app_config_buf[4] | ((stc8h_u16)app_config_buf[5] << 8));
+    config->last_channel = app_config_buf[6];
+    if ((config->tx_id == 0u) || (config->last_channel > 125u)) {
         app_config_set_defaults(config);
         return STC8H_ERROR;
     }
@@ -59,7 +56,7 @@ stc8h_status_t app_config_load(app_config_t *config)
 
 stc8h_status_t app_config_save(const app_config_t *config)
 {
-    if ((config == 0) || (config->rf_channel > 125u) || (config->servo_reverse > 1u)) {
+    if ((config == 0) || (config->tx_id == 0u) || (config->last_channel > 125u)) {
         return STC8H_ERROR;
     }
 
@@ -67,11 +64,10 @@ stc8h_status_t app_config_save(const app_config_t *config)
     app_config_buf[1] = APP_CONFIG_MAGIC1;
     app_config_buf[2] = APP_CONFIG_VERSION;
     app_config_buf[3] = APP_CONFIG_LEN;
-    app_config_buf[4] = (stc8h_u8)config->bound_tx_id;
-    app_config_buf[5] = (stc8h_u8)(config->bound_tx_id >> 8);
-    app_config_buf[6] = config->rf_channel;
-    app_config_buf[7] = config->servo_reverse;
-    app_config_buf[8] = app_config_checksum();
+    app_config_buf[4] = (stc8h_u8)config->tx_id;
+    app_config_buf[5] = (stc8h_u8)(config->tx_id >> 8);
+    app_config_buf[6] = config->last_channel;
+    app_config_buf[7] = app_config_checksum();
 
     return stc8h_eeprom_save_fixed(app_config_buf);
 }

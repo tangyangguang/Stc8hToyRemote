@@ -5,7 +5,8 @@
 ```text
 init SPI
   -> init input and display
-  -> init nRF24 PTX on APP_DEFAULT_RF_CHANNEL
+  -> load controller config: tx_id, last_channel
+  -> init nRF24 PTX on saved last_channel
   -> scan channels 0..125 until a matching ACK status is found
   -> loop:
        sample inputs
@@ -34,7 +35,7 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
 
 Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向反转和 EEPROM 保存。新项目暂缓实现配置模式；实施前必须先设计持久化格式、校验、默认值和恢复路径。
 
-controller 当前不写 EEPROM。`APP_TX_ID` 和 `APP_DEFAULT_RF_CHANNEL` 是编译期宏。
+controller 使用 fixed-block EEPROM 保存 `tx_id` 和 `last_channel`。首次无有效配置时写入默认 `APP_TX_ID` 和 `APP_DEFAULT_RF_CHANNEL`；扫描找到 receiver 后保存频道。
 
 ## receiver 启动流程
 

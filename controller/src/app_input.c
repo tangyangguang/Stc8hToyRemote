@@ -75,6 +75,9 @@ stc8h_u16 app_input_read_tx_battery_centivolts(void)
         sum = (stc8h_u16)(sum + adc);
     }
 
-    adc = (stc8h_u16)(sum >> 3);
-    return (stc8h_u16)(120627u / (stc8h_u16)(adc + 1u));
+    adc = (stc8h_u16)((sum >> 3) + 1u);
+    if (adc < 5u) {
+        return 9999u;
+    }
+    return (stc8h_u16)(12063u / (stc8h_u16)((adc + 5u) / 10u));
 }

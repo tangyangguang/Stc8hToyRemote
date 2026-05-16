@@ -31,7 +31,7 @@ controller 和 receiver 都使用电池，节能是设计输入，不是后期�
 ## 当前节能状态
 
 - controller 主循环约 50ms 发送一次控制包，不再无节拍连续发送。
-- controller 开机优先尝试 `APP_DEFAULT_RF_CHANNEL`，失败后才扫描 0..125。
+- controller 开机优先尝试 EEPROM 保存频道，失败后才扫描 0..125。
 - controller 转向 ADC 按分频采样，Fn 电压检测只在请求显示时执行。
 - controller TM1637 使用低亮度，按当前状态刷新；后续可再做“内容未变化不刷新”。
 - receiver 电压 ADC 仅在 controller 请求电压时低频采样。

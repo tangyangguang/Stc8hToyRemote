@@ -1,3 +1,4 @@
+#include "app_config.h"
 #include "app_input.h"
 #include "app_radio.h"
 #include "drv_tm1637.h"
@@ -7,6 +8,7 @@
 #include "toy_remote_protocol.h"
 
 static STC8H_XDATA proto_rf_link_t link;
+static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
@@ -18,14 +20,6 @@ static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
 static stc8h_u8 current_channel;
 static stc8h_u8 radio_failures;
-
-#ifndef APP_TX_ID
-#define APP_TX_ID 0x4A21u
-#endif
-
-#ifndef APP_DEFAULT_RF_CHANNEL
-#define APP_DEFAULT_RF_CHANNEL 40u
-#endif
 
 #define APP_DISPLAY_BLANK 0x00u
 #define APP_DISPLAY_DASH 0x40u
@@ -92,7 +86,7 @@ static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
 
 static stc8h_status_t make_control_packet(void)
 {
-    control.tx_id = APP_TX_ID;
+    control.tx_id = config.tx_id;
     if (toy_remote_pack_control(payload, &control) != STC8H_OK) {
         return STC8H_ERROR;
     }
@@ -115,8 +109,8 @@ static void handle_ack_status(stc8h_u8 ack_len)
         (ack[6] != 2u) ||
         (ack[7] != 1u) ||
         (ack[8] != TOY_REMOTE_STATUS_PAYLOAD_SIZE) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)APP_TX_ID) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(APP_TX_ID >> 8))) {
+        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)config.tx_id) ||
+        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(config.tx_id >> 8))) {
         return;
     }
     if ((ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
@@ -132,7 +126,7 @@ static void handle_ack_status(stc8h_u8 ack_len)
     rx_status.link_state = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
     rx_status.voltage_int = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
     rx_status.voltage_dec = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
-    rx_status.tx_id = APP_TX_ID;
+    rx_status.tx_id = config.tx_id;
 }
 
 static stc8h_u8 probe_current_channel(void)
@@ -143,7 +137,7 @@ static stc8h_u8 probe_current_channel(void)
         if (make_control_packet() == STC8H_OK) {
             tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
             handle_ack_status(app_radio_get_ack_len());
-            if (rx_status.tx_id == APP_TX_ID) {
+            if (rx_status.tx_id == config.tx_id) {
                 return 1u;
             }
         }
@@ -169,6 +163,10 @@ static void scan_channels(void)
         current_channel = channel;
         rx_status.tx_id = 0u;
         if (probe_current_channel() != 0u) {
+            if (config.last_channel != channel) {
+                config.last_channel = channel;
+                (void)app_config_save(&config);
+            }
             return;
         }
     }
@@ -207,8 +205,11 @@ void main(void)
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
     app_input_init(&control);
-    control.tx_id = APP_TX_ID;
-    current_channel = APP_DEFAULT_RF_CHANNEL;
+    if (app_config_load(&config) != STC8H_OK) {
+        (void)app_config_save(&config);
+    }
+    control.tx_id = config.tx_id;
+    current_channel = config.last_channel;
     display_init();
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;

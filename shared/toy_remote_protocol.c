@@ -51,7 +51,7 @@ stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc
 #if TOY_REMOTE_ENABLE_CONTROL_SET_STEERING_FROM_ADC
 stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *control, stc8h_u16 adc_value, stc8h_u8 reverse)
 {
-    stc8h_u32 scaled;
+    stc8h_u16 scaled;
 
     if (control == 0) {
         return STC8H_ERROR;
@@ -64,8 +64,10 @@ stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *co
         adc_value = TOY_REMOTE_STEERING_ADC_MAX;
     }
 
-    scaled = (stc8h_u32)adc_value * TOY_REMOTE_STEERING_MAX;
-    scaled = (scaled + (TOY_REMOTE_STEERING_ADC_MAX / 2u)) / TOY_REMOTE_STEERING_ADC_MAX;
+    scaled = (stc8h_u16)(((adc_value * 45u) + 128u) >> 8);
+    if (scaled > TOY_REMOTE_STEERING_MAX) {
+        scaled = TOY_REMOTE_STEERING_MAX;
+    }
 
     if (reverse != 0u) {
         scaled = TOY_REMOTE_STEERING_MAX - scaled;
