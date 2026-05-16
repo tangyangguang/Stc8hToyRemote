@@ -59,3 +59,22 @@ void app_input_update(toy_remote_control_t *control)
         }
     }
 }
+
+stc8h_u16 app_input_read_tx_battery_centivolts(void)
+{
+    stc8h_u8 i;
+    stc8h_u16 adc;
+    stc8h_u16 sum;
+
+    sum = 0u;
+    for (i = 0u; i < 8u; ++i) {
+        adc = stc8h_adc_read(15u);
+        if (adc == STC8H_ADC_INVALID_VALUE) {
+            return 0u;
+        }
+        sum = (stc8h_u16)(sum + adc);
+    }
+
+    adc = (stc8h_u16)(sum >> 3);
+    return (stc8h_u16)(120627u / (stc8h_u16)(adc + 1u));
+}

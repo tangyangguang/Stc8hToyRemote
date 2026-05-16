@@ -2,7 +2,7 @@
 
 ## 链路层
 
-阶段 3 使用 `Stc8hBase/protocols/proto_rf_link`，固定 32 字节链路包：
+当前固件使用 `Stc8hBase/protocols/proto_rf_link` 的固定 32 字节链路包：
 
 ```text
 byte0  magic
@@ -17,11 +17,13 @@ byte8  len
 byte9..31 payload
 ```
 
-链路层只负责连接、状态、序号、超时和 payload 搬运，不理解玩具遥控业务字段。
+链路层只负责序号、包类型和 payload 搬运，不理解玩具遥控业务字段。控制包由 controller 通过 `proto_rf_link_send_data()` 生成，receiver 通过 `proto_rf_link_poll()` 验证并取出业务 payload。
+
+状态回传走 nRF24L01 ACK payload：receiver 预装一个 32 字节 `PROTO_RF_LINK_PACKET_STATUS` 包，controller 在下一次成功发送控制包后读取 ACK payload。STC8H1K08 RAM 很小，controller 的 ACK 状态解析和 receiver 的 ACK 状态包生成按 `proto_rf_link` 线格式做轻量处理；主控制链路仍使用 `proto_rf_link` API。
 
 ## 业务控制 payload
 
-业务 payload 位于 `shared/toy_remote_protocol.h/.c`，手工按字节打包：
+业务 payload 位于 `shared/toy_remote_protocol.h/.c`，手工按字节打包，不直接发送 C struct：
 
 ```text
 byte0 version
@@ -67,13 +69,15 @@ byte3 voltage_dec
 
 `toy_remote_status_set_voltage_centivolts()` 统一把百分之一伏表示拆成 `voltage_int` 和 `voltage_dec`。例如 `742` 表示 7.42V。超过 99.99V 时夹到 99.99V。
 
+状态 payload 的字段偏移由 `TOY_REMOTE_STATUS_OFFSET_*` 定义，便于 8KB 目标在 ACK payload 热路径中避免额外跨翻译单元参数区。
+
 ## 校验规则
 
 - pack 前必须验证结构体字段范围。
 - unpack 时必须先验证长度和版本，再写入结构体字段。
 - unpack 后必须验证字段范围；非法 payload 返回 `STC8H_ERROR`。
 - 不直接发送 C struct。
-- ACK payload 只能作为短状态优化，不作为唯一双向业务协议。
+- ACK payload 只承载短状态回传，不承载控制命令。
 
 ## 安全默认控制值
 

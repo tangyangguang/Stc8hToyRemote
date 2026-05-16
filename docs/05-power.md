@@ -27,16 +27,14 @@ controller 和 receiver 都使用电池，节能是设计输入，不是后期�
 - 舵机 PWM 是否停输出必须实测，避免省电导致机械状态失控。
 - 电池电压只在低频节拍或 controller 请求时采样。
 
-## 阶段 2 当前节能状态
+## 当前节能状态
 
-当前固定链路阶段为了硬件 bring-up，controller 连续发送测试包，receiver 连续轮询 radio。该行为只用于双板通信验证，不代表最终节能策略。
-
-阶段 3 接入 `proto_rf_link` 后必须引入：
-
-- controller 发送周期。
-- controller 断联降频。
-- receiver 业务包超时。
-- receiver SAFE_STATE 低频监听。
+- controller 主循环约 50ms 发送一次控制包，不再无节拍连续发送。
+- controller 转向 ADC 按分频采样，Fn 电压检测只在请求显示时执行。
+- controller TM1637 使用低亮度，按当前状态刷新；后续可再做“内容未变化不刷新”。
+- receiver 电压 ADC 仅在 controller 请求电压时低频采样。
+- receiver 掉线安全态关闭电机、MOS、灯、蜂鸣器。
+- receiver 仍轮询 nRF24 状态；进一步降功耗需要实测 IRQ 唤醒和 nRF24 RX/standby 切换时序。
 
 ## 低功耗实施前置条件
 

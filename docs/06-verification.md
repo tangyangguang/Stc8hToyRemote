@@ -82,10 +82,9 @@ pio run
 
 ## 阶段 3 验证
 
-- `HELLO` 到 `CONNECTED` 状态转换。
 - `DATA` payload 版本、长度、字段范围校验。
-- `STATUS` 回传链路状态和电压。
-- controller 断联降频。
+- `STATUS` 经 nRF24 ACK payload 回传链路状态和电压。
+- controller 约 50ms 发送节拍。
 - receiver 超时进入安全状态。
 
 ## 阶段 4 验证
@@ -95,7 +94,7 @@ controller：
 - EC11 速度增减。
 - 方向、刹车、灯、蜂鸣器按键。
 - 转向 ADC 映射。
-- TM1637 内容变化刷新。
+- TM1637 正常状态和 Fn 电压显示。
 
 receiver：
 
@@ -104,3 +103,17 @@ receiver：
 - 舵机角度和限幅。
 - 灯、蜂鸣器、aux PWM 安全状态。
 - 电池电压采样和回传。
+
+## 当前构建结果
+
+2026-05-16 本机运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `7226/8192`
+- receiver: flash `6644/8192`
+- 两端均无 DSEG/OSEG 链接错误。

@@ -5,5 +5,6 @@
 
 void app_input_init(toy_remote_control_t *control);
 void app_input_update(toy_remote_control_t *control);
+stc8h_u16 app_input_read_tx_battery_centivolts(void);
 
 #endif

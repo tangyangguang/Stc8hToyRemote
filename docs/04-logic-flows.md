@@ -3,36 +3,16 @@
 ## controller 启动流程
 
 ```text
-BOOT
-  -> init board pins
-  -> init SPI
-  -> check nRF24L01
-  -> configure fixed radio params
-  -> CONNECTING
-```
-
-阶段 2 当前流程：
-
-```text
 init SPI
-  -> app_radio_init_tx()
+  -> init input and display
+  -> init nRF24 PTX on fixed address/channel
   -> loop:
-       make fixed packet
-       send packet
-       record TX result
-```
-
-阶段 3 目标流程：
-
-```text
-CONNECTING
-  -> send HELLO periodically
-  -> receive status or ACK evidence
-  -> CONNECTED
-  -> sample inputs by schedule
-  -> pack control payload
-  -> send DATA with latest state
-  -> LINK_LOST on repeated send failure or timeout
+       sample inputs
+       pack control payload
+       make proto_rf_link DATA packet
+       send packet every about 50ms
+       read ACK payload status when present
+       refresh TM1637 display
 ```
 
 ## controller 正常模式线索
@@ -46,7 +26,7 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
   - `TOY_REMOTE_BRAKE_HOLD_SPEED`：刹车但不清速度。
   - `TOY_REMOTE_BRAKE_CLEAR_SPEED`：刹车并把速度清零。
 - 转向 ADC 在 controller 侧归约为 `0..180` 舵机角度；反向只改变映射方向，不改变无线字段。
-- 显示只要求状态可观察，不复刻旧段码编码。
+- TM1637 显示正常控制状态；Fn 按下时在本机电压和接收端回传电压之间低频切换。
 
 ## controller 配置模式线索
 
@@ -55,24 +35,18 @@ Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向
 ## receiver 启动流程
 
 ```text
-BOOT
-  -> init board pins
-  -> init output safe levels
-  -> init SPI
-  -> check nRF24L01
-  -> configure fixed radio params
-  -> WAIT_CONTROLLER
-```
-
-阶段 2 当前流程：
-
-```text
+init output safe levels
 init SPI
-  -> app_radio_init_rx()
+  -> init ADC status
+  -> init nRF24 PRX on fixed address/channel
+  -> preload ACK status payload
   -> loop:
-       poll radio status
-       read fixed packet when RX_READY
-       record seq/count
+       receive 32-byte radio packet
+       proto_rf_link_poll DATA
+       unpack and validate control payload
+       apply outputs
+       update ACK status payload
+       enter safe state on receive timeout
 ```
 
 阶段 3 目标流程：
@@ -104,12 +78,11 @@ set motor speed 0
 turn light off
 turn buzzer off
 turn aux PWM off
-keep servo at last valid angle by default
-lower retry/status activity
-continue low-frequency listening for recovery
+set servo to center
+continue listening for recovery
 ```
 
-舵机是否回中位需要硬件确认；默认保持最近有效角度，避免断联瞬间突然打角造成机械风险。
+当前实现选择舵机回中，电机/MOS/灯/蜂鸣器关闭；这是旧 PCB 烧录可用优先的明确安全状态。
 
 ## 无线失败处理流程
 
@@ -133,3 +106,25 @@ RX_READY
 ```
 
 不在中断里做 SPI 读写。IRQ 只适合作为“有事件”的提示，实际处理放在主循环。
+
+## 状态回传流程
+
+```text
+receiver:
+  update link_state
+  if controller requests voltage:
+       low-frequency sample ADC1/P1.1
+  build 4-byte toy status payload
+  build 32-byte proto_rf_link STATUS packet
+  write nRF24 ACK payload pipe0
+
+controller:
+  send DATA packet
+  if TX_DONE and RX_READY:
+       read ACK dynamic payload
+       verify proto_rf_link STATUS header
+       copy toy status fields
+  Fn held:
+       show local battery voltage with colon
+       show receiver voltage without colon
+```

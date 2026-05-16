@@ -171,8 +171,9 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 - controller 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_SEND_DATA`，把 `toy_remote_control_t` 手工打包为业务 payload 后交给 `proto_rf_link_send_data()`。
 - receiver 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_POLL`，收到 `DATA` 后解包为 `toy_remote_control_t`。
 - `shared/toy_remote_protocol` 默认保留完整 API；STC8H1K08 固件按阶段通过 `TOY_REMOTE_ENABLE_*` 只编译当前使用的业务协议 API，避免 SDCC wrapper 把未用函数参数区占进 DSEG。
-- receiver 当前以轮询空闲计数实现临时掉线保护：超过 `APP_RECEIVER_IDLE_POLL_LIMIT` 未收到有效控制包时写入安全控制值。后续接入 timer tick 后要改成明确毫秒超时。
-- `HELLO`、`STATUS` 和真实反向状态回传暂未启用；需要先完成反向链路或 ACK payload 的应用层策略，再逐项打开对应 `PROTO_RF_LINK_ENABLE_*`。
+- receiver 当前以轮询空闲计数实现掉线保护：超过 `APP_RECEIVER_IDLE_POLL_LIMIT` 未收到有效控制包时写入安全控制值。
+- STATUS 已通过 nRF24 ACK payload 回传。controller 成功发送 DATA 后读取 ACK payload，验证 `proto_rf_link` STATUS 头，再更新接收端电压显示字段。
+- STC8H1K08 RAM 约束下，主控制链路继续使用 `proto_rf_link_send_data()`/`proto_rf_link_poll()`；ACK 状态热路径按同一线格式做轻量处理，避免 `proto_rf_link_poll()` 在 controller 上额外占用 21 字节 OSEG。
 
 ### 阶段 4：迁移业务
 
@@ -184,8 +185,10 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 阶段 4 first build:
 
 - controller 已按旧硬件引脚接入 EC11 调速、EC11 按键清速度刹车、单独刹车、方向、灯、蜂鸣器、Fn 和转向 ADC。
-- controller ADC 当前按 loop 分频低频采样，避免每个无线包都阻塞读取。
+- controller ADC 当前按 loop 分频低频采样，避免每个无线包都阻塞读取；Fn 按下时显示本机电压和接收端回传电压。
+- controller 已接入 TM1637：正常显示方向/刹车/速度/发送状态，Fn 显示电压。
 - receiver 已接入灯、蜂鸣器、LED、AT8236 IN1/IN2、舵机和 MOS PWM；掉线安全态会关闭电机/MOS/灯/蜂鸣器，并把舵机回中。
+- receiver 已接入 ADC1/P1.1 电池电压采样，并在 controller 请求时低频更新 ACK 状态。
 
 ## 6. 暂不做
 
