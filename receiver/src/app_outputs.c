@@ -14,10 +14,6 @@ static stc8h_u16 app_outputs_percent_to_fast_duty(stc8h_u8 percent)
 {
     stc8h_u16 duty;
 
-    if (percent > 100u) {
-        percent = 100u;
-    }
-
     duty = (stc8h_u16)((stc8h_u16)percent * 11u);
     return (stc8h_u16)(duty + ((percent + 10u) / 20u));
 }
@@ -25,10 +21,6 @@ static stc8h_u16 app_outputs_percent_to_fast_duty(stc8h_u8 percent)
 static stc8h_u16 app_outputs_angle_to_servo_duty(stc8h_u8 angle)
 {
     stc8h_u16 duty;
-
-    if (angle > TOY_REMOTE_STEERING_MAX) {
-        angle = TOY_REMOTE_STEERING_CENTER;
-    }
 
     duty = (stc8h_u16)(APP_OUTPUT_SERVO_MIN_DUTY + ((stc8h_u16)angle * 10u) + ((angle + 2u) >> 2));
     return (duty > APP_OUTPUT_SERVO_MAX_DUTY) ? APP_OUTPUT_SERVO_MAX_DUTY : duty;
@@ -83,11 +75,6 @@ void app_outputs_init(void)
 
 void app_outputs_apply_control(const toy_remote_control_t *control)
 {
-    if ((control == 0) || (toy_remote_validate_control(control) != STC8H_OK)) {
-        app_outputs_apply_safe();
-        return;
-    }
-
     TOY_REMOTE_RX_MOTOR_STOP();
     (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_A,
                               STC8H_PWM_CHANNEL_1,

@@ -29,9 +29,6 @@ void app_status_init(toy_remote_status_t *status)
 {
     stc8h_adc_init();
     sample_divider = 0u;
-    if (status == 0) {
-        return;
-    }
 
     status->link_state = TOY_REMOTE_LINK_STATE_LOST;
     status->voltage_int = 0u;
@@ -42,13 +39,9 @@ void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *
 {
     stc8h_u16 centivolts;
 
-    if (status == 0) {
-        return;
-    }
-
     status->link_state = (link_lost == 0u) ? TOY_REMOTE_LINK_STATE_CONNECTED : TOY_REMOTE_LINK_STATE_LOST;
 
-    if ((control == 0) || (control->request_voltage == 0u)) {
+    if (control->request_voltage == 0u) {
         return;
     }
 

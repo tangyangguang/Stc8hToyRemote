@@ -27,7 +27,15 @@ static stc8h_u8 ch_minus_pressed;
 
 static void apply_safe_state(void)
 {
-    toy_remote_control_set_safe(&control);
+    control.direction = TOY_REMOTE_DIRECTION_FORWARD;
+    control.speed = 0u;
+    control.brake = 0u;
+    control.steering_angle = TOY_REMOTE_STEERING_CENTER;
+    control.light = 0u;
+    control.buzzer = 0u;
+    control.aux_pwm = 0u;
+    control.request_voltage = 0u;
+    control.tx_id = 0u;
     app_outputs_apply_safe();
     link_lost = 1u;
 }
@@ -118,7 +126,7 @@ static void handle_channel_buttons(void)
         if (ch_add_pressed == 0u) {
             ch_add_pressed = 1u;
             config.rf_channel = (config.rf_channel >= 125u) ? 0u : (stc8h_u8)(config.rf_channel + 1u);
-            (void)app_radio_set_channel(config.rf_channel);
+            app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
             prepare_ack_status();
@@ -131,7 +139,7 @@ static void handle_channel_buttons(void)
         if (ch_minus_pressed == 0u) {
             ch_minus_pressed = 1u;
             config.rf_channel = (config.rf_channel == 0u) ? 125u : (stc8h_u8)(config.rf_channel - 1u);
-            (void)app_radio_set_channel(config.rf_channel);
+            app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
             prepare_ack_status();
@@ -177,7 +185,7 @@ void main(void)
     while (1) {
         handle_channel_buttons();
         if (radio_error == 0u) {
-            if (app_radio_receive_packet(packet, APP_RADIO_PACKET_SIZE) == APP_RADIO_RX_PACKET) {
+            if (app_radio_receive_packet(packet) == APP_RADIO_RX_PACKET) {
                 handle_packet();
                 ++packet_count;
             } else {

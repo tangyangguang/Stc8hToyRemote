@@ -44,31 +44,24 @@ stc8h_status_t app_radio_init_rx(stc8h_u8 channel)
     return STC8H_OK;
 }
 
-stc8h_status_t app_radio_set_channel(stc8h_u8 channel)
+void app_radio_set_channel(stc8h_u8 channel)
 {
-    if (drv_nrf24l01_set_channel(channel) != STC8H_OK) {
-        return STC8H_ERROR;
-    }
+    (void)drv_nrf24l01_set_channel(channel);
     drv_nrf24l01_flush_rx();
     drv_nrf24l01_clear_irq(0x70u);
     drv_nrf24l01_enter_rx();
-    return STC8H_OK;
 }
 
-app_radio_rx_result_t app_radio_receive_packet(stc8h_u8 *packet, stc8h_u8 len)
+app_radio_rx_result_t app_radio_receive_packet(stc8h_u8 *packet)
 {
     stc8h_u8 status;
-
-    if ((packet == 0) || (len != APP_RADIO_PACKET_SIZE)) {
-        return APP_RADIO_RX_ERROR;
-    }
 
     status = drv_nrf24l01_read_status();
     if ((status & DRV_NRF24L01_STATUS_RX_READY) == 0u) {
         return APP_RADIO_RX_NONE;
     }
 
-    (void)drv_nrf24l01_read_payload(packet, len);
+    (void)drv_nrf24l01_read_payload(packet, APP_RADIO_PACKET_SIZE);
     drv_nrf24l01_flush_rx();
     drv_nrf24l01_clear_irq(status);
     return APP_RADIO_RX_PACKET;

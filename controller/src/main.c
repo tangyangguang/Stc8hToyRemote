@@ -38,13 +38,19 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_CONFIG_ENTER_TICKS 60u
 #define APP_CONFIG_ITEM_REDUCE 0u
 #define APP_CONFIG_ITEM_MIDDLE 1u
-#define display_digit(value) drv_tm1637_encode_digit(value)
 
-
-static stc8h_u8 display_speed_tens(stc8h_u8 speed)
+static stc8h_u8 display_digit(stc8h_u8 value)
 {
-    return (speed >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)(speed / 10u));
+    static const STC8H_CODE stc8h_u8 table[10] = {
+        0x3Fu, 0x06u, 0x5Bu, 0x4Fu, 0x66u,
+        0x6Du, 0x7Du, 0x07u, 0x7Fu, 0x6Fu
+    };
+
+    return table[value];
 }
+
+
+#define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)((speed) / 10u)))
 
 static void display_control(void)
 {
@@ -359,7 +365,6 @@ void main(void)
     current_channel = config.last_channel;
     drv_tm1637_init();
     drv_tm1637_set_brightness(1u);
-    drv_tm1637_set_display(1u);
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;

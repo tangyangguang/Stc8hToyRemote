@@ -30,10 +30,6 @@ static void app_config_set_defaults(app_config_t *config)
 
 stc8h_status_t app_config_load(app_config_t *config)
 {
-    if (config == 0) {
-        return STC8H_ERROR;
-    }
-
     if (stc8h_eeprom_read_fixed(app_config_buf) != STC8H_OK) {
         app_config_set_defaults(config);
         return STC8H_ERROR;
@@ -59,10 +55,6 @@ stc8h_status_t app_config_load(app_config_t *config)
 
 stc8h_status_t app_config_save(const app_config_t *config)
 {
-    if ((config == 0) || (config->rf_channel > 125u) || (config->servo_reverse > 1u)) {
-        return STC8H_ERROR;
-    }
-
     app_config_buf[0] = APP_CONFIG_MAGIC0;
     app_config_buf[1] = APP_CONFIG_MAGIC1;
     app_config_buf[2] = APP_CONFIG_VERSION;

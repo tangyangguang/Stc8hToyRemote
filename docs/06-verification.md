@@ -184,3 +184,16 @@ receiver：
 - receiver: flash `7089/8192`，剩余 `1103` bytes
 - 两端均无 DSEG/OSEG 链接错误。
 - 压缩方式只消除内部不可达检查、固定参数和重复显示分支，不删除频道扫描、配置模式、ACK、电压显示或掉线安全功能。
+
+2026-05-16 第二轮无功能损失压缩后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `7825/8192`，剩余 `367` bytes
+- receiver: flash `6482/8192`，剩余 `1710` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 新增压缩方式：关闭未用 TM1637 clear/encode API、应用侧固定数字编码、receiver 去掉解包后重复校验和固定参数检查。
