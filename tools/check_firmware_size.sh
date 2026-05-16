@@ -33,5 +33,5 @@ PY
     fi
 }
 
-check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 8164
-check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 7791
+check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7539
+check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 7089

@@ -145,3 +145,16 @@ receiver：
 - controller: flash `8164/8192`
 - receiver: flash `7791/8192`
 - 两端均无 DSEG/OSEG 链接错误。
+
+2026-05-16 固件尺寸优化后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `7539/8192`，剩余 `653` bytes
+- receiver: flash `7089/8192`，剩余 `1103` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 保留功能：控制输入、nRF24 通信、ACK 状态回传、电压显示/回传、频道扫描、receiver 绑定、EEPROM 配置、receiver 掉线安全态、电机/舵机/灯/蜂鸣器/aux PWM 输出。
