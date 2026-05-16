@@ -1,0 +1,13 @@
+.DS_Store
+.pio/
+build/
+Objects/
+Listings/
+*.obj
+*.lst
+*.map
+*.hex
+*.SBR
+*.lnp
+*.build_log.htm
+*.__i
