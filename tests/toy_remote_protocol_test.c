@@ -151,6 +151,40 @@ static void test_status_set_voltage_centivolts_caps_display_range(void)
     assert(toy_remote_validate_status(&status) == STC8H_OK);
 }
 
+static void test_control_adjust_speed_increases_and_caps(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = 95u;
+
+    assert(toy_remote_control_adjust_speed(&control, 10) == STC8H_OK);
+    assert(control.speed == TOY_REMOTE_CONTROL_SPEED_MAX);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
+static void test_control_adjust_speed_decreases_and_floors(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = 5u;
+
+    assert(toy_remote_control_adjust_speed(&control, -10) == STC8H_OK);
+    assert(control.speed == 0u);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
+static void test_control_adjust_speed_rejects_invalid_starting_control(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = (stc8h_u8)(TOY_REMOTE_CONTROL_SPEED_MAX + 1u);
+
+    assert(toy_remote_control_adjust_speed(&control, 1) == STC8H_ERROR);
+}
+
 int main(void)
 {
     test_control_pack_rejects_invalid_range();
@@ -164,5 +198,8 @@ int main(void)
     test_control_set_steering_from_adc_clamps_high_adc();
     test_status_set_voltage_centivolts_splits_int_and_decimal();
     test_status_set_voltage_centivolts_caps_display_range();
+    test_control_adjust_speed_increases_and_caps();
+    test_control_adjust_speed_decreases_and_floors();
+    test_control_adjust_speed_rejects_invalid_starting_control();
     return 0;
 }

@@ -40,7 +40,7 @@ CONNECTING
 Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、喇叭、辅助 PWM 和电压显示。新项目保留这些作为需求线索，但最终交互按新需求评估实现：
 
 - 方向是持续状态，不做旧按钮切换兼容。
-- 速度是 `0..100` 的持续状态。
+- 速度是 `0..100` 的持续状态；EC11 增减量先通过 `toy_remote_control_adjust_speed()` 限幅。
 - 刹车语义在 controller 侧归约：
   - `TOY_REMOTE_BRAKE_RELEASE`：松开刹车，不改变速度。
   - `TOY_REMOTE_BRAKE_HOLD_SPEED`：刹车但不清速度。

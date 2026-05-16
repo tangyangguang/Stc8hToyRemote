@@ -67,6 +67,25 @@ stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *co
     return toy_remote_validate_control(control);
 }
 
+stc8h_status_t toy_remote_control_adjust_speed(toy_remote_control_t *control, stc8h_s16 delta)
+{
+    stc8h_s16 speed;
+
+    if (toy_remote_validate_control(control) != STC8H_OK) {
+        return STC8H_ERROR;
+    }
+
+    speed = (stc8h_s16)control->speed + delta;
+    if (speed < 0) {
+        speed = 0;
+    } else if (speed > (stc8h_s16)TOY_REMOTE_CONTROL_SPEED_MAX) {
+        speed = (stc8h_s16)TOY_REMOTE_CONTROL_SPEED_MAX;
+    }
+
+    control->speed = (stc8h_u8)speed;
+    return STC8H_OK;
+}
+
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control)
 {
     if (control == 0) {
