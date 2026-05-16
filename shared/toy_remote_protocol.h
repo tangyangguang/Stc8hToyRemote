@@ -27,6 +27,14 @@
 #define TOY_REMOTE_STATUS_OFFSET_TX_ID_L 4u
 #define TOY_REMOTE_STATUS_OFFSET_TX_ID_H 5u
 
+#define TOY_REMOTE_GET_U16_LE(buf, off) \
+    ((stc8h_u16)((stc8h_u16)(buf)[(off)] | ((stc8h_u16)(buf)[(off) + 1u] << 8)))
+
+#define TOY_REMOTE_PUT_U16_LE(buf, off, value) do { \
+    (buf)[(off)] = (stc8h_u8)(value); \
+    (buf)[(off) + 1u] = (stc8h_u8)((value) >> 8); \
+} while (0)
+
 #define TOY_REMOTE_DIRECTION_FORWARD 0u
 #define TOY_REMOTE_DIRECTION_REVERSE 1u
 

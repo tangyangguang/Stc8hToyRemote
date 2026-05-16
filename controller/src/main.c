@@ -87,10 +87,16 @@ static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
 static stc8h_status_t make_control_packet(void)
 {
     control.tx_id = config.tx_id;
-    if (toy_remote_pack_control(payload, &control) != STC8H_OK) {
-        return STC8H_ERROR;
-    }
-
+    payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
+    payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = control.direction;
+    payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
+    payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
+    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = control.steering_angle;
+    payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
+    payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
+    payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
+    payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = control.request_voltage;
+    TOY_REMOTE_PUT_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L, control.tx_id);
     return proto_rf_link_send_data(&link, packet, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE);
 }
 

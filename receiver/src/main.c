@@ -58,17 +58,40 @@ static void prepare_ack_status(void)
     (void)app_radio_write_ack_packet(status_packet, APP_RADIO_PACKET_SIZE);
 }
 
+static stc8h_status_t unpack_control_payload(stc8h_u8 payload_len)
+{
+    if ((payload_len != TOY_REMOTE_CONTROL_PAYLOAD_SIZE) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] > TOY_REMOTE_DIRECTION_REVERSE) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] > TOY_REMOTE_CONTROL_SPEED_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] > TOY_REMOTE_STEERING_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] > TOY_REMOTE_CONTROL_AUX_PWM_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] > 1u)) {
+        return STC8H_ERROR;
+    }
+
+    control.direction = payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION];
+    control.speed = payload[TOY_REMOTE_CONTROL_OFFSET_SPEED];
+    control.brake = payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE];
+    control.steering_angle = payload[TOY_REMOTE_CONTROL_OFFSET_STEERING];
+    control.light = payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT];
+    control.buzzer = payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER];
+    control.aux_pwm = payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM];
+    control.request_voltage = payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE];
+    control.tx_id = TOY_REMOTE_GET_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L);
+    return (control.tx_id == 0u) ? STC8H_ERROR : STC8H_OK;
+}
+
 static void handle_packet(void)
 {
     stc8h_u8 payload_len;
 
     payload_len = 0u;
     if (proto_rf_link_poll(&link, packet, 0, payload, &payload_len) == PROTO_RF_LINK_EVENT_DATA) {
-        if (toy_remote_unpack_control(&control, payload, payload_len) == STC8H_OK) {
-            if (control.tx_id == 0u) {
-                ++invalid_packet_count;
-                return;
-            }
+        if (unpack_control_payload(payload_len) == STC8H_OK) {
             if (config.bound_tx_id == 0u) {
                 config.bound_tx_id = control.tx_id;
                 (void)app_config_save(&config);
