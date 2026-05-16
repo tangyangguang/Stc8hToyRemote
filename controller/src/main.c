@@ -1,33 +1,41 @@
+#include "app_radio.h"
 #include "drv_nrf24l01.h"
 #include "proto_rf_link.h"
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
 
-static proto_rf_link_t link;
-static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
-static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
-static toy_remote_control_t control;
+static STC8H_XDATA stc8h_u8 packet[APP_RADIO_PACKET_SIZE];
+static stc8h_u8 seq;
+static app_radio_tx_result_t last_tx_result;
+
+static void make_fixed_packet(void)
+{
+    stc8h_u8 i;
+
+    for (i = 0u; i < APP_RADIO_PACKET_SIZE; ++i) {
+        packet[i] = 0u;
+    }
+
+    packet[0] = 0xA5u;
+    packet[1] = 0x01u;
+    packet[2] = seq;
+    packet[3] = (stc8h_u8)last_tx_result;
+    ++seq;
+}
 
 void main(void)
 {
     stc8h_spi_init();
-    drv_nrf24l01_init_pins();
+    last_tx_result = APP_RADIO_TX_IDLE;
 
-    proto_rf_link_init(&link);
-    proto_rf_link_set_ids(&link, 1u, 2u);
-
-    control.direction = 0u;
-    control.speed = 0u;
-    control.brake = 1u;
-    control.steering_angle = 90u;
-    control.light = 0u;
-    control.buzzer = 0u;
-    control.aux_pwm = 0u;
-    control.request_voltage = 0u;
-
-    (void)toy_remote_pack_control(payload, &control);
-    (void)proto_rf_link_send_data(&link, packet, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE);
+    if (app_radio_init_tx() != STC8H_OK) {
+        last_tx_result = APP_RADIO_TX_ERROR;
+    }
 
     while (1) {
+        make_fixed_packet();
+        if (last_tx_result != APP_RADIO_TX_ERROR) {
+            last_tx_result = app_radio_send_packet(packet, APP_RADIO_PACKET_SIZE);
+        }
     }
 }
