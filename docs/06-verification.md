@@ -2,7 +2,7 @@
 
 ## 本机验证
 
-协议测试：
+业务协议测试：
 
 ```sh
 cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol_test.c shared/toy_remote_protocol.c -o /tmp/toy_remote_protocol_test
@@ -17,6 +17,19 @@ cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol
 - 刹车动作归约符合 release、hold speed、clear speed 语义。
 - 转向 ADC 归约覆盖 0、中心、满量程、反向和高值限幅。
 - 电压 centivolts 归约能拆分整数/小数并对显示范围限幅。
+
+链路集成测试：
+
+```sh
+cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core -I../Stc8hBase/protocols tests/rf_link_integration_test.c shared/toy_remote_protocol.c ../Stc8hBase/protocols/proto_rf_link.c -o /tmp/rf_link_integration_test
+/tmp/rf_link_integration_test
+```
+
+期望：
+
+- 业务控制 payload 和状态 payload 均能放入 `PROTO_RF_LINK_PAYLOAD_MAX`。
+- control payload 能通过 `PROTO_RF_LINK_PACKET_DATA` 往返。
+- status payload 能通过 `PROTO_RF_LINK_PACKET_STATUS` 往返。
 
 ## 固件构建验证
 
