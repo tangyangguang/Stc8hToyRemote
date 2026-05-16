@@ -141,6 +141,15 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 - 暂不接入业务输入输出。
 - 记录无线发送频率、失败重试策略和断联降频策略。
 
+阶段 2 first build:
+
+- 固定地址：`TOYR1`
+- 固定频道：40
+- 固定 payload：32 bytes
+- controller 已提供 PTX 发送 loop。
+- receiver 已提供 PRX 接收 loop。
+- 硬件待验证：真实双板 `TX_DONE`、`MAX_RETRY`、`RX_READY`、断电恢复和断联功耗。
+
 ### 阶段 3：接入 `proto_rf_link`
 
 - 使用 32 字节链路包。
