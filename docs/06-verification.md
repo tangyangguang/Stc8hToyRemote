@@ -66,7 +66,8 @@ pio run
 固定参数：
 
 - 地址：`TOYR1`
-- 频道：40
+- controller 默认频道：40，可通过 `APP_DEFAULT_RF_CHANNEL` 编译期宏修改
+- receiver 保存频道：默认 40，可用 P30/P31 调整并保存
 - payload：32 bytes
 - controller：PTX
 - receiver：PRX
@@ -79,11 +80,14 @@ pio run
 - receiver 清 `RX_READY` 后可继续收包。
 - 断电恢复后双方无需复位即可恢复通信，若不能恢复，需要记录 radio 状态寄存器。
 - 连续发送/轮询阶段的电流作为 bring-up 基线，不作为最终功耗目标。
+- 多接收机测试：把不同 receiver 调到不同频道后，controller 能扫描到目标频道。
+- 绑定测试：receiver 未绑定时接受第一个合法 `tx_id`；绑定后丢弃其他 `tx_id`；P30+P31 上电清除绑定。
 
 ## 阶段 3 验证
 
 - `DATA` payload 版本、长度、字段范围校验。
 - `STATUS` 经 nRF24 ACK payload 回传链路状态和电压。
+- `STATUS` ACK 中的 `tx_id` 必须与 controller 的 `APP_TX_ID` 匹配。
 - controller 约 50ms 发送节拍。
 - receiver 超时进入安全状态。
 
@@ -116,4 +120,16 @@ receiver：
 
 - controller: flash `7226/8192`
 - receiver: flash `6644/8192`
+- 两端均无 DSEG/OSEG 链接错误。
+
+2026-05-16 加入简单频道扫描和 receiver 绑定后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `7622/8192`
+- receiver: flash `8005/8192`
 - 两端均无 DSEG/OSEG 链接错误。

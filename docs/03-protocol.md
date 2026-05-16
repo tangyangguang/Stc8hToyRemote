@@ -35,6 +35,8 @@ byte5 light
 byte6 buzzer
 byte7 aux_pwm
 byte8 request_voltage
+byte9 tx_id low
+byte10 tx_id high
 ```
 
 字段范围：
@@ -48,8 +50,9 @@ byte8 request_voltage
 - `buzzer`: `0..1`
 - `aux_pwm`: `0..100`
 - `request_voltage`: `0..1`
+- `tx_id`: `0..65535`，低字节在前；receiver 业务层拒绝 `0`
 
-该格式吸收了 Tx V2.x 记录中的核心控制字段，但不是旧格式兼容层。新格式增加 `version`，并且后续会放入 `proto_rf_link` 的 payload 中传输。
+该格式吸收了 Tx V2.x 记录中的核心控制字段，但不是旧格式兼容层。新格式增加 `version` 和 `tx_id`，并且放入 `proto_rf_link` 的 payload 中传输。
 
 ## 业务状态 payload
 
@@ -58,6 +61,8 @@ byte0 version
 byte1 link_state
 byte2 voltage_int
 byte3 voltage_dec
+byte4 tx_id low
+byte5 tx_id high
 ```
 
 字段范围：
@@ -66,6 +71,7 @@ byte3 voltage_dec
 - `link_state`: `0` idle, `1` connecting, `2` connected, `3` lost
 - `voltage_int`: 电压整数部分，`0..99`
 - `voltage_dec`: `0..99`
+- `tx_id`: receiver 当前绑定的遥控器 ID，低字节在前
 
 `toy_remote_status_set_voltage_centivolts()` 统一把百分之一伏表示拆成 `voltage_int` 和 `voltage_dec`。例如 `742` 表示 7.42V。超过 99.99V 时夹到 99.99V。
 
@@ -78,6 +84,7 @@ byte3 voltage_dec
 - unpack 后必须验证字段范围；非法 payload 返回 `STC8H_ERROR`。
 - 不直接发送 C struct。
 - ACK payload 只承载短状态回传，不承载控制命令。
+- receiver 丢弃 `tx_id=0` 的控制包；未绑定时绑定第一个合法非零 `tx_id`；已绑定后丢弃其他 `tx_id`。
 
 ## 安全默认控制值
 
@@ -92,6 +99,7 @@ light           0
 buzzer          0
 aux_pwm         0
 request_voltage 0
+tx_id           0
 ```
 
 receiver 进入安全状态时可以以此作为业务输入基线，再结合具体电机驱动策略决定刹车或滑行。

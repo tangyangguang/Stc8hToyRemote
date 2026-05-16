@@ -16,6 +16,16 @@ static app_radio_tx_result_t tx_result;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
+static stc8h_u8 current_channel;
+static stc8h_u8 radio_failures;
+
+#ifndef APP_TX_ID
+#define APP_TX_ID 0x4A21u
+#endif
+
+#ifndef APP_DEFAULT_RF_CHANNEL
+#define APP_DEFAULT_RF_CHANNEL 40u
+#endif
 
 #define APP_DISPLAY_BLANK 0x00u
 #define APP_DISPLAY_DASH 0x40u
@@ -82,6 +92,7 @@ static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
 
 static stc8h_status_t make_control_packet(void)
 {
+    control.tx_id = APP_TX_ID;
     if (toy_remote_pack_control(payload, &control) != STC8H_OK) {
         return STC8H_ERROR;
     }
@@ -103,7 +114,9 @@ static void handle_ack_status(stc8h_u8 ack_len)
         (ack[2] != PROTO_RF_LINK_PACKET_STATUS) ||
         (ack[6] != 2u) ||
         (ack[7] != 1u) ||
-        (ack[8] != TOY_REMOTE_STATUS_PAYLOAD_SIZE)) {
+        (ack[8] != TOY_REMOTE_STATUS_PAYLOAD_SIZE) ||
+        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)APP_TX_ID) ||
+        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(APP_TX_ID >> 8))) {
         return;
     }
     if ((ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
@@ -119,6 +132,49 @@ static void handle_ack_status(stc8h_u8 ack_len)
     rx_status.link_state = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
     rx_status.voltage_int = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
     rx_status.voltage_dec = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+    rx_status.tx_id = APP_TX_ID;
+}
+
+static stc8h_u8 probe_current_channel(void)
+{
+    stc8h_u8 i;
+
+    for (i = 0u; i < 2u; ++i) {
+        if (make_control_packet() == STC8H_OK) {
+            tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
+            handle_ack_status(app_radio_get_ack_len());
+            if (rx_status.tx_id == APP_TX_ID) {
+                return 1u;
+            }
+        }
+        stc8h_delay_ms(5u);
+    }
+    return 0u;
+}
+
+static void scan_channels(void)
+{
+    stc8h_u8 channel;
+    stc8h_u8 old_channel;
+
+    old_channel = current_channel;
+    if (probe_current_channel() != 0u) {
+        return;
+    }
+
+    for (channel = 0u; channel <= 125u; ++channel) {
+        if (app_radio_set_channel(channel) != STC8H_OK) {
+            continue;
+        }
+        current_channel = channel;
+        rx_status.tx_id = 0u;
+        if (probe_current_channel() != 0u) {
+            return;
+        }
+    }
+
+    current_channel = old_channel;
+    (void)app_radio_set_channel(current_channel);
 }
 
 static void update_voltage_display(void)
@@ -151,17 +207,21 @@ void main(void)
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
     app_input_init(&control);
+    control.tx_id = APP_TX_ID;
+    current_channel = APP_DEFAULT_RF_CHANNEL;
     display_init();
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
+    rx_status.tx_id = 0u;
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 
-    if (app_radio_init_tx() != STC8H_OK) {
+    if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
         while (1) {
         }
     }
+    scan_channels();
 
     while (1) {
         app_input_update(&control);
@@ -176,6 +236,14 @@ void main(void)
             update_voltage_display();
         } else {
             display_control((tx_result == APP_RADIO_TX_DONE) ? 1u : 0u);
+        }
+        if (tx_result == APP_RADIO_TX_DONE) {
+            radio_failures = 0u;
+        } else if (radio_failures < 10u) {
+            ++radio_failures;
+        } else {
+            radio_failures = 0u;
+            scan_channels();
         }
         stc8h_delay_ms(50u);
     }

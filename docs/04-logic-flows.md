@@ -5,7 +5,8 @@
 ```text
 init SPI
   -> init input and display
-  -> init nRF24 PTX on fixed address/channel
+  -> init nRF24 PTX on APP_DEFAULT_RF_CHANNEL
+  -> scan channels 0..125 until a matching ACK status is found
   -> loop:
        sample inputs
        pack control payload
@@ -13,6 +14,7 @@ init SPI
        send packet every about 50ms
        read ACK payload status when present
        refresh TM1637 display
+       rescan channels after repeated radio failures
 ```
 
 ## controller 正常模式线索
@@ -32,35 +34,42 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
 
 Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向反转和 EEPROM 保存。新项目暂缓实现配置模式；实施前必须先设计持久化格式、校验、默认值和恢复路径。
 
+controller 当前不写 EEPROM。`APP_TX_ID` 和 `APP_DEFAULT_RF_CHANNEL` 是编译期宏。
+
 ## receiver 启动流程
 
 ```text
 init output safe levels
 init SPI
   -> init ADC status
-  -> init nRF24 PRX on fixed address/channel
+  -> load receiver config: bound_tx_id, rf_channel, servo_reverse
+  -> if P30 and P31 are held at boot, clear bound_tx_id
+  -> init nRF24 PRX on saved rf_channel
   -> preload ACK status payload
   -> loop:
+       handle P30/P31 channel add/minus
        receive 32-byte radio packet
        proto_rf_link_poll DATA
        unpack and validate control payload
+       bind first valid tx_id or reject mismatched tx_id
        apply outputs
        update ACK status payload
        enter safe state on receive timeout
 ```
 
-阶段 3 目标流程：
+绑定和频道流程：
 
 ```text
-WAIT_CONTROLLER
-  -> receive HELLO
-  -> send STATUS or HELLO_ACK
-  -> CONNECTED
-  -> receive DATA
-  -> validate payload
-  -> apply outputs
-  -> refresh last_packet_ms
-  -> SAFE_STATE on timeout
+receiver unbound:
+  valid control tx_id != 0 -> save bound_tx_id
+
+receiver bound:
+  matching tx_id -> apply outputs
+  different tx_id -> drop packet
+
+receiver P30 rising edge -> channel + 1, wrap 125 to 0, save config
+receiver P31 rising edge -> channel - 1, wrap 0 to 125, save config
+receiver boot with P30+P31 held -> clear binding, keep channel
 ```
 
 ## receiver 安全状态流程
@@ -92,7 +101,7 @@ controller：
 send packet
   -> TX_DONE: clear IRQ, remain connected
   -> MAX_RETRY: flush TX, clear IRQ, count failure
-  -> repeated failure: LINK_LOST, reduce retry rate
+  -> repeated failure: rescan channels
 ```
 
 receiver：
@@ -114,7 +123,7 @@ receiver:
   update link_state
   if controller requests voltage:
        low-frequency sample ADC1/P1.1
-  build 4-byte toy status payload
+  build 6-byte toy status payload
   build 32-byte proto_rf_link STATUS packet
   write nRF24 ACK payload pipe0
 

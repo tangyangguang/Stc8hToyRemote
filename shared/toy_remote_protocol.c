@@ -22,6 +22,7 @@ void toy_remote_control_set_safe(toy_remote_control_t *control)
     control->buzzer = 0u;
     control->aux_pwm = 0u;
     control->request_voltage = 0u;
+    control->tx_id = 0u;
 }
 #endif
 
@@ -182,6 +183,8 @@ stc8h_status_t toy_remote_pack_control(stc8h_u8 *payload, const toy_remote_contr
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control->buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control->aux_pwm;
     payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = control->request_voltage;
+    payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_L] = (stc8h_u8)control->tx_id;
+    payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_H] = (stc8h_u8)(control->tx_id >> 8);
     return STC8H_OK;
 }
 #endif
@@ -204,6 +207,8 @@ stc8h_status_t toy_remote_unpack_control(toy_remote_control_t *control, const st
     control->buzzer = payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER];
     control->aux_pwm = payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM];
     control->request_voltage = payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE];
+    control->tx_id = (stc8h_u16)((stc8h_u16)payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_L] |
+                                  ((stc8h_u16)payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_H] << 8));
     return toy_remote_validate_control(control);
 }
 #endif
@@ -219,6 +224,8 @@ stc8h_status_t toy_remote_pack_status(stc8h_u8 *payload, const toy_remote_status
     payload[TOY_REMOTE_STATUS_OFFSET_LINK_STATE] = status->link_state;
     payload[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] = status->voltage_int;
     payload[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] = status->voltage_dec;
+    payload[TOY_REMOTE_STATUS_OFFSET_TX_ID_L] = (stc8h_u8)status->tx_id;
+    payload[TOY_REMOTE_STATUS_OFFSET_TX_ID_H] = (stc8h_u8)(status->tx_id >> 8);
     return STC8H_OK;
 }
 #endif
@@ -236,6 +243,8 @@ stc8h_status_t toy_remote_unpack_status(toy_remote_status_t *status, const stc8h
     status->link_state = payload[TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
     status->voltage_int = payload[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
     status->voltage_dec = payload[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+    status->tx_id = (stc8h_u16)((stc8h_u16)payload[TOY_REMOTE_STATUS_OFFSET_TX_ID_L] |
+                                 ((stc8h_u16)payload[TOY_REMOTE_STATUS_OFFSET_TX_ID_H] << 8));
     return toy_remote_validate_status(status);
 }
 #endif

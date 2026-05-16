@@ -1,11 +1,14 @@
+#include "app_config.h"
 #include "app_radio.h"
 #include "app_outputs.h"
 #include "app_status.h"
+#include "board_pins.h"
 #include "proto_rf_link.h"
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
 
 static STC8H_XDATA proto_rf_link_t link;
+static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
@@ -16,6 +19,8 @@ static stc8h_u8 packet_count;
 static stc8h_u8 radio_error;
 static stc8h_u8 invalid_packet_count;
 static stc8h_u8 link_lost;
+static stc8h_u8 ch_add_pressed;
+static stc8h_u8 ch_minus_pressed;
 
 #define APP_RECEIVER_IDLE_POLL_LIMIT 60000u
 
@@ -31,6 +36,7 @@ static void prepare_ack_status(void)
     stc8h_u8 i;
 
     app_status_update(&status, &control, link_lost);
+    status.tx_id = config.bound_tx_id;
 
     for (i = 0u; i < APP_RADIO_PACKET_SIZE; ++i) {
         status_packet[i] = 0u;
@@ -59,6 +65,17 @@ static void handle_packet(void)
     payload_len = 0u;
     if (proto_rf_link_poll(&link, packet, 0, payload, &payload_len) == PROTO_RF_LINK_EVENT_DATA) {
         if (toy_remote_unpack_control(&control, payload, payload_len) == STC8H_OK) {
+            if (control.tx_id == 0u) {
+                ++invalid_packet_count;
+                return;
+            }
+            if (config.bound_tx_id == 0u) {
+                config.bound_tx_id = control.tx_id;
+                (void)app_config_save(&config);
+            } else if (control.tx_id != config.bound_tx_id) {
+                ++invalid_packet_count;
+                return;
+            }
             idle_polls = 0u;
             link_lost = 0u;
             app_outputs_apply_control(&control);
@@ -68,6 +85,35 @@ static void handle_packet(void)
     }
 
     ++invalid_packet_count;
+}
+
+static void handle_channel_buttons(void)
+{
+    if (TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) {
+        if (ch_add_pressed == 0u) {
+            ch_add_pressed = 1u;
+            config.rf_channel = (config.rf_channel >= 125u) ? 0u : (stc8h_u8)(config.rf_channel + 1u);
+            (void)app_radio_set_channel(config.rf_channel);
+            (void)app_config_save(&config);
+            apply_safe_state();
+            prepare_ack_status();
+        }
+    } else {
+        ch_add_pressed = 0u;
+    }
+
+    if (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u) {
+        if (ch_minus_pressed == 0u) {
+            ch_minus_pressed = 1u;
+            config.rf_channel = (config.rf_channel == 0u) ? 125u : (stc8h_u8)(config.rf_channel - 1u);
+            (void)app_radio_set_channel(config.rf_channel);
+            (void)app_config_save(&config);
+            apply_safe_state();
+            prepare_ack_status();
+        }
+    } else {
+        ch_minus_pressed = 0u;
+    }
 }
 
 static void handle_idle_poll(void)
@@ -85,17 +131,26 @@ void main(void)
     stc8h_spi_init();
     app_outputs_init();
     app_status_init(&status);
+    (void)app_config_load(&config);
+    P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
+    P3M0 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
+    if ((TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) && (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u)) {
+        config.bound_tx_id = 0u;
+        (void)app_config_save(&config);
+    }
+    status.tx_id = config.bound_tx_id;
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 2u, 1u);
     apply_safe_state();
 
-    if (app_radio_init_rx() != STC8H_OK) {
+    if (app_radio_init_rx(config.rf_channel) != STC8H_OK) {
         radio_error = 1u;
     } else {
         prepare_ack_status();
     }
 
     while (1) {
+        handle_channel_buttons();
         if (radio_error == 0u) {
             if (app_radio_receive_packet(packet, APP_RADIO_PACKET_SIZE) == APP_RADIO_RX_PACKET) {
                 handle_packet();

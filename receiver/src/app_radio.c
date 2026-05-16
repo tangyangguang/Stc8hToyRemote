@@ -1,12 +1,11 @@
 #include "app_radio.h"
 #include "drv_nrf24l01.h"
 
-#define APP_RADIO_CHANNEL 40u
 #define APP_RADIO_ADDR_LEN 5u
 
 static const stc8h_u8 app_radio_addr[APP_RADIO_ADDR_LEN] = {'T', 'O', 'Y', 'R', '1'};
 
-stc8h_status_t app_radio_init_rx(void)
+stc8h_status_t app_radio_init_rx(stc8h_u8 channel)
 {
     drv_nrf24l01_init_pins();
     drv_nrf24l01_power_down();
@@ -17,7 +16,7 @@ stc8h_status_t app_radio_init_rx(void)
     if (drv_nrf24l01_check_present() != STC8H_OK) {
         return STC8H_ERROR;
     }
-    if (drv_nrf24l01_set_channel(APP_RADIO_CHANNEL) != STC8H_OK) {
+    if (drv_nrf24l01_set_channel(channel) != STC8H_OK) {
         return STC8H_ERROR;
     }
     if (drv_nrf24l01_set_address_width(APP_RADIO_ADDR_LEN) != STC8H_OK) {
@@ -41,6 +40,17 @@ stc8h_status_t app_radio_init_rx(void)
         return STC8H_ERROR;
     }
 
+    drv_nrf24l01_enter_rx();
+    return STC8H_OK;
+}
+
+stc8h_status_t app_radio_set_channel(stc8h_u8 channel)
+{
+    if (drv_nrf24l01_set_channel(channel) != STC8H_OK) {
+        return STC8H_ERROR;
+    }
+    drv_nrf24l01_flush_rx();
+    drv_nrf24l01_clear_irq(0x70u);
     drv_nrf24l01_enter_rx();
     return STC8H_OK;
 }

@@ -28,6 +28,7 @@ static void test_control_safe_defaults_are_neutral(void)
     assert(control.buzzer == 0u);
     assert(control.aux_pwm == 0u);
     assert(control.request_voltage == 0u);
+    assert(control.tx_id == 0u);
     assert(toy_remote_validate_control(&control) == STC8H_OK);
 }
 
@@ -39,6 +40,7 @@ static void test_status_rejects_invalid_decimal_voltage(void)
     status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
     status.voltage_int = 8u;
     status.voltage_dec = 100u;
+    status.tx_id = 0x1234u;
 
     assert(toy_remote_validate_status(&status) == STC8H_ERROR);
     assert(toy_remote_pack_status(payload, &status) == STC8H_ERROR);
@@ -130,6 +132,7 @@ static void test_status_set_voltage_centivolts_splits_int_and_decimal(void)
     status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
     status.voltage_int = 0u;
     status.voltage_dec = 0u;
+    status.tx_id = 0x1234u;
 
     assert(toy_remote_status_set_voltage_centivolts(&status, 742u) == STC8H_OK);
     assert(status.voltage_int == 7u);
@@ -144,6 +147,7 @@ static void test_status_set_voltage_centivolts_caps_display_range(void)
     status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
     status.voltage_int = 0u;
     status.voltage_dec = 0u;
+    status.tx_id = 0x1234u;
 
     assert(toy_remote_status_set_voltage_centivolts(&status, 30000u) == STC8H_OK);
     assert(status.voltage_int == TOY_REMOTE_VOLTAGE_INT_MAX);

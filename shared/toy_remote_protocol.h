@@ -5,8 +5,8 @@
 
 #define TOY_REMOTE_PROTOCOL_VERSION 1u
 
-#define TOY_REMOTE_CONTROL_PAYLOAD_SIZE 9u
-#define TOY_REMOTE_STATUS_PAYLOAD_SIZE 4u
+#define TOY_REMOTE_CONTROL_PAYLOAD_SIZE 11u
+#define TOY_REMOTE_STATUS_PAYLOAD_SIZE 6u
 
 #define TOY_REMOTE_CONTROL_OFFSET_VERSION 0u
 #define TOY_REMOTE_CONTROL_OFFSET_DIRECTION 1u
@@ -17,11 +17,15 @@
 #define TOY_REMOTE_CONTROL_OFFSET_BUZZER 6u
 #define TOY_REMOTE_CONTROL_OFFSET_AUX_PWM 7u
 #define TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE 8u
+#define TOY_REMOTE_CONTROL_OFFSET_TX_ID_L 9u
+#define TOY_REMOTE_CONTROL_OFFSET_TX_ID_H 10u
 
 #define TOY_REMOTE_STATUS_OFFSET_VERSION 0u
 #define TOY_REMOTE_STATUS_OFFSET_LINK_STATE 1u
 #define TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT 2u
 #define TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC 3u
+#define TOY_REMOTE_STATUS_OFFSET_TX_ID_L 4u
+#define TOY_REMOTE_STATUS_OFFSET_TX_ID_H 5u
 
 #define TOY_REMOTE_DIRECTION_FORWARD 0u
 #define TOY_REMOTE_DIRECTION_REVERSE 1u
@@ -98,12 +102,14 @@ typedef struct {
     stc8h_u8 buzzer;
     stc8h_u8 aux_pwm;
     stc8h_u8 request_voltage;
+    stc8h_u16 tx_id;
 } toy_remote_control_t;
 
 typedef struct {
     stc8h_u8 link_state;
     stc8h_u8 voltage_int;
     stc8h_u8 voltage_dec;
+    stc8h_u16 tx_id;
 } toy_remote_status_t;
 
 #if TOY_REMOTE_ENABLE_CONTROL_SET_SAFE

@@ -35,6 +35,7 @@ static void test_control_payload_round_trips_through_rf_link_data_packet(void)
     control.buzzer = 0u;
     control.aux_pwm = 35u;
     control.request_voltage = 1u;
+    control.tx_id = 0x4A21u;
 
     assert(toy_remote_pack_control(control_payload, &control) == STC8H_OK);
     assert(proto_rf_link_send_data(&tx_link, packet, control_payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE) == STC8H_OK);
@@ -51,6 +52,7 @@ static void test_control_payload_round_trips_through_rf_link_data_packet(void)
     assert(decoded_control.buzzer == control.buzzer);
     assert(decoded_control.aux_pwm == control.aux_pwm);
     assert(decoded_control.request_voltage == control.request_voltage);
+    assert(decoded_control.tx_id == control.tx_id);
 }
 
 static void test_status_payload_round_trips_through_rf_link_status_packet(void)
@@ -71,6 +73,7 @@ static void test_status_payload_round_trips_through_rf_link_status_packet(void)
     proto_rf_link_set_ids(&rx_link, 1u, 2u);
 
     status.link_state = TOY_REMOTE_LINK_STATE_CONNECTED;
+    status.tx_id = 0x4A21u;
     assert(toy_remote_status_set_voltage_centivolts(&status, 742u) == STC8H_OK);
 
     assert(toy_remote_pack_status(status_payload, &status) == STC8H_OK);
@@ -83,6 +86,7 @@ static void test_status_payload_round_trips_through_rf_link_status_packet(void)
     assert(decoded_status.link_state == status.link_state);
     assert(decoded_status.voltage_int == status.voltage_int);
     assert(decoded_status.voltage_dec == status.voltage_dec);
+    assert(decoded_status.tx_id == status.tx_id);
 }
 
 int main(void)
