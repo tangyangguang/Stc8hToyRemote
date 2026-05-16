@@ -12,29 +12,26 @@
 
 static stc8h_u16 app_outputs_percent_to_fast_duty(stc8h_u8 percent)
 {
-    stc8h_u32 duty;
+    stc8h_u16 duty;
 
     if (percent > 100u) {
         percent = 100u;
     }
 
-    duty = (stc8h_u32)percent * APP_OUTPUT_FAST_PWM_PERIOD;
-    duty = (duty + 50u) / 100u;
-    return (stc8h_u16)duty;
+    duty = (stc8h_u16)((stc8h_u16)percent * 11u);
+    return (stc8h_u16)(duty + ((percent + 10u) / 20u));
 }
 
 static stc8h_u16 app_outputs_angle_to_servo_duty(stc8h_u8 angle)
 {
-    stc8h_u32 duty;
+    stc8h_u16 duty;
 
     if (angle > TOY_REMOTE_STEERING_MAX) {
         angle = TOY_REMOTE_STEERING_CENTER;
     }
 
-    duty = (stc8h_u32)(APP_OUTPUT_SERVO_MAX_DUTY - APP_OUTPUT_SERVO_MIN_DUTY) * angle;
-    duty = (duty + (TOY_REMOTE_STEERING_MAX / 2u)) / TOY_REMOTE_STEERING_MAX;
-    duty += APP_OUTPUT_SERVO_MIN_DUTY;
-    return (stc8h_u16)duty;
+    duty = (stc8h_u16)(APP_OUTPUT_SERVO_MIN_DUTY + ((stc8h_u16)angle * 10u) + ((angle + 2u) >> 2));
+    return (duty > APP_OUTPUT_SERVO_MAX_DUTY) ? APP_OUTPUT_SERVO_MAX_DUTY : duty;
 }
 
 void app_outputs_apply_safe(void)

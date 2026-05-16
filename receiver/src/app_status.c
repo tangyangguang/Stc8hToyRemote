@@ -11,7 +11,6 @@ static stc8h_u16 app_status_read_rx_battery_centivolts(void)
     stc8h_u8 i;
     stc8h_u16 adc;
     stc8h_u16 sum;
-    stc8h_u32 centivolts;
 
     sum = 0u;
     for (i = 0u; i < 8u; ++i) {
@@ -23,9 +22,7 @@ static stc8h_u16 app_status_read_rx_battery_centivolts(void)
     }
 
     adc = (stc8h_u16)(sum >> 3);
-    centivolts = (stc8h_u32)adc * 13286u;
-    centivolts = (centivolts + 512u) / 1024u;
-    return (stc8h_u16)centivolts;
+    return (stc8h_u16)(adc * 13u);
 }
 
 void app_status_init(toy_remote_status_t *status)
