@@ -4,8 +4,8 @@
 #define APP_RADIO_ADDR_LEN 5u
 
 static const stc8h_u8 app_radio_addr[APP_RADIO_ADDR_LEN] = {'T', 'O', 'Y', 'R', '1'};
-static STC8H_XDATA stc8h_u8 app_radio_ack_packet[APP_RADIO_PACKET_SIZE];
-static stc8h_u8 app_radio_ack_len;
+STC8H_XDATA stc8h_u8 app_radio_ack_packet[APP_RADIO_PACKET_SIZE];
+stc8h_u8 app_radio_ack_len;
 
 stc8h_status_t app_radio_init_tx(stc8h_u8 channel)
 {
@@ -99,14 +99,4 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet, stc
     drv_nrf24l01_flush_tx();
     drv_nrf24l01_clear_irq(status);
     return APP_RADIO_TX_ERROR;
-}
-
-const stc8h_u8 *app_radio_get_ack_packet(void)
-{
-    return app_radio_ack_packet;
-}
-
-stc8h_u8 app_radio_get_ack_len(void)
-{
-    return app_radio_ack_len;
 }

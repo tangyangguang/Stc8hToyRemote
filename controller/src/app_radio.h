@@ -15,7 +15,8 @@ typedef enum {
 stc8h_status_t app_radio_init_tx(stc8h_u8 channel);
 stc8h_status_t app_radio_set_channel(stc8h_u8 channel);
 app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet, stc8h_u8 len);
-const stc8h_u8 *app_radio_get_ack_packet(void);
-stc8h_u8 app_radio_get_ack_len(void);
+
+extern STC8H_XDATA stc8h_u8 app_radio_ack_packet[APP_RADIO_PACKET_SIZE];
+extern stc8h_u8 app_radio_ack_len;
 
 #endif

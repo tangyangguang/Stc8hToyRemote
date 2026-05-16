@@ -108,7 +108,7 @@ static void handle_ack_status(stc8h_u8 ack_len)
         return;
     }
 
-    ack = app_radio_get_ack_packet();
+    ack = app_radio_ack_packet;
     if ((ack[0] != PROTO_RF_LINK_MAGIC) ||
         (ack[1] != PROTO_RF_LINK_VERSION) ||
         (ack[2] != PROTO_RF_LINK_PACKET_STATUS) ||
@@ -142,7 +142,7 @@ static stc8h_u8 probe_current_channel(void)
     for (i = 0u; i < 2u; ++i) {
         if (make_control_packet() == STC8H_OK) {
             tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
-            handle_ack_status(app_radio_get_ack_len());
+            handle_ack_status(app_radio_ack_len);
             if (rx_status.tx_id == config.tx_id) {
                 return 1u;
             }
@@ -234,7 +234,7 @@ void main(void)
         app_input_update(&control);
         if (make_control_packet() == STC8H_OK) {
             tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
-            handle_ack_status(app_radio_get_ack_len());
+            handle_ack_status(app_radio_ack_len);
         } else {
             tx_result = APP_RADIO_TX_ERROR;
         }

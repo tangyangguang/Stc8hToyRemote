@@ -3,6 +3,7 @@
 #include "app_outputs.h"
 #include "app_status.h"
 #include "board_pins.h"
+#include "drv_nrf24l01.h"
 #include "proto_rf_link.h"
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
@@ -56,7 +57,7 @@ static void prepare_ack_status(void)
     status_packet[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] = status.voltage_dec;
     TOY_REMOTE_PUT_U16_LE(status_packet, PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L, config.bound_tx_id);
     ++link.seq_tx;
-    (void)app_radio_write_ack_packet(status_packet, APP_RADIO_PACKET_SIZE);
+    (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_PACKET_SIZE);
 }
 
 static stc8h_status_t unpack_control_payload(stc8h_u8 payload_len)
