@@ -197,3 +197,16 @@ receiver：
 - receiver: flash `6482/8192`，剩余 `1710` bytes
 - 两端均无 DSEG/OSEG 链接错误。
 - 新增压缩方式：关闭未用 TM1637 clear/encode API、应用侧固定数字编码、receiver 去掉解包后重复校验和固定参数检查。
+
+2026-05-16 接入 Stc8hBase fixed-path 裁剪后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `6663/8192`，剩余 `1529` bytes
+- receiver: flash `6019/8192`，剩余 `2173` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 使用基础库 fixed-path 能力：TM1637 `display_raw4`、EC11 small API、proto_rf_link fixed DATA send/poll、nRF24 pipe0 fixed 配置和参数检查裁剪。

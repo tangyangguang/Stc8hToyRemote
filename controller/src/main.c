@@ -71,7 +71,7 @@ static void display_control(void)
     if (tx_result != APP_RADIO_TX_DONE) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
-    (void)drv_tm1637_display_raw(display_segments, 4u);
+    (void)drv_tm1637_display_raw4(display_segments);
 }
 
 static void display_voltage(stc8h_u16 value)
@@ -86,7 +86,7 @@ static void display_voltage(stc8h_u16 value)
     value %= 100u;
     display_segments[2] = display_digit((stc8h_u8)(value / 10u));
     display_segments[3] = display_digit((stc8h_u8)(value % 10u));
-    (void)drv_tm1637_display_raw(display_segments, 4u);
+    (void)drv_tm1637_display_raw4(display_segments);
 }
 
 static void display_config(void)
@@ -101,7 +101,7 @@ static void display_config(void)
     if (config_item == APP_CONFIG_ITEM_MIDDLE) {
         display_segments[2] |= APP_DISPLAY_COLON;
     }
-    (void)drv_tm1637_display_raw(display_segments, 4u);
+    (void)drv_tm1637_display_raw4(display_segments);
 }
 
 static void enter_config_mode(void)
@@ -247,7 +247,7 @@ static void make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
     payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = control.request_voltage;
     TOY_REMOTE_PUT_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L, control.tx_id);
-    (void)proto_rf_link_send_data(&link, packet, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE);
+    (void)proto_rf_link_send_data_fixed(&link, packet, payload);
 }
 
 static void handle_ack_status(void)

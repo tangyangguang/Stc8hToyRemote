@@ -7,7 +7,7 @@
 #define APP_INPUT_SCAN_MS 1u
 #define APP_INPUT_ADC_DIVIDER 16u
 
-static STC8H_XDATA drv_ec11_t speed_encoder;
+static STC8H_XDATA drv_ec11_small_t speed_encoder;
 static stc8h_u8 adc_divider;
 
 void app_input_init(toy_remote_control_t *control)
@@ -17,7 +17,7 @@ void app_input_init(toy_remote_control_t *control)
     P3M1 |= 0x08u;
     P3M0 &= (stc8h_u8)~0x08u;
 
-    drv_ec11_init(&speed_encoder);
+    drv_ec11_small_init(&speed_encoder);
     stc8h_adc_init();
     control->direction = TOY_REMOTE_DIRECTION_FORWARD;
     control->speed = 0u;
@@ -35,8 +35,7 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     stc8h_s16 delta;
     stc8h_u16 adc_value;
 
-    drv_ec11_scan(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ(), APP_INPUT_SCAN_MS);
-    delta = drv_ec11_get_delta(&speed_encoder);
+    delta = drv_ec11_scan_delta_small(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
     if (delta != 0) {
         adc_value = (stc8h_u16)((stc8h_s16)control->speed + delta);
         if (((stc8h_s16)adc_value) < 0) {

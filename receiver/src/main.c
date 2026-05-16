@@ -68,10 +68,9 @@ static void prepare_ack_status(void)
     (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_PACKET_SIZE);
 }
 
-static stc8h_status_t unpack_control_payload(stc8h_u8 payload_len)
+static stc8h_status_t unpack_control_payload(void)
 {
-    if ((payload_len != TOY_REMOTE_CONTROL_PAYLOAD_SIZE) ||
-        (payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
+    if ((payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
         (payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] > TOY_REMOTE_DIRECTION_REVERSE) ||
         (payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] > TOY_REMOTE_CONTROL_SPEED_MAX) ||
         (payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] > 1u) ||
@@ -97,11 +96,8 @@ static stc8h_status_t unpack_control_payload(stc8h_u8 payload_len)
 
 static void handle_packet(void)
 {
-    stc8h_u8 payload_len;
-
-    payload_len = 0u;
-    if (proto_rf_link_poll(&link, packet, 0, payload, &payload_len) == PROTO_RF_LINK_EVENT_DATA) {
-        if (unpack_control_payload(payload_len) == STC8H_OK) {
+    if (proto_rf_link_poll_data_fixed(&link, packet, payload) == STC8H_OK) {
+        if (unpack_control_payload() == STC8H_OK) {
             if (config.bound_tx_id == 0u) {
                 config.bound_tx_id = control.tx_id;
                 (void)app_config_save(&config);
