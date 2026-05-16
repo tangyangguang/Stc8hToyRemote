@@ -116,9 +116,9 @@ TOY_REMOTE_BRAKE_CLEAR_SPEED   brake = 1, speed = 0
 
 controller 采样按键后先把输入归约到 `toy_remote_control_t`，receiver 只接收归约后的 `brake` 和 `speed`。这样无线协议保持简单，后续如果按键硬件变化，不影响 receiver 协议解析。
 
-## 转向 ADC 归约
+## 转向 ADC 和校准归约
 
-controller 侧使用 `toy_remote_control_set_steering_from_adc()` 把 10-bit ADC 值归约成舵机角度：
+controller 侧把 10-bit ADC 值归约成舵机角度：
 
 ```text
 ADC 0      -> 0 degree
@@ -128,14 +128,18 @@ ADC >1023  -> 180 degree
 reverse=1  -> 角度反向
 ```
 
-该函数只做线性映射、限幅和可选反向，不处理舵机中值校准、死区或端点减少角度。校准属于后续配置模式，需要持久化设计后再实现。
+发包前再应用 EEPROM 中的校准值：
+
+```text
+steering_reverse=1 -> angle = 180 - angle
+steering_middle    -> angle += steering_middle * 2 - 90
+steering_reduce    -> angle clamp to [reduce, 180 - reduce]
+```
+
+校准只影响发出的 payload，不反复改写输入状态，避免低频 ADC 采样时重复累加偏移。
 
 ## 速度归约
 
-EC11 或其他速度输入先在 controller 侧归约为 `0..100`：
-
-```text
-toy_remote_control_adjust_speed(control, delta)
-```
+EC11 输入在 controller 侧归约为 `0..100`；无线 payload 只发送归约后的速度。
 
 该函数要求当前 control 已合法，然后按 signed delta 调整速度并限幅。速度归约不改变刹车状态；如果需要“刹车并清速度”，应调用刹车动作归约。

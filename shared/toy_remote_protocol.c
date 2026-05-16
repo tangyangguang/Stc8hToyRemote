@@ -29,9 +29,15 @@ void toy_remote_control_set_safe(toy_remote_control_t *control)
 #if TOY_REMOTE_ENABLE_CONTROL_APPLY_BRAKE
 stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action)
 {
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL
+    if (toy_remote_validate_control(control) != STC8H_OK) {
+        return STC8H_ERROR;
+    }
+#else
     if (control == 0) {
         return STC8H_ERROR;
     }
+#endif
 
     if (brake_action == TOY_REMOTE_BRAKE_RELEASE) {
         control->brake = 0u;
@@ -44,7 +50,11 @@ stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc
         return STC8H_ERROR;
     }
 
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL
     return toy_remote_validate_control(control);
+#else
+    return STC8H_OK;
+#endif
 }
 #endif
 
@@ -74,7 +84,11 @@ stc8h_status_t toy_remote_control_set_steering_from_adc(toy_remote_control_t *co
     }
 
     control->steering_angle = (stc8h_u8)scaled;
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL
     return toy_remote_validate_control(control);
+#else
+    return STC8H_OK;
+#endif
 }
 #endif
 
@@ -83,9 +97,15 @@ stc8h_status_t toy_remote_control_adjust_speed(toy_remote_control_t *control, st
 {
     stc8h_s16 speed;
 
+#if TOY_REMOTE_ENABLE_VALIDATE_CONTROL
     if (toy_remote_validate_control(control) != STC8H_OK) {
         return STC8H_ERROR;
     }
+#else
+    if (control == 0) {
+        return STC8H_ERROR;
+    }
+#endif
 
     speed = (stc8h_s16)control->speed + delta;
     if (speed < 0) {

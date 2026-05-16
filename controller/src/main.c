@@ -1,6 +1,7 @@
 #include "app_config.h"
 #include "app_input.h"
 #include "app_radio.h"
+#include "board_pins.h"
 #include "drv_tm1637.h"
 #include "proto_rf_link.h"
 #include "stc8h_delay.h"
@@ -20,6 +21,13 @@ static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
 static stc8h_u8 current_channel;
 static stc8h_u8 radio_failures;
+static STC8H_XDATA stc8h_u8 config_mode;
+static STC8H_XDATA stc8h_u8 config_hold_ticks;
+static STC8H_XDATA stc8h_u8 config_wait_release;
+static STC8H_XDATA stc8h_u8 config_item;
+static STC8H_XDATA stc8h_u8 config_brake_prev;
+static STC8H_XDATA stc8h_u8 config_ec11_prev;
+static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 
 #define APP_DISPLAY_BLANK 0x00u
 #define APP_DISPLAY_DASH 0x40u
@@ -27,6 +35,9 @@ static stc8h_u8 radio_failures;
 #define APP_DISPLAY_UP 0x23u
 #define APP_DISPLAY_DOWN 0x1Cu
 #define APP_DISPLAY_COLON 0x80u
+#define APP_CONFIG_ENTER_TICKS 60u
+#define APP_CONFIG_ITEM_REDUCE 0u
+#define APP_CONFIG_ITEM_MIDDLE 1u
 
 static stc8h_u8 display_digit(stc8h_u8 value)
 {
@@ -84,14 +95,159 @@ static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
     (void)drv_tm1637_display_raw(display_segments, 4u);
 }
 
+static void display_config(void)
+{
+    display_segments[0] = display_digit((stc8h_u8)(config.steering_reduce / 10u));
+    display_segments[1] = display_digit((stc8h_u8)(config.steering_reduce % 10u));
+    display_segments[2] = display_digit((stc8h_u8)(config.steering_middle / 10u));
+    display_segments[3] = display_digit((stc8h_u8)(config.steering_middle % 10u));
+    if ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
+        display_segments[1] |= APP_DISPLAY_COLON;
+    }
+    if (config_item == APP_CONFIG_ITEM_MIDDLE) {
+        display_segments[2] |= APP_DISPLAY_COLON;
+    }
+    (void)drv_tm1637_display_raw(display_segments, 4u);
+}
+
+static void enter_config_mode(void)
+{
+    config_mode = 1u;
+    config_wait_release = 1u;
+    config_item = APP_CONFIG_ITEM_REDUCE;
+    config_brake_prev = 1u;
+    config_ec11_prev = 1u;
+    config_buzzer_prev = TOY_REMOTE_TX_BUZZER_ACTIVE();
+    control.speed = 0u;
+    control.brake = 1u;
+    control.light = 0u;
+    control.buzzer = 0u;
+    control.aux_pwm = 0u;
+    control.request_voltage = 0u;
+}
+
+static void config_set_flag(stc8h_u8 mask, stc8h_u8 enabled)
+{
+    stc8h_u8 old_flags;
+
+    old_flags = config.flags;
+    if (enabled != 0u) {
+        config.flags |= mask;
+    } else {
+        config.flags &= (stc8h_u8)~mask;
+    }
+    if (config.flags != old_flags) {
+        (void)app_config_save(&config);
+    }
+}
+
+static void handle_config_mode(stc8h_s16 delta)
+{
+    stc8h_u8 brake_now;
+    stc8h_u8 ec11_now;
+    stc8h_u8 buzzer_now;
+    stc8h_s16 value;
+
+    control.speed = 0u;
+    control.brake = 1u;
+    control.light = 0u;
+    control.buzzer = 0u;
+    control.aux_pwm = 0u;
+    control.request_voltage = 0u;
+    config_set_flag(APP_CONFIG_FLAG_DIRECTION_REVERSE, TOY_REMOTE_TX_DIR_REVERSE());
+
+    brake_now = TOY_REMOTE_TX_BRAKE_ACTIVE();
+    ec11_now = TOY_REMOTE_TX_EC11_SW_ACTIVE();
+    buzzer_now = TOY_REMOTE_TX_BUZZER_ACTIVE();
+    if (config_wait_release != 0u) {
+        if ((brake_now == 0u) && (ec11_now == 0u)) {
+            config_wait_release = 0u;
+        }
+    } else {
+        if ((brake_now != 0u) && (config_brake_prev == 0u)) {
+            config_set_flag(APP_CONFIG_FLAG_STEERING_REVERSE,
+                            (config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) == 0u);
+        }
+        if ((ec11_now != 0u) && (config_ec11_prev == 0u)) {
+            config_item = (config_item == APP_CONFIG_ITEM_REDUCE) ? APP_CONFIG_ITEM_MIDDLE : APP_CONFIG_ITEM_REDUCE;
+        }
+        if ((buzzer_now != 0u) && (config_buzzer_prev == 0u)) {
+            config_mode = 0u;
+            config_hold_ticks = 0u;
+        }
+    }
+
+    if (delta != 0) {
+        if (config_item == APP_CONFIG_ITEM_REDUCE) {
+            value = (stc8h_s16)((stc8h_s16)config.steering_reduce + delta);
+            if (value < 0) {
+                value = 0;
+            } else if (value > APP_CONFIG_STEERING_REDUCE_MAX) {
+                value = APP_CONFIG_STEERING_REDUCE_MAX;
+            }
+            if (config.steering_reduce != (stc8h_u8)value) {
+                config.steering_reduce = (stc8h_u8)value;
+                (void)app_config_save(&config);
+            }
+        } else {
+            value = (stc8h_s16)((stc8h_s16)config.steering_middle + delta);
+            if (value < APP_CONFIG_STEERING_MIDDLE_MIN) {
+                value = APP_CONFIG_STEERING_MIDDLE_MIN;
+            } else if (value > APP_CONFIG_STEERING_MIDDLE_MAX) {
+                value = APP_CONFIG_STEERING_MIDDLE_MAX;
+            }
+            if (config.steering_middle != (stc8h_u8)value) {
+                config.steering_middle = (stc8h_u8)value;
+                (void)app_config_save(&config);
+            }
+        }
+    }
+
+    config_brake_prev = brake_now;
+    config_ec11_prev = ec11_now;
+    config_buzzer_prev = buzzer_now;
+    display_config();
+}
+
+static void update_config_entry(void)
+{
+    if ((TOY_REMOTE_TX_EC11_SW_ACTIVE() != 0u) && (TOY_REMOTE_TX_BRAKE_ACTIVE() != 0u)) {
+        if (config_hold_ticks < APP_CONFIG_ENTER_TICKS) {
+            ++config_hold_ticks;
+        } else {
+            enter_config_mode();
+        }
+    } else {
+        config_hold_ticks = 0u;
+    }
+}
+
 static stc8h_status_t make_control_packet(void)
 {
+    stc8h_s16 angle;
+    stc8h_u8 direction;
+
     control.tx_id = config.tx_id;
+    direction = control.direction;
+    if ((config.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) {
+        direction = (direction == 0u) ? 1u : 0u;
+    }
+    angle = (stc8h_s16)control.steering_angle;
+    if ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
+        angle = (stc8h_s16)(180 - angle);
+    }
+    angle = (stc8h_s16)(angle + ((stc8h_s16)config.steering_middle << 1) - 90);
+    if (angle < (stc8h_s16)config.steering_reduce) {
+        angle = (stc8h_s16)config.steering_reduce;
+    } else if (angle > (stc8h_s16)(180 - config.steering_reduce)) {
+        angle = (stc8h_s16)(180 - config.steering_reduce);
+    }
+
     payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
-    payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = control.direction;
+    payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = direction;
     payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
     payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
-    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = control.steering_angle;
+    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = (stc8h_u8)angle;
     payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
@@ -231,7 +387,12 @@ void main(void)
     scan_channels();
 
     while (1) {
-        app_input_update(&control);
+        if (config_mode != 0u) {
+            handle_config_mode(app_input_update(&control));
+        } else {
+            app_input_update(&control);
+            update_config_entry();
+        }
         if (make_control_packet() == STC8H_OK) {
             tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
             handle_ack_status(app_radio_ack_len);

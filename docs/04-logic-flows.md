@@ -5,7 +5,7 @@
 ```text
 init SPI
   -> init input and display
-  -> load controller config: tx_id, last_channel
+  -> load controller config: tx_id, last_channel, calibration
   -> init nRF24 PTX on saved last_channel
   -> scan channels 0..125 until a matching ACK status is found
   -> loop:
@@ -23,19 +23,33 @@ init SPI
 Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、喇叭、辅助 PWM 和电压显示。新项目保留这些作为需求线索，但最终交互按新需求评估实现：
 
 - 方向是持续状态，不做旧按钮切换兼容。
-- 速度是 `0..100` 的持续状态；EC11 增减量先通过 `toy_remote_control_adjust_speed()` 限幅。
+- 速度是 `0..100` 的持续状态；EC11 增减量在 controller 输入层限幅。
 - 刹车语义在 controller 侧归约：
   - `TOY_REMOTE_BRAKE_RELEASE`：松开刹车，不改变速度。
   - `TOY_REMOTE_BRAKE_HOLD_SPEED`：刹车但不清速度。
   - `TOY_REMOTE_BRAKE_CLEAR_SPEED`：刹车并把速度清零。
-- 转向 ADC 在 controller 侧归约为 `0..180` 舵机角度；反向只改变映射方向，不改变无线字段。
+- 转向 ADC 在 controller 侧归约为 `0..180` 舵机角度；发包前应用舵机反向、中位和端点收缩校准。
 - TM1637 显示正常控制状态；Fn 按下时在本机电压和接收端回传电压之间低频切换。
 
-## controller 配置模式线索
+## controller 配置模式
 
-Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向反转和 EEPROM 保存。新项目暂缓实现配置模式；实施前必须先设计持久化格式、校验、默认值和恢复路径。
+Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向反转和 EEPROM 保存。新实现保留这组真实需求，但不复用旧 EEPROM 布局。
 
-controller 使用 fixed-block EEPROM 保存 `tx_id` 和 `last_channel`。首次无有效配置时写入默认 `APP_TX_ID` 和 `APP_DEFAULT_RF_CHANNEL`；扫描找到 receiver 后保存频道。
+controller 使用 fixed-block EEPROM 保存 `tx_id`、`last_channel`、`flags`、`steering_reduce` 和 `steering_middle`。无有效配置时写入默认值；扫描找到 receiver 后保存频道；配置模式修改后立即保存。
+
+```text
+normal mode:
+  EC11 SW + brake held about 3s -> enter config mode
+
+config mode:
+  receiver-facing control is forced safe: speed 0, brake 1, light/buzzer/aux off
+  direction switch state -> direction reverse flag
+  brake edge -> toggle steering reverse
+  EC11 SW edge -> switch edited item between reduce and middle
+  EC11 rotation -> adjust selected item
+  buzzer edge -> exit config mode
+  display shows reduce and middle; colon shows reverse/current item
+```
 
 ## receiver 启动流程
 

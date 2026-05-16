@@ -158,3 +158,16 @@ receiver：
 - receiver: flash `7089/8192`，剩余 `1103` bytes
 - 两端均无 DSEG/OSEG 链接错误。
 - 保留功能：控制输入、nRF24 通信、ACK 状态回传、电压显示/回传、频道扫描、receiver 绑定、EEPROM 配置、receiver 掉线安全态、电机/舵机/灯/蜂鸣器/aux PWM 输出。
+
+2026-05-16 controller 配置/校准模式补齐后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `8104/8192`，剩余 `88` bytes
+- receiver: flash `7089/8192`，剩余 `1103` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 新增保留功能：controller 配置模式、舵机反向、方向反向、舵机中位、端点收缩和 EEPROM 保存。
