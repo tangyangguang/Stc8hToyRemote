@@ -47,6 +47,8 @@ byte8 request_voltage
 - `aux_pwm`: `0..100`
 - `request_voltage`: `0..1`
 
+该格式吸收了 Tx V2.x 记录中的核心控制字段，但不是旧格式兼容层。新格式增加 `version`，并且后续会放入 `proto_rf_link` 的 payload 中传输。
+
 ## 业务状态 payload
 
 ```text

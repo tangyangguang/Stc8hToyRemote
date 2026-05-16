@@ -53,6 +53,7 @@ tests/       本机协议测试
 - `docs/04-logic-flows.md`：controller、receiver、安全状态和无线失败流程。
 - `docs/05-power.md`：电池供电节能设计。
 - `docs/06-verification.md`：本机、构建和硬件验证计划。
+- `docs/07-tx-v2-notes-assessment.md`：Tx V2.x 记录需求评估。
 - `docs/rewrite-plan.md`：阶段路线图。
 
 ## 当前阶段
