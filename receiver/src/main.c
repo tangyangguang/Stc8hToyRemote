@@ -1,4 +1,5 @@
 #include "app_radio.h"
+#include "app_outputs.h"
 #include "proto_rf_link.h"
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
@@ -18,6 +19,7 @@ static stc8h_u8 link_lost;
 static void apply_safe_state(void)
 {
     toy_remote_control_set_safe(&control);
+    app_outputs_apply_safe();
     link_lost = 1u;
 }
 
@@ -30,6 +32,7 @@ static void handle_packet(void)
         if (toy_remote_unpack_control(&control, payload, payload_len) == STC8H_OK) {
             idle_polls = 0u;
             link_lost = 0u;
+            app_outputs_apply_control(&control);
             return;
         }
     }
@@ -50,6 +53,7 @@ static void handle_idle_poll(void)
 void main(void)
 {
     stc8h_spi_init();
+    app_outputs_init();
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 2u, 1u);
     apply_safe_state();

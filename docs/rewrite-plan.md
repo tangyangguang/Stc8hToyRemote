@@ -181,6 +181,10 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 - 旧业务字段重设计为新的 `toy_remote_protocol` payload。
 - 每迁移一个硬件能力，都要记录节能策略和安全状态。
 
+阶段 4 first build:
+
+- receiver 已接入灯、蜂鸣器、LED 和 AT8236 IN1/IN2 的安全态；真实 PWM 输出等待基础库支持 PWMB 和多 PWM 周期策略。
+
 ## 6. 暂不做
 
 - 不做频道扫描。
