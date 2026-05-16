@@ -24,6 +24,10 @@
 
 #define TOY_REMOTE_VOLTAGE_DEC_MAX 99u
 
+#define TOY_REMOTE_BRAKE_RELEASE 0u
+#define TOY_REMOTE_BRAKE_HOLD_SPEED 1u
+#define TOY_REMOTE_BRAKE_CLEAR_SPEED 2u
+
 typedef struct {
     stc8h_u8 direction;
     stc8h_u8 speed;
@@ -42,6 +46,7 @@ typedef struct {
 } toy_remote_status_t;
 
 void toy_remote_control_set_safe(toy_remote_control_t *control);
+stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action);
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control);
 stc8h_status_t toy_remote_validate_status(const toy_remote_status_t *status);
 

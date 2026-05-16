@@ -62,6 +62,7 @@ legacy/old-prj/Tx遥控器端V2.x功能说明.txt
 ### 保留但重新设计
 
 - 辅助 PWM：保留协议字段，但业务迁移时需要确认硬件是否仍使用 MOS 模块。
+- 两类刹车：在 controller 侧归约为 `TOY_REMOTE_BRAKE_HOLD_SPEED` 和 `TOY_REMOTE_BRAKE_CLEAR_SPEED`，无线 payload 仍只发送 `brake` 和 `speed`。
 - 配置模式：保留为后续需求，不在阶段 3 前实现。
 - 电池电压：保留为状态回传和显示需求；采样和显示必须限频。
 - TM1637 显示：保留“状态显示”需求，不复刻旧显示编码。

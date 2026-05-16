@@ -89,3 +89,15 @@ request_voltage 0
 ```
 
 receiver 进入安全状态时可以以此作为业务输入基线，再结合具体电机驱动策略决定刹车或滑行。
+
+## 刹车动作归约
+
+Tx V2.x 记录里有两类刹车输入。新项目在 `shared/` 中定义为输入归约动作，而不是增加无线字段：
+
+```text
+TOY_REMOTE_BRAKE_RELEASE       brake = 0, speed unchanged
+TOY_REMOTE_BRAKE_HOLD_SPEED    brake = 1, speed unchanged
+TOY_REMOTE_BRAKE_CLEAR_SPEED   brake = 1, speed = 0
+```
+
+controller 采样按键后先把输入归约到 `toy_remote_control_t`，receiver 只接收归约后的 `brake` 和 `speed`。这样无线协议保持简单，后续如果按键硬件变化，不影响 receiver 协议解析。

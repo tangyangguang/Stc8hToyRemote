@@ -44,10 +44,53 @@ static void test_status_rejects_invalid_decimal_voltage(void)
     assert(toy_remote_pack_status(payload, &status) == STC8H_ERROR);
 }
 
+static void test_control_apply_brake_hold_preserves_speed(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = 67u;
+
+    assert(toy_remote_control_apply_brake(&control, TOY_REMOTE_BRAKE_HOLD_SPEED) == STC8H_OK);
+    assert(control.brake == 1u);
+    assert(control.speed == 67u);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
+static void test_control_apply_brake_clear_zeros_speed(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = 67u;
+
+    assert(toy_remote_control_apply_brake(&control, TOY_REMOTE_BRAKE_CLEAR_SPEED) == STC8H_OK);
+    assert(control.brake == 1u);
+    assert(control.speed == 0u);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
+static void test_control_release_brake_keeps_speed(void)
+{
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.speed = 42u;
+    control.brake = 1u;
+
+    assert(toy_remote_control_apply_brake(&control, TOY_REMOTE_BRAKE_RELEASE) == STC8H_OK);
+    assert(control.brake == 0u);
+    assert(control.speed == 42u);
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+}
+
 int main(void)
 {
     test_control_pack_rejects_invalid_range();
     test_control_safe_defaults_are_neutral();
     test_status_rejects_invalid_decimal_voltage();
+    test_control_apply_brake_hold_preserves_speed();
+    test_control_apply_brake_clear_zeros_speed();
+    test_control_release_brake_keeps_speed();
     return 0;
 }

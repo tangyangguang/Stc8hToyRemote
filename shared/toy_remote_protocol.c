@@ -21,6 +21,26 @@ void toy_remote_control_set_safe(toy_remote_control_t *control)
     control->request_voltage = 0u;
 }
 
+stc8h_status_t toy_remote_control_apply_brake(toy_remote_control_t *control, stc8h_u8 brake_action)
+{
+    if (control == 0) {
+        return STC8H_ERROR;
+    }
+
+    if (brake_action == TOY_REMOTE_BRAKE_RELEASE) {
+        control->brake = 0u;
+    } else if (brake_action == TOY_REMOTE_BRAKE_HOLD_SPEED) {
+        control->brake = 1u;
+    } else if (brake_action == TOY_REMOTE_BRAKE_CLEAR_SPEED) {
+        control->brake = 1u;
+        control->speed = 0u;
+    } else {
+        return STC8H_ERROR;
+    }
+
+    return toy_remote_validate_control(control);
+}
+
 stc8h_status_t toy_remote_validate_control(const toy_remote_control_t *control)
 {
     if (control == 0) {

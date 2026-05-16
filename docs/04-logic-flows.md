@@ -41,7 +41,10 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
 
 - 方向是持续状态，不做旧按钮切换兼容。
 - 速度是 `0..100` 的持续状态。
-- 刹车语义需要区分“清速度”和“不清速度”两类输入。
+- 刹车语义在 controller 侧归约：
+  - `TOY_REMOTE_BRAKE_RELEASE`：松开刹车，不改变速度。
+  - `TOY_REMOTE_BRAKE_HOLD_SPEED`：刹车但不清速度。
+  - `TOY_REMOTE_BRAKE_CLEAR_SPEED`：刹车并把速度清零。
 - 显示只要求状态可观察，不复刻旧段码编码。
 
 ## controller 配置模式线索
