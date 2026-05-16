@@ -38,49 +38,37 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_CONFIG_ENTER_TICKS 60u
 #define APP_CONFIG_ITEM_REDUCE 0u
 #define APP_CONFIG_ITEM_MIDDLE 1u
+#define display_digit(value) drv_tm1637_encode_digit(value)
 
-static stc8h_u8 display_digit(stc8h_u8 value)
-{
-    if (value > 9u) {
-        return APP_DISPLAY_BLANK;
-    }
-    return drv_tm1637_encode_digit(value);
-}
 
 static stc8h_u8 display_speed_tens(stc8h_u8 speed)
 {
     return (speed >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)(speed / 10u));
 }
 
-static void display_init(void)
+static void display_control(void)
 {
-    drv_tm1637_init();
-    drv_tm1637_set_brightness(1u);
-    drv_tm1637_set_display(1u);
-    (void)drv_tm1637_clear();
-}
-
-static void display_control(stc8h_u8 tx_ok)
-{
+    display_segments[1] = APP_DISPLAY_BLANK;
     if (control.brake != 0u) {
         display_segments[0] = APP_DISPLAY_DASH;
-        display_segments[1] = APP_DISPLAY_BLANK;
-        display_segments[2] = (control.speed == 0u) ? APP_DISPLAY_DASH : display_speed_tens(control.speed);
-        display_segments[3] = (control.speed == 0u) ? APP_DISPLAY_DASH : display_digit((stc8h_u8)(control.speed % 10u));
     } else {
         display_segments[0] = (control.direction == TOY_REMOTE_DIRECTION_REVERSE) ? APP_DISPLAY_DOWN : APP_DISPLAY_UP;
-        display_segments[1] = APP_DISPLAY_BLANK;
+    }
+    if ((control.brake != 0u) && (control.speed == 0u)) {
+        display_segments[2] = APP_DISPLAY_DASH;
+        display_segments[3] = APP_DISPLAY_DASH;
+    } else {
         display_segments[2] = display_speed_tens(control.speed);
         display_segments[3] = display_digit((stc8h_u8)(control.speed % 10u));
     }
 
-    if (tx_ok == 0u) {
+    if (tx_result != APP_RADIO_TX_DONE) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
     (void)drv_tm1637_display_raw(display_segments, 4u);
 }
 
-static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
+static void display_voltage(stc8h_u16 value)
 {
     if (value > 9999u) {
         value = 9999u;
@@ -88,7 +76,7 @@ static void display_voltage(stc8h_u16 value, stc8h_u8 show_rx)
 
     display_segments[0] = (value >= 1000u) ? display_digit((stc8h_u8)(value / 1000u)) : APP_DISPLAY_BLANK;
     value %= 1000u;
-    display_segments[1] = (stc8h_u8)(display_digit((stc8h_u8)(value / 100u)) | ((show_rx == 0u) ? APP_DISPLAY_COLON : 0u));
+    display_segments[1] = (stc8h_u8)(display_digit((stc8h_u8)(value / 100u)) | ((show_rx_voltage == 0u) ? APP_DISPLAY_COLON : 0u));
     value %= 100u;
     display_segments[2] = display_digit((stc8h_u8)(value / 10u));
     display_segments[3] = display_digit((stc8h_u8)(value % 10u));
@@ -222,7 +210,7 @@ static void update_config_entry(void)
     }
 }
 
-static stc8h_status_t make_control_packet(void)
+static void make_control_packet(void)
 {
     stc8h_s16 angle;
     stc8h_u8 direction;
@@ -253,14 +241,14 @@ static stc8h_status_t make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
     payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = control.request_voltage;
     TOY_REMOTE_PUT_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L, control.tx_id);
-    return proto_rf_link_send_data(&link, packet, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE);
+    (void)proto_rf_link_send_data(&link, packet, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE);
 }
 
-static void handle_ack_status(stc8h_u8 ack_len)
+static void handle_ack_status(void)
 {
     const stc8h_u8 *ack;
 
-    if (ack_len != APP_RADIO_PACKET_SIZE) {
+    if (app_radio_ack_len != APP_RADIO_PACKET_SIZE) {
         return;
     }
 
@@ -296,12 +284,11 @@ static stc8h_u8 probe_current_channel(void)
     stc8h_u8 i;
 
     for (i = 0u; i < 2u; ++i) {
-        if (make_control_packet() == STC8H_OK) {
-            tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
-            handle_ack_status(app_radio_ack_len);
-            if (rx_status.tx_id == config.tx_id) {
-                return 1u;
-            }
+        make_control_packet();
+        tx_result = app_radio_send_packet_with_ack(packet);
+        handle_ack_status();
+        if (rx_status.tx_id == config.tx_id) {
+            return 1u;
         }
         stc8h_delay_ms(5u);
     }
@@ -319,9 +306,7 @@ static void scan_channels(void)
     }
 
     for (channel = 0u; channel <= 125u; ++channel) {
-        if (app_radio_set_channel(channel) != STC8H_OK) {
-            continue;
-        }
+        app_radio_set_channel(channel);
         current_channel = channel;
         rx_status.tx_id = 0u;
         if (probe_current_channel() != 0u) {
@@ -334,7 +319,7 @@ static void scan_channels(void)
     }
 
     current_channel = old_channel;
-    (void)app_radio_set_channel(current_channel);
+    app_radio_set_channel(current_channel);
 }
 
 static void update_voltage_display(void)
@@ -355,9 +340,9 @@ static void update_voltage_display(void)
     }
 
     if (show_rx_voltage != 0u) {
-        display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec), 1u);
+        display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
     } else {
-        display_voltage(tx_battery_centivolts, 0u);
+        display_voltage(tx_battery_centivolts);
     }
 }
 
@@ -372,7 +357,9 @@ void main(void)
     }
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
-    display_init();
+    drv_tm1637_init();
+    drv_tm1637_set_brightness(1u);
+    drv_tm1637_set_display(1u);
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
@@ -393,17 +380,14 @@ void main(void)
             app_input_update(&control);
             update_config_entry();
         }
-        if (make_control_packet() == STC8H_OK) {
-            tx_result = app_radio_send_packet_with_ack(packet, APP_RADIO_PACKET_SIZE);
-            handle_ack_status(app_radio_ack_len);
-        } else {
-            tx_result = APP_RADIO_TX_ERROR;
-        }
+        make_control_packet();
+        tx_result = app_radio_send_packet_with_ack(packet);
+        handle_ack_status();
 
         if (control.request_voltage != 0u) {
             update_voltage_display();
         } else {
-            display_control((tx_result == APP_RADIO_TX_DONE) ? 1u : 0u);
+            display_control();
         }
         if (tx_result == APP_RADIO_TX_DONE) {
             radio_failures = 0u;

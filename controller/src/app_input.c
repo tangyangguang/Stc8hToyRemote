@@ -19,17 +19,15 @@ void app_input_init(toy_remote_control_t *control)
 
     drv_ec11_init(&speed_encoder);
     stc8h_adc_init();
-    if (control != 0) {
-        control->direction = TOY_REMOTE_DIRECTION_FORWARD;
-        control->speed = 0u;
-        control->brake = 0u;
-        control->steering_angle = TOY_REMOTE_STEERING_CENTER;
-        control->light = 0u;
-        control->buzzer = 0u;
-        control->aux_pwm = 0u;
-        control->request_voltage = 0u;
-        control->tx_id = 0u;
-    }
+    control->direction = TOY_REMOTE_DIRECTION_FORWARD;
+    control->speed = 0u;
+    control->brake = 0u;
+    control->steering_angle = TOY_REMOTE_STEERING_CENTER;
+    control->light = 0u;
+    control->buzzer = 0u;
+    control->aux_pwm = 0u;
+    control->request_voltage = 0u;
+    control->tx_id = 0u;
 }
 
 stc8h_s16 app_input_update(toy_remote_control_t *control)
@@ -37,20 +35,16 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     stc8h_s16 delta;
     stc8h_u16 adc_value;
 
-    if (control == 0) {
-        return 0;
-    }
-
     drv_ec11_scan(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ(), APP_INPUT_SCAN_MS);
     delta = drv_ec11_get_delta(&speed_encoder);
     if (delta != 0) {
-        delta = (stc8h_s16)((stc8h_s16)control->speed + delta);
-        if (delta < 0) {
+        adc_value = (stc8h_u16)((stc8h_s16)control->speed + delta);
+        if (((stc8h_s16)adc_value) < 0) {
             control->speed = 0u;
-        } else if (delta > TOY_REMOTE_CONTROL_SPEED_MAX) {
+        } else if (adc_value > TOY_REMOTE_CONTROL_SPEED_MAX) {
             control->speed = TOY_REMOTE_CONTROL_SPEED_MAX;
         } else {
-            control->speed = (stc8h_u8)delta;
+            control->speed = (stc8h_u8)adc_value;
         }
     }
 

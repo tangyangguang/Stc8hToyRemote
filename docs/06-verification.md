@@ -171,3 +171,16 @@ receiver：
 - receiver: flash `7089/8192`，剩余 `1103` bytes
 - 两端均无 DSEG/OSEG 链接错误。
 - 新增保留功能：controller 配置模式、舵机反向、方向反向、舵机中位、端点收缩和 EEPROM 保存。
+
+2026-05-16 controller 无功能损失压缩后再次运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `7878/8192`，剩余 `314` bytes
+- receiver: flash `7089/8192`，剩余 `1103` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 压缩方式只消除内部不可达检查、固定参数和重复显示分支，不删除频道扫描、配置模式、ACK、电压显示或掉线安全功能。
