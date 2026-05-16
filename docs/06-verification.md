@@ -210,3 +210,34 @@ receiver：
 - receiver: flash `6019/8192`，剩余 `2173` bytes
 - 两端均无 DSEG/OSEG 链接错误。
 - 使用基础库 fixed-path 能力：TM1637 `display_raw4`、EC11 small API、proto_rf_link fixed DATA send/poll、nRF24 pipe0 fixed 配置和参数检查裁剪。
+
+2026-05-17 fixed-path 再次压缩后运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `6511/8192`，剩余 `1681` bytes（较上一次 -152 bytes）
+- receiver: flash `5694/8192`，剩余 `2498` bytes（较上一次 -325 bytes）
+- 两端均无 DSEG/OSEG 链接错误。
+- 新增基础库默认兼容裁剪宏：
+  - `proto_rf_link` 增加 `ENABLE_SEND_DATA_FIXED_TRACK_ACK` / `ENABLE_POLL_DATA_FIXED_TRACK_LINK`，可关闭 fixed 路径里对 `ack_pending`、`timeout_ms`、`state` 的额外写入。
+  - `stc8h_pwm` 增加 `ENABLE_SET_DUTY_CHANNEL_CHECK` / `ENABLE_SET_DUTY_CLAMP`，可在 fixed 通道、已验证范围的应用里跳过运行期通道掩码校验和占空比上限。
+  - `drv_nrf24l01_check_present` 内部改为查表循环，pattern 写读各 5 字节共用单一表。
+- ToyRemote 接入与重构：
+  - controller：TM1637 brightness 固定为 1（关闭 brightness state 变量并去掉 `set_brightness(1u)` 调用）。
+  - controller：`display_voltage` 改成 4 次 `divmod10` 循环 + leading-zero 抹零，仍输出 `x.yyy` 与冒号策略。
+  - controller：`handle_ack_status` 缓存 `body = ack + PROTO_RF_LINK_HEADER_SIZE`，去掉重复地址计算。
+  - receiver：`app_outputs_apply_control` 三段电机分支合并为先算 `fwd/rev` 再统一 `set_duty`。
+  - receiver：抽 `app_outputs_write_pwm(servo, aux, fwd, rev)` 共享 4 路 PWM 写入，被 `apply_safe` 和 `apply_control` 共用。
+  - receiver：`app_status_update` 改用一次 `/100u + 减乘` 计算 voltage int/dec，去掉重复 `__moduint` 调用。
+  - receiver：启用 `STC8H_PWM_ENABLE_SET_DUTY_CHANNEL_CHECK=0` / `STC8H_PWM_ENABLE_SET_DUTY_CLAMP=0` 与 `PROTO_RF_LINK_ENABLE_POLL_DATA_FIXED_TRACK_LINK=0`。
+  - controller 启用 `PROTO_RF_LINK_ENABLE_SEND_DATA_FIXED_TRACK_ACK=0`。
+- 验收要点：
+  - controller TM1637 显示档位、电压、配置档位与冒号位置不变。
+  - controller `handle_ack_status` 仍校验 magic/version/type/local_id/peer_id/length/tx_id/voltage int 和 dec 上限。
+  - receiver 安全态仍把 PWM6/7/8 拉到 0、舵机回中，并关电机/灯/蜂鸣器/LED。
+  - receiver 控制态仍按 brake/speed/direction 三态分配 fwd/rev PWM。
+  - 业务协议测试和链路集成测试均通过；`./tools/check_all.sh` 全程绿色。

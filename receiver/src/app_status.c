@@ -55,6 +55,11 @@ void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *
     if (centivolts > 9999u) {
         centivolts = 9999u;
     }
-    status->voltage_int = (stc8h_u8)(centivolts / 100u);
-    status->voltage_dec = (stc8h_u8)(centivolts % 100u);
+    {
+        stc8h_u8 v_int;
+
+        v_int = (stc8h_u8)(centivolts / 100u);
+        status->voltage_int = v_int;
+        status->voltage_dec = (stc8h_u8)(centivolts - (stc8h_u16)v_int * 100u);
+    }
 }

@@ -76,16 +76,27 @@ static void display_control(void)
 
 static void display_voltage(stc8h_u16 value)
 {
+    stc8h_u8 i;
+    stc8h_u16 q;
+    stc8h_u8 leading_blank;
+
     if (value > 9999u) {
         value = 9999u;
     }
 
-    display_segments[0] = (value >= 1000u) ? display_digit((stc8h_u8)(value / 1000u)) : APP_DISPLAY_BLANK;
-    value %= 1000u;
-    display_segments[1] = (stc8h_u8)(display_digit((stc8h_u8)(value / 100u)) | ((show_rx_voltage == 0u) ? APP_DISPLAY_COLON : 0u));
-    value %= 100u;
-    display_segments[2] = display_digit((stc8h_u8)(value / 10u));
-    display_segments[3] = display_digit((stc8h_u8)(value % 10u));
+    for (i = 4u; i != 0u; --i) {
+        q = (stc8h_u16)(value / 10u);
+        display_segments[i - 1u] = display_digit((stc8h_u8)(value - (stc8h_u16)(q * 10u)));
+        value = q;
+    }
+
+    leading_blank = (display_segments[0] == display_digit(0u)) ? 1u : 0u;
+    if (leading_blank != 0u) {
+        display_segments[0] = APP_DISPLAY_BLANK;
+    }
+    if (show_rx_voltage == 0u) {
+        display_segments[1] |= APP_DISPLAY_COLON;
+    }
     (void)drv_tm1637_display_raw4(display_segments);
 }
 
@@ -253,35 +264,37 @@ static void make_control_packet(void)
 static void handle_ack_status(void)
 {
     const stc8h_u8 *ack;
+    const stc8h_u8 *body;
 
     if (app_radio_ack_len != APP_RADIO_PACKET_SIZE) {
         return;
     }
 
     ack = app_radio_ack_packet;
+    body = &ack[PROTO_RF_LINK_HEADER_SIZE];
     if ((ack[0] != PROTO_RF_LINK_MAGIC) ||
         (ack[1] != PROTO_RF_LINK_VERSION) ||
         (ack[2] != PROTO_RF_LINK_PACKET_STATUS) ||
         (ack[6] != 2u) ||
         (ack[7] != 1u) ||
         (ack[8] != TOY_REMOTE_STATUS_PAYLOAD_SIZE) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)config.tx_id) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(config.tx_id >> 8))) {
+        (body[TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)config.tx_id) ||
+        (body[TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(config.tx_id >> 8))) {
         return;
     }
-    if ((ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_LINK_STATE] > TOY_REMOTE_LINK_STATE_LOST) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] > TOY_REMOTE_VOLTAGE_INT_MAX) ||
-        (ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] > TOY_REMOTE_VOLTAGE_DEC_MAX)) {
+    if ((body[TOY_REMOTE_STATUS_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
+        (body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE] > TOY_REMOTE_LINK_STATE_LOST) ||
+        (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] > TOY_REMOTE_VOLTAGE_INT_MAX) ||
+        (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] > TOY_REMOTE_VOLTAGE_DEC_MAX)) {
         return;
     }
 
     link.seq_rx = ack[3];
     link.ack_pending = 0u;
     link.state = PROTO_RF_LINK_STATE_CONNECTED;
-    rx_status.link_state = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
-    rx_status.voltage_int = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
-    rx_status.voltage_dec = ack[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+    rx_status.link_state = body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
+    rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
+    rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
     rx_status.tx_id = config.tx_id;
 }
 
@@ -364,7 +377,6 @@ void main(void)
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
     drv_tm1637_init();
-    drv_tm1637_set_brightness(1u);
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
