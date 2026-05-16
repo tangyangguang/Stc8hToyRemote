@@ -4,8 +4,8 @@
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
 
-static proto_rf_link_t link;
-static toy_remote_control_t control;
+static STC8H_XDATA proto_rf_link_t link;
+static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
 static stc8h_u16 idle_polls;

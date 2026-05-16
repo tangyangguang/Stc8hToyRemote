@@ -183,7 +183,9 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 
 阶段 4 first build:
 
-- receiver 已接入灯、蜂鸣器、LED 和 AT8236 IN1/IN2 的安全态；真实 PWM 输出等待基础库支持 PWMB 和多 PWM 周期策略。
+- controller 已按旧硬件引脚接入 EC11 调速、EC11 按键清速度刹车、单独刹车、方向、灯、蜂鸣器、Fn 和转向 ADC。
+- controller ADC 当前按 loop 分频低频采样，避免每个无线包都阻塞读取。
+- receiver 已接入灯、蜂鸣器、LED、AT8236 IN1/IN2、舵机和 MOS PWM；掉线安全态会关闭电机/MOS/灯/蜂鸣器，并把舵机回中。
 
 ## 6. 暂不做
 
