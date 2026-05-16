@@ -165,7 +165,6 @@ receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进
 - 先实现 `HELLO`、`DATA`、`STATUS`。
 - 明确掉线超时和 receiver 安全状态。
 - controller 高频发送最新控制状态，receiver 低频或按需回传状态。
-- 当前阻塞：`proto_rf_link` wrapper 接入 STC8H1K08 固件会触发 DSEG 连续空间不足，见 [阶段 3 基础库阻塞](08-stage3-base-blocker.md)。
 
 ### 阶段 4：迁移业务
 
