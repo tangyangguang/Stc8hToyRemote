@@ -23,3 +23,4 @@ cc -std=c99 -Wall -Wextra \
 
 (cd "$ROOT_DIR/controller" && pio run)
 (cd "$ROOT_DIR/receiver" && pio run)
+"$ROOT_DIR/tools/check_firmware_size.sh"
