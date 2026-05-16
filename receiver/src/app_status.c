@@ -62,5 +62,9 @@ void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *
     sample_divider = 0u;
 
     centivolts = app_status_read_rx_battery_centivolts();
-    (void)toy_remote_status_set_voltage_centivolts(status, centivolts);
+    if (centivolts > 9999u) {
+        centivolts = 9999u;
+    }
+    status->voltage_int = (stc8h_u8)(centivolts / 100u);
+    status->voltage_dec = (stc8h_u8)(centivolts % 100u);
 }
