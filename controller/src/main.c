@@ -289,9 +289,6 @@ static void handle_ack_status(void)
         return;
     }
 
-    link.seq_rx = ack[3];
-    link.ack_pending = 0u;
-    link.state = PROTO_RF_LINK_STATE_CONNECTED;
     rx_status.link_state = body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
     rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
     rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];

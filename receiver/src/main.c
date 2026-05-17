@@ -54,7 +54,7 @@ static void prepare_ack_status(void)
     status_packet[1] = PROTO_RF_LINK_VERSION;
     status_packet[2] = PROTO_RF_LINK_PACKET_STATUS;
     status_packet[3] = link.seq_tx;
-    status_packet[4] = link.seq_rx;
+    status_packet[4] = packet[3];
     status_packet[5] = 0u;
     status_packet[6] = 2u;
     status_packet[7] = 1u;

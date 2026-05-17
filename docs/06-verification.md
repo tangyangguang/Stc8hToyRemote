@@ -235,6 +235,26 @@ receiver：
   - receiver 安全态与控制态的 PWM 占空比、舵机中点、电机方向、灯/蜂鸣器/aux PWM 输出与上一次一致。
   - 业务协议测试和链路集成测试均通过。
 
+2026-05-17 接入最新基础库 fixed-state / SPI 裁剪后运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `6302/8192`，剩余 `1890` bytes（较上一次 -182 bytes）；XDATA `112/1024`（较上一次 -3 bytes）；DATA 栈空间 +1 byte
+- receiver: flash `5363/8192`，剩余 `2829` bytes（较上一次 -155 bytes）；XDATA `109/1024`（较上一次 -3 bytes）；DATA 最大连续空闲 +1 byte
+- 两端均无 DSEG/OSEG 链接错误。
+- 新增接入：
+  - controller / receiver: `PROTO_RF_LINK_TRACK_STATE=0`、`PROTO_RF_LINK_TRACK_SEQ_RX=0`、`PROTO_RF_LINK_TRACK_ACK_PENDING=0`、`STC8H_SPI_ENABLE_WRITE=0`。
+  - controller: `DRV_NRF24L01_ENABLE_ENTER_RX=0`、`DRV_NRF24L01_ENABLE_ENTER_STANDBY=0`。
+  - receiver: `DRV_NRF24L01_ENABLE_ENTER_STANDBY=0`。
+- 行为保持：
+  - controller 不再写未读取的 `link.seq_rx` / `link.ack_pending` / `link.state`。
+  - receiver ACK status 的 `ack_seq` 直接回填当前收到 DATA 包的 `packet[3]`，不再依赖 `proto_rf_link_t.seq_rx`。
+  - `READ_STATUS`、`READ_PAYLOAD`、`ACK_PAYLOAD`、`POWER_DOWN` 保留，因为当前收发、ACK payload 和初始化路径仍依赖它们。
+
 2026-05-17 fixed-path 再次压缩后运行：
 
 ```sh
