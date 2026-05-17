@@ -211,6 +211,30 @@ receiver：
 - 两端均无 DSEG/OSEG 链接错误。
 - 使用基础库 fixed-path 能力：TM1637 `display_raw4`、EC11 small API、proto_rf_link fixed DATA send/poll、nRF24 pipe0 fixed 配置和参数检查裁剪。
 
+2026-05-17 第二轮 base lib 重构（NULL gate + RAM 字段 gate + PWM 影子值 gate）后运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `6484/8192`，剩余 `1708` bytes（较上一次 -27 bytes）；XDATA `115/1024`（较上一次 -4 bytes）
+- receiver: flash `5518/8192`，剩余 `2674` bytes（较上一次 -176 bytes）；XDATA `112/1024`（较上一次 -4 bytes）；DATA 栈空间 +6 bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 新增基础库默认兼容裁剪宏：
+  - `proto_rf_link` 增加 `INCLUDE_TIMEOUT_FIELDS`，关闭后从 `proto_rf_link_t` 中省 `timeout_ms`/`heartbeat_ms` 共 4 字节 RAM；自动 `#error` 排除与 TICK/INIT_TIMEOUT_FIELDS/SEND_HEARTBEAT 冲突的配置。
+  - `proto_rf_link_init` 与 `proto_rf_link_set_ids` 的 NULL 检查改为复用 `ENABLE_PACKET_ARG_CHECK` 宏。
+  - `drv_ec11` 增加 `ENABLE_NULL_CHECK`，关闭后省 init / scan / get_delta 的 `ec11 == NULL` 检查。
+  - `stc8h_pwm` 增加 `TRACK_PERIOD_PRESCALER`，关闭后省 4–8 字节 RAM 影子值，set_period / set_prescaler 的"运行中防改"运行期保护一并移除；编译期 `#error` 强制 `SET_DUTY_CLAMP=0`。
+- ToyRemote 接入：
+  - controller: `PROTO_RF_LINK_INCLUDE_TIMEOUT_FIELDS=0`、`DRV_EC11_ENABLE_NULL_CHECK=0`。
+  - receiver: `PROTO_RF_LINK_INCLUDE_TIMEOUT_FIELDS=0`、`STC8H_PWM_TRACK_PERIOD_PRESCALER=0`。
+- 验收要点：
+  - controller / receiver 均无对 `link.timeout_ms` / `link.heartbeat_ms` 的读取，仅 controller 在 `handle_ack_status` 中写 `link.ack_pending=0`（仍允许）；安全态、ACK 状态、电压回传、配置/校准、绑定均行为不变。
+  - receiver 安全态与控制态的 PWM 占空比、舵机中点、电机方向、灯/蜂鸣器/aux PWM 输出与上一次一致。
+  - 业务协议测试和链路集成测试均通过。
+
 2026-05-17 fixed-path 再次压缩后运行：
 
 ```sh
