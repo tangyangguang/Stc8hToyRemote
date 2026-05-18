@@ -14,7 +14,7 @@
                                   TOY_REMOTE_TX_DIR_MASK)
 
 static STC8H_XDATA drv_ec11_small_t speed_encoder;
-static volatile stc8h_s8 speed_encoder_delta_accum;
+static volatile STC8H_XDATA stc8h_s16 speed_encoder_delta_accum;
 static stc8h_u8 adc_divider;
 
 void app_input_init(toy_remote_control_t *control)
@@ -60,7 +60,7 @@ void app_input_encoder_tick_isr(void)
 
     delta = drv_ec11_scan_delta_small(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
     if (delta != 0) {
-        speed_encoder_delta_accum = (stc8h_s8)(speed_encoder_delta_accum + (stc8h_s8)delta);
+        speed_encoder_delta_accum = (stc8h_s16)(speed_encoder_delta_accum + delta);
     }
 }
 
@@ -70,7 +70,7 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     stc8h_u16 adc_value;
 
     EA = 0;
-    delta = (stc8h_s16)speed_encoder_delta_accum;
+    delta = speed_encoder_delta_accum;
     speed_encoder_delta_accum = 0;
     EA = 1;
 
