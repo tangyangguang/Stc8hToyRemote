@@ -77,12 +77,12 @@ cd receiver
 pio run -t upload --upload-port <serial-port>
 ```
 
-`<serial-port>` 示例：`/dev/cu.usbserial-110`。当前上传配置仿照 `Stc8hIrLamp` 的已验证流程，使用 PlatformIO 内置 `tool-stcgal`，协议 `stc8g`，下载波特率 `38400`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。
+`<serial-port>` 示例：`/dev/cu.usbserial-110`。当前上传配置仿照 `Stc8hIrLamp` 的已验证流程，使用 PlatformIO 内置 `tool-stcgal`，协议 `stc8g`，下载波特率 `19200`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。实测 `38400` 可写完整个 flash，但可能在 BSL 7.2+ 的 `Finishing write` 阶段偶发 `Protocol error: incorrect frame start`，因此默认使用更保守的 `19200`。
 
 已知不适用路径：
 
 - PlatformIO `intel_mcs51` 默认 uploader 对 `STC8H1K08` 使用 `stc8` 协议，本项目实测会在 `Erasing flash` 阶段出现 `Protocol error: incorrect frame start`。
-- 手动调用 `stcgal` 时必须使用 `-P stc8g -t 11059 -a -b 38400` 这一组参数。
+- 手动调用 `stcgal` 时必须使用 `-P stc8g -t 11059 -a -b 19200` 这一组参数。
 
 ## 阶段 2 硬件验证
 
