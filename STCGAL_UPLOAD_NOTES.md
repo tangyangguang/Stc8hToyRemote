@@ -11,6 +11,7 @@ Current project defaults:
 - download baud: `19200`
 - no default trim (`-t` not passed)
 - no forced handshake baud (`-l` not passed)
+- upload runner retries and falls back across multiple baud/handshake combinations
 
 These values are set in:
 
@@ -18,6 +19,7 @@ These values are set in:
 - `receiver/platformio.ini`
 - `controller/upload_stcgal.py`
 - `receiver/upload_stcgal.py`
+- `tools/upload_stcgal_runner.py`
 
 ## What failed in practice
 
@@ -39,6 +41,17 @@ Trying `-l 1200` did not help here. It changed the failure point but did not imp
 
 `9600` was not the most reliable setting here. `19200` matched `stcgal`'s conservative default guidance and worked better on this setup.
 
+### 5. High download baud can work once retries exist
+
+After adding a retry/fallback upload runner, this setup could also complete uploads at `38400` and `115200`.
+
+That does **not** mean high baud is intrinsically stable on this board. The more accurate conclusion is:
+
+- single-shot `stcgal` uploads were fragile on this setup
+- automatic retry plus baud fallback made the workflow robust enough that even faster baud settings could succeed
+
+So the important lesson is not "always use 115200". The important lesson is "do not rely on one upload attempt with one timing configuration".
+
 ## Practical rule for this repo
 
 If `stcgal` starts failing with messages like:
@@ -53,7 +66,18 @@ then do **not** change multiple timing variables at once. Prefer this order:
 2. keep baud at `19200`
 3. remove forced trim
 4. remove forced handshake baud
-5. only then experiment with `-l` or `-t`
+5. use the retry/fallback runner
+6. only then experiment with `-l` or higher `-b`
+
+Current retry/fallback strategy is:
+
+1. same configured baud, retry twice
+2. same baud with `-l 1200`
+3. `9600`
+4. `9600` with `-l 1200`
+5. `4800` with `-l 1200`
+
+This matches `stcgal` FAQ guidance better than hard-coding one supposedly magic baud rate.
 
 ## Encoder debugging lesson learned at the same time
 
