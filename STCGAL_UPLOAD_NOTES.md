@@ -1,19 +1,19 @@
-# STCGAL Upload Notes
+# STCGAL 烧录经验
 
-This project uses `stcgal` with STC8H UART ISP. A setup that looks reasonable can still be unstable, especially on macOS with USB-UART adapters.
+本项目使用 `stcgal` 通过 STC8H 的 UART ISP 进行烧录。实测表明：看起来合理的参数组合，仍然可能在 macOS + USB 转串口适配器环境下表现出明显的不稳定性。
 
-## Known-good default
+## 当前默认配置
 
-Current project defaults:
+项目当前默认上传配置：
 
-- protocol: `stc8g`
-- upload port: `/dev/cu.usbserial-110`
-- download baud: `19200`
-- no default trim (`-t` not passed)
-- no forced handshake baud (`-l` not passed)
-- upload runner retries and falls back across multiple baud/handshake combinations
+- 协议：`stc8g`
+- 上传口：`/dev/cu.usbserial-110`
+- 下载波特率：`19200`
+- 不默认传 `-t`，即不强制做 RC trim
+- 不默认传 `-l`，即不强制指定握手波特率
+- 上传脚本内置“自动重试 + 波特率/握手参数回退”
 
-These values are set in:
+这些配置位于：
 
 - `controller/platformio.ini`
 - `receiver/platformio.ini`
@@ -21,72 +21,122 @@ These values are set in:
 - `receiver/upload_stcgal.py`
 - `tools/upload_stcgal_runner.py`
 
-## What failed in practice
+## 这块板子上实际踩过的坑
 
-### 1. Wrong protocol family
+### 1. 协议族不能写错
 
-Using PlatformIO's default uploader behavior for STC8H can fail early with protocol framing errors. This project must use `stcgal` with protocol `stc8g`.
+对 STC8H 来说，必须明确使用 `stcgal` 的 `stc8g` 协议族。  
+如果沿用不合适的默认上传行为，可能会在早期阶段直接出现协议帧错误。
 
-### 2. Forcing RC trim made uploads less stable
+### 2. 强制 RC trim 反而会让烧录更不稳定
 
-Passing `-t 11059` / `-t 11059.2` looked attractive because the target runs around 11.0592 MHz, but this pushed failures into the `Target frequency` stage on this hardware.
+曾尝试传：
 
-`stcgal` documents that RC trimming uses the UART clock as reference, so UART timing quality directly affects trim reliability. On this board/adapter combination, removing trim was more stable than forcing it.
+- `-t 11059`
+- `-t 11059.2`
 
-### 3. Lower handshake baud was not a universal improvement
+因为目标频率看起来接近 11.0592 MHz。  
+但在这套硬件上，这会把失败点推到 `Target frequency` 阶段，实际更不稳定。
 
-Trying `-l 1200` did not help here. It changed the failure point but did not improve reliability. For this setup, leaving handshake baud at the tool default worked better.
+`stcgal` 官方 FAQ 明确说明：RC trim 依赖 UART 时钟作为参考，所以 UART 时序质量会直接影响 trim 成功率。  
+对这块板子和当前 USB-UART 组合来说，**去掉 trim 比强制 trim 更稳**。
 
-### 4. Slower download baud was not always better
+### 3. 降低握手波特率不是通用解法
 
-`9600` was not the most reliable setting here. `19200` matched `stcgal`'s conservative default guidance and worked better on this setup.
+曾尝试 `-l 1200`。  
+在某些情况下它会改变失败位置，但并没有稳定提升成功率。
 
-### 5. High download baud can work once retries exist
+所以这里的经验不是“必须强制 `-l 1200`”，而是：
 
-After adding a retry/fallback upload runner, this setup could also complete uploads at `38400` and `115200`.
+- `-l 1200` 是一个有价值的回退手段
+- 但不应默认强制打开
 
-That does **not** mean high baud is intrinsically stable on this board. The more accurate conclusion is:
+### 4. 更低的下载波特率不一定更稳
 
-- single-shot `stcgal` uploads were fragile on this setup
-- automatic retry plus baud fallback made the workflow robust enough that even faster baud settings could succeed
+`9600` 并不是这套环境下最稳的配置。  
+`19200` 更接近 `stcgal` 官方 FAQ 建议的保守默认值，实测表现更好。
 
-So the important lesson is not "always use 115200". The important lesson is "do not rely on one upload attempt with one timing configuration".
+### 5. 高下载波特率也可以成功，但前提不是“它天然稳定”
 
-## Practical rule for this repo
+在加入“自动重试 + 参数回退”之后，这套环境下：
 
-If `stcgal` starts failing with messages like:
+- `38400` 可以成功
+- `115200` 也可以成功
+
+但这个现象的正确解读不是“以后默认就用 115200”。  
+更准确的结论是：
+
+- 单次、单参数的 `stcgal` 上传在这套环境里偏脆弱
+- 加入自动重试和回退后，整体流程的容错能力明显提升
+- 在容错机制存在时，较高波特率也可能成功
+
+所以真正应记录的经验是：
+
+**不要把上传稳定性建立在“某一个神奇波特率”上，而要建立在“自动重试 + 渐进回退”上。**
+
+## 遇到烧录失败时的处理顺序
+
+如果 `stcgal` 出现类似报错：
 
 - `Protocol error: incorrect frame start`
 - `Target frequency: Disconnected!`
 - `Finishing write: Disconnected!`
 
-then do **not** change multiple timing variables at once. Prefer this order:
+不要一次性同时改很多时序参数。  
+建议按这个顺序排查：
 
-1. keep protocol at `stc8g`
-2. keep baud at `19200`
-3. remove forced trim
-4. remove forced handshake baud
-5. use the retry/fallback runner
-6. only then experiment with `-l` or higher `-b`
+1. 先确认协议仍是 `stc8g`
+2. 优先保留 `19200`
+3. 去掉强制 trim
+4. 去掉强制握手波特率
+5. 先使用自动重试/回退上传器
+6. 仍不稳时，再试更高 `-b` 或 `-l 1200`
 
-Current retry/fallback strategy is:
+## 当前上传器的回退策略
 
-1. same configured baud, retry twice
-2. same baud with `-l 1200`
+当前项目内置的上传回退顺序为：
+
+1. 当前配置波特率，重试两次
+2. 当前配置波特率 + `-l 1200`
 3. `9600`
-4. `9600` with `-l 1200`
-5. `4800` with `-l 1200`
+4. `9600 + -l 1200`
+5. `4800 + -l 1200`
 
-This matches `stcgal` FAQ guidance better than hard-coding one supposedly magic baud rate.
+这比“硬编码某一个固定波特率”更符合 `stcgal` FAQ 的思路，也更符合这套板子的实际表现。
 
-## Encoder debugging lesson learned at the same time
+## 还需要记住的硬件侧经验
 
-The controller encoder issue was not a pin mapping problem. Two code-side causes mattered:
+`stcgal` 官方 FAQ 对以下问题有明确提醒，而这些问题在本项目场景里同样成立：
 
-1. encoder scan was only happening once every 50 ms, which missed most quadrature transitions
-2. after restoring 1 ms scanning, `DRV_EC11_SMALL_STEPS_PER_DETENT=2` over-counted; `4` matched the actual full detent sequence better
+- USB-UART 时序精度和奇偶校验兼容性会影响稳定性
+- RX/TX 可能造成寄生供电，影响 bootloader 进入和稳定性
+- Windows 官方 STC 工具稳定，不代表 `stcgal` 在同一适配器上也一定同样稳定
 
-So for this controller:
+因此，如果后续再次出现“偶发成功、经常失败”的现象，优先怀疑：
 
-- fast input polling matters more than it first appeared
-- `steps_per_detent` cannot be judged correctly while scan frequency is too low
+1. 串口链路时序兼容性
+2. `stcgal` 单次尝试过于脆弱
+3. 板子掉电/上电边界不干净
+
+而不是优先怀疑“固件变大了”或“应用主频设置错了”。
+
+## 同期编码器问题的经验
+
+这次和烧录问题同期暴露出来的另一个经验是：  
+controller 的编码器问题，根因并不是引脚映射错误。
+
+真正重要的代码侧原因有两个：
+
+1. 早期版本里，编码器扫描只在主循环里每 50ms 做一次，远远不够
+2. 在恢复 1ms 级稳定采样后，`DRV_EC11_SMALL_STEPS_PER_DETENT` 需要结合真实 detent 行为判断，不能在低采样率前提下草率下结论
+
+最终有效的方向是：
+
+- 用 Timer0 1ms ISR 稳定采样 EC11 A/B
+- 主循环只消费累计 delta
+- 再单独处理显示节拍和无线发包节拍
+
+也就是说：
+
+- **输入采样要独立**
+- **显示刷新节拍和无线发包节拍不要绑死在同一个粗颗粒主循环上**
