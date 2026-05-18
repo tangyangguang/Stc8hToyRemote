@@ -96,7 +96,7 @@ cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol
 (cd receiver && pio run -t upload --upload-port <serial-port>)
 ```
 
-`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，下载波特率 `19200`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。实测 `38400` 可能在 BSL 7.2+ 的 `Finishing write` 阶段偶发掉帧。
+`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，下载波特率 `9600`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。实测较高波特率可能在 BSL 7.2+ 的 `Finishing write` 阶段偶发掉帧。
 
 ## 构建约束
 
