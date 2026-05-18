@@ -223,6 +223,7 @@ static void display_config(void)
 static void enter_config_mode(void)
 {
     config_mode = 1u;
+    app_input_set_speed_accel_enabled(0u);
     config_wait_release = 1u;
     config_item = APP_CONFIG_ITEM_REDUCE;
     config_brake_prev = 1u;
@@ -283,6 +284,7 @@ static void handle_config_mode(stc8h_s16 delta)
         }
         if ((buzzer_now != 0u) && (config_buzzer_prev == 0u)) {
             config_mode = 0u;
+            app_input_set_speed_accel_enabled(1u);
             config_hold_ticks = 0u;
         }
     }

@@ -28,6 +28,13 @@ cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
 /tmp/ec11_small_sequence_test_2
 
 cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/ec11_speed_accel_test.c" \
+    -o /tmp/ec11_speed_accel_test
+/tmp/ec11_speed_accel_test
+
+cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     -I"$ROOT_DIR/../Stc8hBase/protocols" \
