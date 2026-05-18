@@ -37,7 +37,7 @@ static stc8h_u8 input_diag_delta_hold;
 static stc8h_u8 input_diag_delta_segment;
 #endif
 static STC8H_XDATA stc8h_u8 config_mode;
-static STC8H_XDATA stc8h_u8 config_hold_ticks;
+static STC8H_XDATA stc8h_u16 config_hold_ticks;
 static STC8H_XDATA stc8h_u8 config_wait_release;
 static STC8H_XDATA stc8h_u8 config_item;
 static STC8H_XDATA stc8h_u8 config_brake_prev;
@@ -50,10 +50,12 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_DISPLAY_UP 0x23u
 #define APP_DISPLAY_DOWN 0x1Cu
 #define APP_DISPLAY_COLON 0x80u
-#define APP_CONFIG_ENTER_TICKS 60u
+#define APP_CONFIG_ENTER_TICKS 300u
 #define APP_CONFIG_ITEM_REDUCE 0u
 #define APP_CONFIG_ITEM_MIDDLE 1u
 #define APP_LOOP_INTERVAL_MS 50u
+#define APP_UI_UPDATE_MS 10u
+#define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
 #define APP_TIMER0_1MS_RELOAD 0xFC66u
 #define APP_AUXR_T0_1T 0x80u
 #define APP_INTCLKO_T0CLKO 0x01u
@@ -465,9 +467,28 @@ static void update_voltage_display(void)
     }
 }
 
+static void run_ui_slice(void)
+{
+    stc8h_s16 delta;
+
+    delta = app_input_update(&control);
+    if (config_mode != 0u) {
+        handle_config_mode(delta);
+    } else {
+        update_config_entry();
+        if (control.request_voltage != 0u) {
+            update_voltage_display();
+        } else {
+            display_control();
+        }
+    }
+}
+
 void main(void)
 {
     stc8h_s16 delta;
+    stc8h_u8 i;
+
     stc8h_spi_init();
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
@@ -499,30 +520,17 @@ void main(void)
             stc8h_delay_ms(APP_INPUT_DIAG_REFRESH_MS);
 #else
             display_control();
-            stc8h_delay_ms(APP_LOOP_INTERVAL_MS);
+            stc8h_delay_ms(APP_UI_UPDATE_MS);
 #endif
         }
     }
     scan_channels();
 
     while (1) {
-        delta = app_input_update(&control);
-        if (config_mode != 0u) {
-            handle_config_mode(delta);
-        } else {
-            update_config_entry();
-        }
         make_control_packet();
         tx_result = app_radio_send_packet_with_ack(packet);
         handle_ack_status();
 
-        if (config_mode == 0u) {
-            if (control.request_voltage != 0u) {
-                update_voltage_display();
-            } else {
-                display_control();
-            }
-        }
         if (tx_result == APP_RADIO_TX_DONE) {
             radio_failures = 0u;
         } else if (radio_failures < 10u) {
@@ -531,6 +539,10 @@ void main(void)
             radio_failures = 0u;
             scan_channels();
         }
-        stc8h_delay_ms(APP_LOOP_INTERVAL_MS);
+
+        for (i = 0u; i < APP_UI_UPDATES_PER_LOOP; ++i) {
+            run_ui_slice();
+            stc8h_delay_ms(APP_UI_UPDATE_MS);
+        }
     }
 }
