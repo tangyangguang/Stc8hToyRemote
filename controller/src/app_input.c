@@ -4,13 +4,17 @@
 #include "stc8h_adc.h"
 #include "stc8h_sfr.h"
 
-#define APP_INPUT_SCAN_MS 1u
+#ifndef APP_INPUT_DIAG_DISPLAY
+#define APP_INPUT_DIAG_DISPLAY 0
+#endif
+
 #define APP_INPUT_ADC_DIVIDER 16u
 #define APP_INPUT_P3_BUTTON_MASK (TOY_REMOTE_TX_BRAKE_MASK | TOY_REMOTE_TX_FN_MASK | \
                                   TOY_REMOTE_TX_BUZZER_MASK | TOY_REMOTE_TX_LIGHT_MASK | \
                                   TOY_REMOTE_TX_DIR_MASK)
 
 static STC8H_XDATA drv_ec11_small_t speed_encoder;
+static volatile stc8h_s8 speed_encoder_delta_accum;
 static stc8h_u8 adc_divider;
 
 void app_input_init(toy_remote_control_t *control)
@@ -34,6 +38,10 @@ void app_input_init(toy_remote_control_t *control)
     P5PU |= TOY_REMOTE_TX_EC11_SW_MASK;
 
     drv_ec11_small_init(&speed_encoder);
+    speed_encoder_delta_accum = 0;
+#if APP_INPUT_DIAG_DISPLAY
+    speed_encoder.last_state = (stc8h_u8)(P1 & (TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK));
+#endif
     stc8h_adc_init();
     control->direction = TOY_REMOTE_DIRECTION_FORWARD;
     control->speed = 0u;
@@ -46,12 +54,26 @@ void app_input_init(toy_remote_control_t *control)
     control->tx_id = 0u;
 }
 
+void app_input_encoder_tick_isr(void)
+{
+    stc8h_s16 delta;
+
+    delta = drv_ec11_scan_delta_small(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
+    if (delta != 0) {
+        speed_encoder_delta_accum = (stc8h_s8)(speed_encoder_delta_accum + (stc8h_s8)delta);
+    }
+}
+
 stc8h_s16 app_input_update(toy_remote_control_t *control)
 {
     stc8h_s16 delta;
     stc8h_u16 adc_value;
 
-    delta = drv_ec11_scan_delta_small(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
+    EA = 0;
+    delta = (stc8h_s16)speed_encoder_delta_accum;
+    speed_encoder_delta_accum = 0;
+    EA = 1;
+
     if (delta != 0) {
         adc_value = (stc8h_u16)((stc8h_s16)control->speed + delta);
         if (((stc8h_s16)adc_value) < 0) {

@@ -5,8 +5,18 @@
 #include "drv_tm1637.h"
 #include "proto_rf_link.h"
 #include "stc8h_delay.h"
+#include "stc8h_interrupt.h"
+#include "stc8h_sfr.h"
 #include "stc8h_spi.h"
 #include "toy_remote_protocol.h"
+
+#ifndef APP_INPUT_DIAG_DISPLAY
+#define APP_INPUT_DIAG_DISPLAY 0
+#endif
+
+#ifndef APP_STARTUP_DISPLAY_TEST
+#define APP_STARTUP_DISPLAY_TEST 0
+#endif
 
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
@@ -21,6 +31,11 @@ static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
 static stc8h_u8 current_channel;
 static stc8h_u8 radio_failures;
+#if APP_INPUT_DIAG_DISPLAY
+static stc8h_u8 input_diag_blink;
+static stc8h_u8 input_diag_delta_hold;
+static stc8h_u8 input_diag_delta_segment;
+#endif
 static STC8H_XDATA stc8h_u8 config_mode;
 static STC8H_XDATA stc8h_u8 config_hold_ticks;
 static STC8H_XDATA stc8h_u8 config_wait_release;
@@ -38,6 +53,15 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_CONFIG_ENTER_TICKS 60u
 #define APP_CONFIG_ITEM_REDUCE 0u
 #define APP_CONFIG_ITEM_MIDDLE 1u
+#define APP_LOOP_INTERVAL_MS 50u
+#define APP_TIMER0_1MS_RELOAD 0xFC66u
+#define APP_AUXR_T0_1T 0x80u
+#define APP_INTCLKO_T0CLKO 0x01u
+#if APP_INPUT_DIAG_DISPLAY
+#define APP_INPUT_DIAG_REFRESH_MS 5u
+#define APP_INPUT_DIAG_BLINK_TICKS 6u
+#define APP_INPUT_DIAG_DELTA_HOLD_TICKS 8u
+#endif
 
 static stc8h_u8 display_digit(stc8h_u8 value)
 {
@@ -47,6 +71,27 @@ static stc8h_u8 display_digit(stc8h_u8 value)
     };
 
     return table[value];
+}
+
+STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
+{
+    TF0 = 0;
+    app_input_encoder_tick_isr();
+}
+
+static void app_timer0_init_1ms(void)
+{
+    TR0 = 0;
+    ET0 = 0;
+    TMOD &= (stc8h_u8)~0x0Fu;
+    AUXR &= (stc8h_u8)~APP_AUXR_T0_1T;
+    INTCLKO &= (stc8h_u8)~APP_INTCLKO_T0CLKO;
+    TL0 = (stc8h_u8)APP_TIMER0_1MS_RELOAD;
+    TH0 = (stc8h_u8)(APP_TIMER0_1MS_RELOAD >> 8);
+    TF0 = 0;
+    ET0 = 1;
+    EA = 1;
+    TR0 = 1;
 }
 
 static void display_init(void)
@@ -87,11 +132,60 @@ static void display_control(void)
     (void)drv_tm1637_display_raw4(display_segments);
 }
 
+#if APP_STARTUP_DISPLAY_TEST
+static void display_startup_self_test(void)
+{
+    stc8h_u8 digit;
+    stc8h_u8 segment;
+
+    for (digit = 0u; digit < 10u; ++digit) {
+        segment = display_digit(digit);
+        display_segments[0] = segment;
+        display_segments[1] = segment;
+        display_segments[2] = segment;
+        display_segments[3] = segment;
+        (void)drv_tm1637_display_raw4(display_segments);
+        stc8h_delay_ms(40u);
+    }
+}
+#endif
+
+#if APP_INPUT_DIAG_DISPLAY
+static void display_input_diag(stc8h_s16 delta)
+{
+    if (delta > 0) {
+        input_diag_delta_segment = APP_DISPLAY_UP;
+        input_diag_delta_hold = APP_INPUT_DIAG_DELTA_HOLD_TICKS;
+    } else if (delta < 0) {
+        input_diag_delta_segment = APP_DISPLAY_DOWN;
+        input_diag_delta_hold = APP_INPUT_DIAG_DELTA_HOLD_TICKS;
+    } else if (input_diag_delta_hold != 0u) {
+        --input_diag_delta_hold;
+    } else {
+        input_diag_delta_segment = APP_DISPLAY_BLANK;
+    }
+
+    display_segments[0] = display_digit(TOY_REMOTE_TX_EC11_A_READ());
+    display_segments[1] = display_digit(TOY_REMOTE_TX_EC11_B_READ());
+    display_segments[2] = display_digit(TOY_REMOTE_TX_EC11_SW_ACTIVE());
+    display_segments[3] = (input_diag_delta_hold != 0u) ? input_diag_delta_segment : APP_DISPLAY_BLANK;
+
+    ++input_diag_blink;
+    if (input_diag_blink >= APP_INPUT_DIAG_BLINK_TICKS) {
+        input_diag_blink = 0u;
+    }
+    if (input_diag_blink < (APP_INPUT_DIAG_BLINK_TICKS / 2u)) {
+        display_segments[1] |= APP_DISPLAY_COLON;
+    }
+
+    (void)drv_tm1637_display_raw4(display_segments);
+}
+#endif
+
 static void display_voltage(stc8h_u16 value)
 {
     stc8h_u8 i;
     stc8h_u16 q;
-    stc8h_u8 leading_blank;
 
     if (value > 9999u) {
         value = 9999u;
@@ -103,10 +197,6 @@ static void display_voltage(stc8h_u16 value)
         value = q;
     }
 
-    leading_blank = (display_segments[0] == display_digit(0u)) ? 1u : 0u;
-    if (leading_blank != 0u) {
-        display_segments[0] = APP_DISPLAY_BLANK;
-    }
     if (show_rx_voltage == 0u) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
@@ -377,16 +467,21 @@ static void update_voltage_display(void)
 
 void main(void)
 {
+    stc8h_s16 delta;
     stc8h_spi_init();
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
     app_input_init(&control);
+    app_timer0_init_1ms();
     if (app_config_load(&config) != STC8H_OK) {
         (void)app_config_save(&config);
     }
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
     display_init();
+#if APP_STARTUP_DISPLAY_TEST
+    display_startup_self_test();
+#endif
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
@@ -398,28 +493,35 @@ void main(void)
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
         while (1) {
-            (void)app_input_update(&control);
+            delta = app_input_update(&control);
+#if APP_INPUT_DIAG_DISPLAY
+            display_input_diag(delta);
+            stc8h_delay_ms(APP_INPUT_DIAG_REFRESH_MS);
+#else
             display_control();
-            stc8h_delay_ms(50u);
+            stc8h_delay_ms(APP_LOOP_INTERVAL_MS);
+#endif
         }
     }
     scan_channels();
 
     while (1) {
+        delta = app_input_update(&control);
         if (config_mode != 0u) {
-            handle_config_mode(app_input_update(&control));
+            handle_config_mode(delta);
         } else {
-            app_input_update(&control);
             update_config_entry();
         }
         make_control_packet();
         tx_result = app_radio_send_packet_with_ack(packet);
         handle_ack_status();
 
-        if (control.request_voltage != 0u) {
-            update_voltage_display();
-        } else {
-            display_control();
+        if (config_mode == 0u) {
+            if (control.request_voltage != 0u) {
+                update_voltage_display();
+            } else {
+                display_control();
+            }
         }
         if (tx_result == APP_RADIO_TX_DONE) {
             radio_failures = 0u;
@@ -429,6 +531,6 @@ void main(void)
             radio_failures = 0u;
             scan_channels();
         }
-        stc8h_delay_ms(50u);
+        stc8h_delay_ms(APP_LOOP_INTERVAL_MS);
     }
 }

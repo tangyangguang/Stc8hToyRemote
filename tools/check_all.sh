@@ -11,6 +11,22 @@ cc -std=c99 -Wall -Wextra \
     -o /tmp/toy_remote_protocol_test
 /tmp/toy_remote_protocol_test
 
+cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
+    -DTEST_STEPS=4 \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    "$ROOT_DIR/tests/ec11_small_sequence_test.c" \
+    -o /tmp/ec11_small_sequence_test_4
+/tmp/ec11_small_sequence_test_4
+
+cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
+    -DTEST_STEPS=2 \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    "$ROOT_DIR/tests/ec11_small_sequence_test.c" \
+    -o /tmp/ec11_small_sequence_test_2
+/tmp/ec11_small_sequence_test_2
+
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
