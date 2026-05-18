@@ -49,6 +49,19 @@ static stc8h_u8 display_digit(stc8h_u8 value)
     return table[value];
 }
 
+static void display_init(void)
+{
+    P1M0 &= (stc8h_u8)~TOY_REMOTE_TX_TM1637_CLK_MASK;
+    P1M1 &= (stc8h_u8)~TOY_REMOTE_TX_TM1637_CLK_MASK;
+    P3M0 &= (stc8h_u8)~TOY_REMOTE_TX_TM1637_DIO_MASK;
+    P3M1 &= (stc8h_u8)~TOY_REMOTE_TX_TM1637_DIO_MASK;
+    P_SW2 |= 0x80u;
+    P1IE |= TOY_REMOTE_TX_TM1637_CLK_MASK;
+    P3IE |= TOY_REMOTE_TX_TM1637_DIO_MASK;
+    P1PU |= TOY_REMOTE_TX_TM1637_CLK_MASK;
+    P3PU |= TOY_REMOTE_TX_TM1637_DIO_MASK;
+    drv_tm1637_init();
+}
 
 #define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)((speed) / 10u)))
 
@@ -373,16 +386,20 @@ void main(void)
     }
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
-    drv_tm1637_init();
+    display_init();
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
     rx_status.tx_id = 0u;
+    tx_result = APP_RADIO_TX_ERROR;
+    display_control();
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
         while (1) {
+            display_control();
+            stc8h_delay_ms(250u);
         }
     }
     scan_channels();
