@@ -3,7 +3,6 @@
 
 #include "stc8h_config.h"
 
-#define APP_EC11_SPEED_FAST_HALF_MS 12u
 #define APP_EC11_SPEED_MEDIUM_HALF_MS 30u
 
 static stc8h_s16 app_ec11_speed_scale_delta(stc8h_s16 delta, stc8h_u16 interval_half_ms, stc8h_u8 enabled)
@@ -15,9 +14,7 @@ static stc8h_s16 app_ec11_speed_scale_delta(stc8h_s16 delta, stc8h_u16 interval_
     }
 
     step = 1;
-    if (interval_half_ms <= APP_EC11_SPEED_FAST_HALF_MS) {
-        step = 10;
-    } else if (interval_half_ms <= APP_EC11_SPEED_MEDIUM_HALF_MS) {
+    if (interval_half_ms <= APP_EC11_SPEED_MEDIUM_HALF_MS) {
         step = 5;
     }
 

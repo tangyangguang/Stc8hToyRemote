@@ -13,11 +13,11 @@ int main(void)
     assert(app_ec11_speed_scale_delta(1, 30u, 1u) == 5);
     assert(app_ec11_speed_scale_delta(-1, 30u, 1u) == -5);
 
-    assert(app_ec11_speed_scale_delta(1, 12u, 1u) == 10);
-    assert(app_ec11_speed_scale_delta(-1, 12u, 1u) == -10);
+    assert(app_ec11_speed_scale_delta(1, 12u, 1u) == 5);
+    assert(app_ec11_speed_scale_delta(-1, 12u, 1u) == -5);
 
-    assert(app_ec11_speed_scale_delta(1, 6u, 1u) == 10);
-    assert(app_ec11_speed_scale_delta(-1, 6u, 1u) == -10);
+    assert(app_ec11_speed_scale_delta(1, 6u, 1u) == 5);
+    assert(app_ec11_speed_scale_delta(-1, 6u, 1u) == -5);
 
     return 0;
 }
