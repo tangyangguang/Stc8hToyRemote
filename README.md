@@ -89,6 +89,15 @@ cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol
 (cd receiver && pio run)
 ```
 
+固件上传：
+
+```sh
+(cd controller && pio run -t upload --upload-port <serial-port>)
+(cd receiver && pio run -t upload --upload-port <serial-port>)
+```
+
+`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，下载波特率 `38400`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。
+
 ## 构建约束
 
 PlatformIO wrapper 只为当前固件实际使用的 `Stc8hBase` `.c` 文件存在。不要提前编译后续阶段才需要的基础库模块；STC8H1K08 的 flash 和内部 RAM 都很小，未使用函数也会增加 SDCC 链接压力。
