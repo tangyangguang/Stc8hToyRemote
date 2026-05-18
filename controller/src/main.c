@@ -398,8 +398,9 @@ void main(void)
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
         while (1) {
+            (void)app_input_update(&control);
             display_control();
-            stc8h_delay_ms(250u);
+            stc8h_delay_ms(50u);
         }
     }
     scan_channels();

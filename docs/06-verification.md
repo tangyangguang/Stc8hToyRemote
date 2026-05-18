@@ -77,12 +77,12 @@ cd receiver
 pio run -t upload --upload-port <serial-port>
 ```
 
-`<serial-port>` 示例：`/dev/cu.usbserial-110`。当前上传配置仿照 `Stc8hIrLamp` 的已验证流程，使用 PlatformIO 内置 `tool-stcgal`，协议 `stc8g`，默认下载波特率 `9600`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。默认值优先兼容旧遥控板；确认当前芯片稳定后，可临时加 `--project-option custom_stcgal_baud=38400` 提速烧录。
+`<serial-port>` 示例：`/dev/cu.usbserial-110`。当前上传配置仿照 `Stc8hIrLamp` 的已验证流程，使用 PlatformIO 内置 `tool-stcgal`，协议 `stc8g`，默认下载波特率 `38400`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。若个别旧板在 `Target frequency` 或 `Finishing write` 阶段掉帧，可临时加 `--project-option custom_stcgal_baud=9600` 复测。
 
 已知不适用路径：
 
 - PlatformIO `intel_mcs51` 默认 uploader 对 `STC8H1K08` 使用 `stc8` 协议，本项目实测会在 `Erasing flash` 阶段出现 `Protocol error: incorrect frame start`。
-- 手动调用 `stcgal` 时必须使用 `-P stc8g -t 11059 -a -b 9600` 这一组默认兼容参数；确认芯片稳定后可临时升到 `-b 38400`。
+- 手动调用 `stcgal` 时必须使用 `-P stc8g -t 11059 -a -b 38400` 这一组默认参数；不稳定旧板可临时降到 `-b 9600`。
 
 ## 阶段 2 硬件验证
 

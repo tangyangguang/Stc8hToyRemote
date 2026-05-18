@@ -96,7 +96,7 @@ cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol
 (cd receiver && pio run -t upload --upload-port <serial-port>)
 ```
 
-`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，默认下载波特率 `9600`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。默认值优先兼容旧遥控板；确认当前芯片稳定后，可临时加 `--project-option custom_stcgal_baud=38400` 提速烧录。
+`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，默认下载波特率 `38400`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。若个别旧板在 `Target frequency` 或 `Finishing write` 阶段掉帧，可临时加 `--project-option custom_stcgal_baud=9600` 复测。
 
 ## 构建约束
 

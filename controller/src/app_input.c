@@ -6,6 +6,9 @@
 
 #define APP_INPUT_SCAN_MS 1u
 #define APP_INPUT_ADC_DIVIDER 16u
+#define APP_INPUT_P3_BUTTON_MASK (TOY_REMOTE_TX_BRAKE_MASK | TOY_REMOTE_TX_FN_MASK | \
+                                  TOY_REMOTE_TX_BUZZER_MASK | TOY_REMOTE_TX_LIGHT_MASK | \
+                                  TOY_REMOTE_TX_DIR_MASK)
 
 static STC8H_XDATA drv_ec11_small_t speed_encoder;
 static stc8h_u8 adc_divider;
@@ -14,8 +17,21 @@ void app_input_init(toy_remote_control_t *control)
 {
     P1M1 &= (stc8h_u8)~(TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
     P1M0 &= (stc8h_u8)~(TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
+    P3M1 &= (stc8h_u8)~APP_INPUT_P3_BUTTON_MASK;
+    P3M0 &= (stc8h_u8)~APP_INPUT_P3_BUTTON_MASK;
     P3M1 |= 0x08u;
     P3M0 &= (stc8h_u8)~0x08u;
+    P5M1 &= (stc8h_u8)~TOY_REMOTE_TX_EC11_SW_MASK;
+    P5M0 &= (stc8h_u8)~TOY_REMOTE_TX_EC11_SW_MASK;
+    P_SW2 |= 0x80u;
+    P1IE |= (TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
+    P1PU |= (TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
+    P3IE |= APP_INPUT_P3_BUTTON_MASK;
+    P3PU |= APP_INPUT_P3_BUTTON_MASK;
+    P3IE &= (stc8h_u8)~0x08u;
+    P3PU &= (stc8h_u8)~0x08u;
+    P5IE |= TOY_REMOTE_TX_EC11_SW_MASK;
+    P5PU |= TOY_REMOTE_TX_EC11_SW_MASK;
 
     drv_ec11_small_init(&speed_encoder);
     stc8h_adc_init();
