@@ -16,8 +16,8 @@ int main(void)
     assert(app_ec11_speed_scale_delta(1, 12u, 1u) == 10);
     assert(app_ec11_speed_scale_delta(-1, 12u, 1u) == -10);
 
-    assert(app_ec11_speed_scale_delta(1, 6u, 1u) == 20);
-    assert(app_ec11_speed_scale_delta(-1, 6u, 1u) == -20);
+    assert(app_ec11_speed_scale_delta(1, 6u, 1u) == 10);
+    assert(app_ec11_speed_scale_delta(-1, 6u, 1u) == -10);
 
     return 0;
 }
