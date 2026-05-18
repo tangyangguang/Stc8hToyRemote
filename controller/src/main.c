@@ -56,7 +56,7 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_LOOP_INTERVAL_MS 50u
 #define APP_UI_UPDATE_MS 10u
 #define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
-#define APP_TIMER0_1MS_RELOAD 0xFC66u
+#define APP_TIMER0_ENCODER_RELOAD 0xFE33u
 #define APP_AUXR_T0_1T 0x80u
 #define APP_INTCLKO_T0CLKO 0x01u
 #if APP_INPUT_DIAG_DISPLAY
@@ -81,15 +81,15 @@ STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
     app_input_encoder_tick_isr();
 }
 
-static void app_timer0_init_1ms(void)
+static void app_timer0_init_encoder_tick(void)
 {
     TR0 = 0;
     ET0 = 0;
     TMOD &= (stc8h_u8)~0x0Fu;
     AUXR &= (stc8h_u8)~APP_AUXR_T0_1T;
     INTCLKO &= (stc8h_u8)~APP_INTCLKO_T0CLKO;
-    TL0 = (stc8h_u8)APP_TIMER0_1MS_RELOAD;
-    TH0 = (stc8h_u8)(APP_TIMER0_1MS_RELOAD >> 8);
+    TL0 = (stc8h_u8)APP_TIMER0_ENCODER_RELOAD;
+    TH0 = (stc8h_u8)(APP_TIMER0_ENCODER_RELOAD >> 8);
     TF0 = 0;
     ET0 = 1;
     EA = 1;
@@ -493,7 +493,7 @@ void main(void)
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
     app_input_init(&control);
-    app_timer0_init_1ms();
+    app_timer0_init_encoder_tick();
     if (app_config_load(&config) != STC8H_OK) {
         (void)app_config_save(&config);
     }
