@@ -100,9 +100,11 @@ pio run -t upload --upload-port <serial-port>
 - controller 在 receiver 上电时出现 `TX_DONE`。
 - controller 在 receiver 断电或远离时出现 `MAX_RETRY`。
 - controller 上电后先显示保存频道 `Cxxx`。
-- controller 启动发现阶段未找到保存频道时，显示 `S000..S125` 并持续扫描。
-- controller 找到频道后显示 `Fxxx` 短暂停留，再进入控制界面。
-- controller 本次上电成功连接后，连续失败超过阈值时显示 `Lxxx` 并锁定当前频道重试，不自动扫频。
+- controller 保存频道连不上时显示 `Lxxx`，持续锁定当前频道重试，不自动扫频。
+- controller 显示 `Lxxx` 后，EC11 中键双击才启动扫描；未显示 `Lxxx` 时双击不启动扫描。
+- controller 手动扫描时显示 `S000..S125`，持续扫描直到找到匹配 receiver。
+- controller 找到频道后显示 `Fxxx` 短暂停留，保存频道，再进入控制界面。
+- controller 已连接后连续失败超过阈值时显示 `Lxxx` 并锁定当前频道重试，不自动扫频。
 - controller nRF24 初始化失败时显示 `E001` 常驻。
 - controller 正常控制界面中，冒号灭表示最近通信正常，冒号快闪表示当前频道短时发送失败或 ACK 缺失；不使用冒号常亮表示故障。
 - receiver 能收到递增 seq。
@@ -111,7 +113,7 @@ pio run -t upload --upload-port <serial-port>
 - 连续发送/轮询阶段的电流作为 bring-up 基线，不作为最终功耗目标。
 - 多接收机测试：把不同 receiver 调到不同频道后，controller 能扫描到目标频道。
 - 绑定测试：receiver 未绑定时接受第一个合法 `tx_id`；绑定后丢弃其他 `tx_id`；P30+P31 上电清除绑定。
-- receiver LED：Boot 快闪 3 次；nRF24 错误为双闪长停顿；未绑定为单短闪长停顿；已绑定未连接为慢闪；已连接为常亮；清除绑定为快闪 6 次。
+- receiver LED：上电启动快闪 3 次；nRF24 错误为双闪长停顿；未绑定为单短闪长停顿；已绑定未连接为慢闪；已连接为常亮；清除绑定为快闪 6 次。
 
 ## 阶段 3 验证
 
@@ -126,9 +128,17 @@ pio run -t upload --upload-port <serial-port>
 controller：
 
 - EC11 速度增减。
+- 正常模式 EC11 中键短按：刹车并清零速度。
+- 正常模式 EC11 中键长按 5 秒：到 5 秒立即进入配置模式，不需要松开。
 - 方向、刹车、灯、蜂鸣器按键。
 - 转向 ADC 映射。
 - TM1637 正常状态和 Fn 电压显示。
+- 配置模式显示 `P1:0/1`、`P2:0/1`、`P3:45`、`P4:20` 这类 `P` 前缀格式，冒号固定作为配置项和值的分隔符。
+- 配置模式 EC11 中键短按按 `P1 -> P2 -> P3 -> P4 -> P1` 顺序切换配置项。
+- 配置模式 EC11 旋转只修改当前配置草稿，且舵机相关配置实时作用。
+- 配置模式 EC11 中键长按超过 3 秒后保存 EEPROM 并退出；断电重启放弃未保存草稿。
+- 配置模式下发包保持安全：速度 0、刹车、灯/蜂鸣器/aux 关闭。
+- 配置保存后重新上电，方向反向、舵机反向、舵机中位和舵机端点收缩均保持。
 
 receiver：
 

@@ -3,38 +3,50 @@
 ## controller 启动流程
 
 ```text
-init SPI
-  -> init input and display
-  -> load controller config: tx_id, last_channel, calibration
-  -> show saved channel as Cxxx
-  -> init nRF24 PTX on saved last_channel
-      failure -> show E001 and stop in radio-error state
-  -> try saved channel while showing Cxxx
-  -> if this boot has not connected yet:
-       scan channels 0..125 while showing Sxxx until a matching ACK status is found
-  -> show found channel as Fxxx for a short confirmation window
-  -> loop:
-       sample inputs
-       pack control payload
-       make proto_rf_link DATA packet
-       send packet every about 50ms
-       read ACK payload status when present
-       refresh TM1637 display
-       on repeated radio failures after a successful connection:
-            show Lxxx and keep retrying the current channel, do not scan
+初始化 SPI
+  -> 初始化输入和显示
+  -> 读取 controller 配置：tx_id、last_channel、校准参数
+  -> 显示保存频道 Cxxx
+  -> 在保存频道初始化 nRF24 PTX
+      失败 -> 显示 E001，并停留在射频错误状态
+  -> 持续尝试保存频道，显示 Cxxx
+  -> 保存频道连续失败超过阈值：
+       显示 Lxxx，锁定当前频道继续重试，不自动扫描
+  -> 只有在 Lxxx 状态下 EC11 中键双击：
+       进入手动扫描，显示 S000..S125
+  -> 扫描发现匹配 ACK 状态：
+       显示 Fxxx 短暂停留，保存频道，进入控制界面
+  -> 主循环：
+       采样输入
+       打包控制 payload
+       生成 proto_rf_link DATA 包
+       约 50ms 发送一次
+       有 ACK payload 时读取状态
+       刷新 TM1637 显示
+       连续发送失败超过阈值：
+            显示 Lxxx，锁定当前频道重连，不自动扫描
 ```
 
-频道扫描只属于“本次上电尚未连上”的启动发现阶段。只要本次上电已经成功连接过，后续丢包、距离过远、遮挡或短时干扰都必须视为当前频道链路问题；controller 锁定当前频道重试，显示 `Lxxx`，不能自动扫频。重新扫频只能由重启、无有效保存频道或后续明确设计的用户手动搜索动作触发。
+频道扫描只属于用户明确触发的手动搜索动作，不属于上电自动流程。上电、断联、距离过远、遮挡或短时干扰都必须先视为当前频道链路问题；controller 锁定保存频道重试，显示 `Lxxx`，不能自动扫频。只有在 `Lxxx` 已经出现时，EC11 中键双击才启动扫描；连接正常时双击不触发扫描，避免误操作换频道。
 
 controller 连接阶段 TM1637 目标显示：
 
 | 显示 | 含义 |
 | --- | --- |
 | `C040` | 正在尝试保存频道 40 |
-| `S040` | 启动发现阶段正在扫描频道 40 |
+| `L040` | 保存频道 40 当前连不上，保持频道重试 |
+| `S040` | 用户在 `Lxxx` 状态下双击后，正在扫描频道 40 |
 | `F040` | 已找到频道 40，短暂停留后进入控制界面 |
-| `L040` | 已连接过但当前丢链，保持频道 40 重试 |
 | `E001` | controller nRF24 初始化失败，检查射频模块、供电和接线 |
+
+EC11 中键在正常模式下的事件语义：
+
+| 操作 | 生效条件 | 动作 |
+| --- | --- | --- |
+| 短按 | 正常控制界面 | 刹车并清零速度 |
+| 双击 | 当前显示 `Lxxx` | 启动频道扫描 |
+| 双击 | 当前未显示 `Lxxx` | 忽略扫描请求，避免误触换频道 |
+| 长按 5 秒 | 正常模式任意连接状态 | 满 5 秒立即进入配置模式，不需要松开 |
 
 ## controller 正常模式线索
 
@@ -66,69 +78,79 @@ Tx V2.x 记录中正常模式包含方向、速度、刹车、转向、灯光、
 
 Tx V2.x 记录中配置模式涉及舵机反向、中值、减少角度、方向反转和 EEPROM 保存。新实现保留这组真实需求，但不复用旧 EEPROM 布局。
 
-controller 使用 fixed-block EEPROM 保存 `tx_id`、`last_channel`、`flags`、`steering_reduce` 和 `steering_middle`。无有效配置时写入默认值；扫描找到 receiver 后保存频道；配置模式修改后立即保存。
+controller 使用 fixed-block EEPROM 保存 `tx_id`、`last_channel`、`flags`、`steering_reduce` 和 `steering_middle`。无有效配置时写入默认值；手动扫描找到 receiver 后保存频道；配置模式进入后先复制一份 RAM 草稿，旋转调整只改草稿，EC11 中键长按超过 3 秒才保存 EEPROM 并退出。若用户想放弃修改，直接断电重开即可。
 
 ```text
-normal mode:
-  EC11 SW + brake held about 3s -> enter config mode
+正常模式：
+  EC11 中键长按 5 秒 -> 到 5 秒立即进入配置模式
 
-config mode:
-  receiver-facing control is forced safe: speed 0, brake 1, light/buzzer/aux off
-  direction switch state -> direction reverse flag
-  brake edge -> toggle steering reverse
-  EC11 SW edge -> switch edited item between reduce and middle
-  EC11 rotation -> adjust selected item
-  buzzer edge -> exit config mode
-  display shows reduce and middle; colon shows reverse/current item
+配置模式：
+  面向 receiver 的控制强制安全：速度 0、刹车、灯/蜂鸣器/aux 关闭
+  舵机配置实时作用，便于现场观察方向、中位和端点
+  EC11 旋转 -> 修改当前配置项草稿值
+  EC11 中键短按 -> 切换配置项 P1 -> P2 -> P3 -> P4 -> P1
+  EC11 中键长按超过 3 秒 -> 保存 EEPROM 并退出配置模式
+  断电重开 -> 放弃未保存草稿
 ```
+
+配置项顺序和显示：
+
+| 配置项 | 含义 | 范围 | 默认值 | 显示示例 |
+| --- | --- | --- | --- | --- |
+| `P1` | 方向反向 | `0/1` | `0` | `P1:0`、`P1:1` |
+| `P2` | 舵机反向 | `0/1` | `0` | `P2:0`、`P2:1` |
+| `P3` | 舵机中位 | `20..70` | `45` | `P3:45` |
+| `P4` | 舵机端点收缩 | `0..60` | `20` | `P4:20` |
+
+配置模式显示固定使用 `P` 前缀，冒号作为“配置项和值”的分隔符。`P1/P2` 的值只显示 `0/1`；`P3/P4` 显示两位数。配置模式不复用正常模式的链路冒号闪烁语义，避免一个符号同时表达两类状态。
 
 ## receiver 启动流程
 
 ```text
-init output safe levels
-init SPI
-  -> init ADC status
-  -> load receiver config: bound_tx_id, rf_channel, servo_reverse
-  -> if P30 and P31 are held at boot, clear bound_tx_id
-  -> init nRF24 PRX on saved rf_channel
-      failure -> LED double-flash pause loop, keep outputs safe
-  -> preload ACK status payload
-  -> loop:
-       handle P30/P31 channel add/minus
-       receive 32-byte radio packet
-       proto_rf_link_poll DATA
-       unpack and validate control payload
-       bind first valid tx_id or reject mismatched tx_id
-       apply outputs
-       update ACK status payload
-       enter safe state on receive timeout
+初始化输出为安全电平
+初始化 SPI
+  -> 初始化 ADC 状态
+  -> 读取 receiver 配置：bound_tx_id、rf_channel、servo_reverse
+  -> 若 P30 和 P31 上电时同时按下，清除 bound_tx_id
+  -> 在保存频道初始化 nRF24 PRX
+      失败 -> LED 双闪长停顿循环，输出保持安全
+  -> 预装 ACK 状态 payload
+  -> 主循环：
+       处理 P30/P31 频道加减
+       接收 32 字节 radio packet
+       轮询 proto_rf_link DATA
+       解包并校验 control payload
+       绑定第一个合法 tx_id，或拒绝不匹配 tx_id
+       应用输出
+       更新 ACK 状态 payload
+       接收超时后进入安全状态
 ```
 
 绑定和频道流程：
 
 ```text
-receiver unbound:
-  valid control tx_id != 0 -> save bound_tx_id
+receiver 未绑定：
+  合法 control tx_id != 0 -> 保存 bound_tx_id
 
-receiver bound:
-  matching tx_id -> apply outputs
-  different tx_id -> drop packet
+receiver 已绑定：
+  tx_id 匹配 -> 应用输出
+  tx_id 不匹配 -> 丢弃 packet
 
-receiver P30 rising edge -> channel + 1, wrap 125 to 0, save config
-receiver P31 rising edge -> channel - 1, wrap 0 to 125, save config
-receiver boot with P30+P31 held -> clear binding, keep channel
+receiver P30 上升沿 -> 频道 + 1，125 后回到 0，保存配置
+receiver P31 上升沿 -> 频道 - 1，0 前回到 125，保存配置
+receiver 上电时 P30+P31 同时按下 -> 清除绑定，保持频道
 ```
 
 receiver LED 目标语义：
 
 | 阶段 | LED 表现 | 含义 |
 | --- | --- | --- |
-| Boot | 快闪 3 次 | MCU 程序已启动 |
-| Radio init error | 双闪后长停顿，循环 | 接收端 nRF24 初始化失败 |
-| Waiting unbound | 单短闪后长停顿，循环 | 未绑定，等待第一台有效遥控器 |
-| Waiting bound / link lost | 慢闪，约 500ms 翻转 | 已绑定但当前未收到有效业务包 |
-| Connected | 常亮 | 正在收到有效控制包 |
-| Binding cleared | 快闪 6 次后进入 Waiting unbound | P30+P31 上电清除绑定成功 |
+| 上电启动 | 快闪 3 次 | MCU 程序已启动 |
+| 射频初始化失败 | 双闪后长停顿，循环 | 接收端 nRF24 初始化失败 |
+| 未绑定等待 | 单短闪后长停顿，循环 | 未绑定，等待第一台有效遥控器 |
+| 已绑定等待或掉线 | 慢闪，约 500ms 翻转 | 已绑定但当前未收到有效业务包 |
+| 已连接 | 常亮 | 正在收到有效控制包 |
+| 已清除绑定 | 快闪 6 次后进入未绑定等待 | P30+P31 上电清除绑定成功 |
 
 ## receiver 安全状态流程
 
@@ -141,12 +163,12 @@ receiver LED 目标语义：
 动作：
 
 ```text
-set motor speed 0
-turn light off
-turn buzzer off
-turn aux PWM off
-set servo to center
-continue listening for recovery
+电机速度置 0
+关闭灯光
+关闭蜂鸣器
+关闭 aux PWM
+舵机回中
+继续监听，等待恢复
 ```
 
 当前实现选择舵机回中，电机/MOS/灯/蜂鸣器关闭；这是旧 PCB 烧录可用优先的明确安全状态。
@@ -156,20 +178,21 @@ continue listening for recovery
 controller：
 
 ```text
-send packet
-  -> TX_DONE: clear IRQ, remain connected
-  -> MAX_RETRY: flush TX, clear IRQ, count failure
-  -> repeated failure: rescan channels
+发送 packet
+  -> TX_DONE：清 IRQ，保持已连接状态
+  -> MAX_RETRY：flush TX，清 IRQ，累计失败
+  -> 连续失败超过阈值：显示 Lxxx，锁定当前频道重试
+  -> Lxxx 状态下 EC11 中键双击：进入手动扫描
 ```
 
 receiver：
 
 ```text
 RX_READY
-  -> read payload
+  -> 读取 payload
   -> flush RX
-  -> clear IRQ
-  -> validate and apply
+  -> 清 IRQ
+  -> 校验并应用
 ```
 
 不在中断里做 SPI 读写。IRQ 只适合作为“有事件”的提示，实际处理放在主循环。
@@ -178,20 +201,20 @@ RX_READY
 
 ```text
 receiver:
-  update link_state
-  if controller requests voltage:
-       low-frequency sample ADC1/P1.1
-  build 6-byte toy status payload
-  build 32-byte proto_rf_link STATUS packet
-  write nRF24 ACK payload pipe0
+  更新 link_state
+  若 controller 请求电压：
+       低频采样 ADC1/P1.1
+  生成 6 字节 toy status payload
+  生成 32 字节 proto_rf_link STATUS packet
+  写入 nRF24 pipe0 ACK payload
 
 controller:
-  send DATA packet
-  if TX_DONE and RX_READY:
-       read ACK dynamic payload
-       verify proto_rf_link STATUS header
-       copy toy status fields
-  Fn held:
-       show local battery voltage with colon
-       show receiver voltage without colon
+  发送 DATA packet
+  若 TX_DONE 且 RX_READY：
+       读取 ACK dynamic payload
+       校验 proto_rf_link STATUS header
+       复制 toy status 字段
+  Fn 按住：
+       显示本机电压，带冒号
+       显示 receiver 电压，不带冒号
 ```
