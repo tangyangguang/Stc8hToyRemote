@@ -18,6 +18,10 @@
 #define APP_STARTUP_DISPLAY_TEST 0
 #endif
 
+#ifndef APP_DISABLE_RADIO
+#define APP_DISABLE_RADIO 0
+#endif
+
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
@@ -500,8 +504,10 @@ static void run_ui_slice(void)
 
 void main(void)
 {
+#if !APP_DISABLE_RADIO
     stc8h_s16 delta;
     stc8h_u8 i;
+#endif
 
     stc8h_spi_init();
     proto_rf_link_init(&link);
@@ -525,6 +531,13 @@ void main(void)
     display_control();
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 
+#if APP_DISABLE_RADIO
+    tx_result = APP_RADIO_TX_DONE;
+    while (1) {
+        run_ui_slice();
+        stc8h_delay_ms(APP_UI_UPDATE_MS);
+    }
+#else
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
         while (1) {
@@ -559,4 +572,5 @@ void main(void)
             stc8h_delay_ms(APP_UI_UPDATE_MS);
         }
     }
+#endif
 }
