@@ -45,5 +45,6 @@ cc -std=c99 -Wall -Wextra \
 /tmp/rf_link_integration_test
 
 (cd "$ROOT_DIR/controller" && pio run)
+sh "$ROOT_DIR/tools/check_controller_ec11_isr_codegen.sh"
 (cd "$ROOT_DIR/receiver" && pio run)
 "$ROOT_DIR/tools/check_firmware_size.sh"

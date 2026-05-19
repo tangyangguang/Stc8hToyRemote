@@ -1,3 +1,4 @@
+#define APP_EC11_SPEED_ENABLE_SCALE_HELPER 0
 #include "app_ec11_speed.h"
 #include "app_input.h"
 #include "board_pins.h"
@@ -14,7 +15,7 @@
                                   TOY_REMOTE_TX_BUZZER_MASK | TOY_REMOTE_TX_LIGHT_MASK | \
                                   TOY_REMOTE_TX_DIR_MASK)
 
-static STC8H_XDATA drv_ec11_small_t speed_encoder;
+static STC8H_DATA drv_ec11_small_t speed_encoder;
 static volatile STC8H_XDATA stc8h_s16 speed_encoder_delta_accum;
 static volatile STC8H_XDATA stc8h_u16 speed_encoder_tick_half_ms;
 static volatile STC8H_XDATA stc8h_u16 speed_encoder_last_step_tick_half_ms;
@@ -42,7 +43,7 @@ void app_input_init(toy_remote_control_t *control)
     P5IE |= TOY_REMOTE_TX_EC11_SW_MASK;
     P5PU |= TOY_REMOTE_TX_EC11_SW_MASK;
 
-    drv_ec11_small_init(&speed_encoder);
+    drv_ec11_small_init_isr(&speed_encoder);
     speed_encoder_delta_accum = 0;
     speed_encoder_tick_half_ms = 0u;
     speed_encoder_last_step_tick_half_ms = 0u;
@@ -77,7 +78,7 @@ void app_input_encoder_tick_isr(void)
     stc8h_u16 interval_half_ms;
 
     ++speed_encoder_tick_half_ms;
-    delta = drv_ec11_scan_delta_small(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
+    delta = drv_ec11_scan_delta_small_isr(&speed_encoder, TOY_REMOTE_TX_EC11_A_READ(), TOY_REMOTE_TX_EC11_B_READ());
     if (delta != 0) {
         if (speed_encoder_step_tick_valid == 0u) {
             interval_half_ms = 0xFFFFu;
@@ -86,8 +87,10 @@ void app_input_encoder_tick_isr(void)
             interval_half_ms = (stc8h_u16)(speed_encoder_tick_half_ms - speed_encoder_last_step_tick_half_ms);
         }
         speed_encoder_last_step_tick_half_ms = speed_encoder_tick_half_ms;
-        speed_encoder_delta_accum = (stc8h_s16)(speed_encoder_delta_accum +
-            app_ec11_speed_scale_delta(delta, interval_half_ms, speed_encoder_accel_enabled));
+        if ((speed_encoder_accel_enabled != 0u) && (interval_half_ms <= APP_EC11_SPEED_MEDIUM_HALF_MS)) {
+            delta = (delta > 0) ? 5 : -5;
+        }
+        speed_encoder_delta_accum = (stc8h_s16)(speed_encoder_delta_accum + delta);
     }
 }
 

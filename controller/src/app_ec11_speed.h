@@ -5,20 +5,23 @@
 
 #define APP_EC11_SPEED_MEDIUM_HALF_MS 30u
 
-static stc8h_s16 app_ec11_speed_scale_delta(stc8h_s16 delta, stc8h_u16 interval_half_ms, stc8h_u8 enabled)
-{
-    stc8h_s16 step;
+#ifndef APP_EC11_SPEED_ENABLE_SCALE_HELPER
+#define APP_EC11_SPEED_ENABLE_SCALE_HELPER 1
+#endif
 
+#if APP_EC11_SPEED_ENABLE_SCALE_HELPER
+static inline stc8h_s16 app_ec11_speed_scale_delta(stc8h_s16 delta, stc8h_u16 interval_half_ms, stc8h_u8 enabled)
+{
     if ((enabled == 0u) || (delta == 0)) {
         return delta;
     }
 
-    step = 1;
     if (interval_half_ms <= APP_EC11_SPEED_MEDIUM_HALF_MS) {
-        step = 5;
+        return (delta > 0) ? 5 : -5;
     }
 
-    return (stc8h_s16)(delta * step);
+    return delta;
 }
+#endif
 
 #endif
