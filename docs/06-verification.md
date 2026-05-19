@@ -113,7 +113,7 @@ pio run -t upload --upload-port <serial-port>
 - 连续发送/轮询阶段的电流作为 bring-up 基线，不作为最终功耗目标。
 - 多接收机测试：把不同 receiver 调到不同频道后，controller 能扫描到目标频道。
 - 预设频道池测试：P30/P31 按 `76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16` 循环切换并保存。
-- 已连接换频测试：receiver 在已连接状态下请求切换频道时，controller 显示 `Hxxx`，双方确认后切到新频道并显示 `Fxxx`；失败时回退旧频道或进入 `Lxxx` 锁定重试。
+- 已连接换频测试：暂缓。`Hxxx` 协商换频需要扩展控制/状态 payload，当前 8KB 版本不实现；若误在已连接状态切换 receiver 频道，应按丢链处理，controller 显示 `Lxxx` 后手动扫描恢复。
 - 绑定测试：receiver 未绑定时接受第一个合法 `tx_id`；绑定后丢弃其他 `tx_id`；P30+P31 上电清除绑定。
 - receiver LED：上电启动快闪 3 次；nRF24 错误为双闪长停顿；未绑定为单短闪长停顿；已绑定未连接为慢闪；已连接为常亮；清除绑定为快闪 6 次。
 
@@ -326,4 +326,18 @@ receiver：
   - controller `handle_ack_status` 仍校验 magic/version/type/local_id/peer_id/length/tx_id/voltage int 和 dec 上限。
   - receiver 安全态仍把 PWM6/7/8 拉到 0、舵机回中，并关电机/灯/蜂鸣器/LED。
   - receiver 控制态仍按 brake/speed/direction 三态分配 fwd/rev PWM。
-  - 业务协议测试和链路集成测试均通过；`./tools/check_all.sh` 全程绿色。
+- 业务协议测试和链路集成测试均通过；`./tools/check_all.sh` 全程绿色。
+
+2026-05-19 controller/receiver 生命周期交互补齐后运行：
+
+```sh
+./tools/check_all.sh
+```
+
+结果：
+
+- controller: flash `8105/8192`，剩余 `87` bytes
+- receiver: flash `6904/8192`，剩余 `1288` bytes
+- 两端均无 DSEG/OSEG 链接错误。
+- 已实现：默认频道 `76`、预设频道池、controller `Cxxx/Lxxx/Sxxx/Fxxx/E001/Pn:value` 显示、`Lxxx` 下双击手动扫描、配置模式 RAM 草稿和长按保存、receiver 生命周期 LED。
+- 暂缓：已连接状态协商换频 `Hxxx`。controller 剩余 flash 只有 `87` bytes，本轮不扩展无线 payload。

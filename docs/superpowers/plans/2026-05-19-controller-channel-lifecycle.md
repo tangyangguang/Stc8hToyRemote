@@ -1,415 +1,103 @@
-# Controller Channel Lifecycle Implementation Plan
+# 遥控器/接收机生命周期实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+## 目标
 
-**Goal:** Implement the confirmed controller/receiver lifecycle: default channel 76, manual scan only from `Lxxx`, `P1..P4` config mode, receiver channel preset pool, and link success based on valid STATUS ACK.
+落实已确认的遥控器和接收机生命周期交互：
 
-**Architecture:** Keep the wire payload byte-packed in `shared/`. Move display and channel-pool formatting into tiny host-testable helpers. Refactor controller `main.c` into a compact explicit state machine without introducing dynamic allocation or large abstractions, because both firmware images must stay below 8KB.
+- 默认频道改为 `76`。
+- controller 上电显示保存频道 `Cxxx`。
+- 保存频道连不上时显示 `Lxxx`，锁定当前频道重试，不自动扫频。
+- 只有在 `Lxxx` 状态下 EC11 中键双击才进入手动扫描，扫描显示 `S000..S125`。
+- 扫描找到匹配 receiver 后显示 `Fxxx`，保存频道并进入正常控制。
+- controller nRF24 初始化失败显示 `E001` 常驻。
+- 正常控制界面用冒号快闪提示短时发送失败或 ACK 缺失，不使用冒号常亮表示故障。
+- 配置模式使用 `P1..P4` 和冒号显示，RAM 草稿编辑，EC11 中键长按超过 3 秒保存退出。
+- receiver P30/P31 在预设频道池内切换并保存。
+- receiver LED 区分启动、射频错误、未绑定等待、已绑定等待/掉线、已连接和清除绑定。
 
-**Tech Stack:** STC8H C firmware, PlatformIO `intel_mcs51`, `../Stc8hBase` nRF24/TM1637/EEPROM/proto helpers, host C tests compiled by `tools/check_all.sh`.
+## 约束
 
----
+- `legacy/` 只作为行为参考，不修改。
+- nRF24 通信继续使用 `drv_nrf24l01` 和 `proto_rf_link`。
+- 无线业务 payload 必须手工按字节打包，不直接发送 C struct。
+- STC8H1K08 flash 只有 8KB，controller 已接近上限，任何新增状态机都必须先看尺寸。
+- 配置持久化继续使用当前 fixed-block EEPROM 结构，不静默清空已有可识别配置。
+- 一遥控多接收不属于本轮范围。
 
-### Task 1: Display And Channel Helpers
+## 已实施任务
 
-**Files:**
-- Modify: `controller/src/app_display.h`
-- Create: `shared/toy_remote_channels.h`
-- Modify: `tests/controller_display_test.c`
-- Create: `tests/channel_pool_test.c`
-- Modify: `tools/check_all.sh`
+### 1. 显示和频道辅助能力
 
-- [ ] **Step 1: Write failing display tests**
+- 新增 `shared/toy_remote_channels.h`，定义默认频道 `76` 和预设频道池：
 
-Add tests that call:
-
-```c
-app_display_prefixed_channel_segments(APP_DISPLAY_C, 76u, 0u, segments);
-app_display_prefixed_channel_segments(APP_DISPLAY_L, 76u, 0u, segments);
-app_display_prefixed_channel_segments(APP_DISPLAY_S, 76u, 0u, segments);
-app_display_prefixed_channel_segments(APP_DISPLAY_F, 76u, 0u, segments);
-app_display_prefixed_channel_segments(APP_DISPLAY_H, 76u, 0u, segments);
-app_display_error_segments(1u, segments);
-app_display_config_segments(1u, 1u, segments);
-app_display_config_segments(3u, 45u, segments);
+```text
+76, 72, 68, 64, 60, 56, 52, 48,
+44, 40, 36, 32, 28, 24, 20, 16
 ```
 
-Expected segment intent:
-
-```c
-assert(segments[0] == APP_DISPLAY_C);
-assert(segments[1] == app_display_digit(0u));
-assert(segments[2] == app_display_digit(7u));
-assert(segments[3] == app_display_digit(6u));
-assert(segments[0] == APP_DISPLAY_E);
-assert(segments[1] == app_display_digit(0u));
-assert(segments[2] == app_display_digit(0u));
-assert(segments[3] == app_display_digit(1u));
-assert(segments[0] == APP_DISPLAY_P);
-assert(segments[1] == (app_display_digit(1u) | APP_DISPLAY_COLON));
-```
-
-- [ ] **Step 2: Run display test and verify RED**
-
-Run:
-
-```sh
-cc -std=c99 -Wall -Wextra -Icontroller/src -I../Stc8hBase/core tests/controller_display_test.c -o /tmp/controller_display_test
-```
-
-Expected: compile fails because `APP_DISPLAY_C`, `APP_DISPLAY_P`, `app_display_prefixed_channel_segments`, `app_display_error_segments`, and `app_display_config_segments` do not exist yet.
-
-- [ ] **Step 3: Write failing channel pool tests**
-
-Create `tests/channel_pool_test.c` with:
-
-```c
-#include "toy_remote_channels.h"
-#include <assert.h>
-
-static void test_default_and_pool_order(void)
-{
-    assert(TOY_REMOTE_DEFAULT_RF_CHANNEL == 76u);
-    assert(toy_remote_channel_pool_value(0u) == 76u);
-    assert(toy_remote_channel_pool_value(1u) == 72u);
-    assert(toy_remote_channel_pool_value(15u) == 16u);
-}
-
-static void test_pool_wraps_from_unknown_channel(void)
-{
-    assert(toy_remote_channel_pool_next(76u) == 72u);
-    assert(toy_remote_channel_pool_prev(76u) == 16u);
-    assert(toy_remote_channel_pool_next(40u) == 36u);
-    assert(toy_remote_channel_pool_next(41u) == 76u);
-    assert(toy_remote_channel_pool_prev(41u) == 76u);
-}
-
-int main(void)
-{
-    test_default_and_pool_order();
-    test_pool_wraps_from_unknown_channel();
-    return 0;
-}
-```
-
-- [ ] **Step 4: Run channel pool test and verify RED**
-
-Run:
-
-```sh
-cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/channel_pool_test.c -o /tmp/channel_pool_test
-```
-
-Expected: compile fails because `toy_remote_channels.h` does not exist.
+- 扩展 controller 显示段码宏，支持 `C/L/S/F/H/E/P` 前缀。
+- 增加 host 测试覆盖频道池和显示格式。
 
-- [ ] **Step 5: Implement minimal helpers**
+### 2. 默认频道和 receiver 频道键
 
-Add `shared/toy_remote_channels.h` as a header-only helper:
+- controller 默认频道改为 `76`。
+- receiver 默认频道改为 `76`。
+- receiver P30/P31 从线性 `0..125` 加减改为预设频道池前后切换。
+- 增加 controller/receiver 默认配置测试。
 
-```c
-#ifndef TOY_REMOTE_CHANNELS_H
-#define TOY_REMOTE_CHANNELS_H
+### 3. receiver 生命周期 LED
 
-#include "stc8h_config.h"
+- 新增未绑定等待、已绑定等待/掉线、清除绑定等状态。
+- 上电启动快闪 3 次。
+- 射频初始化失败双闪长停顿。
+- 未绑定等待单短闪长停顿。
+- 已绑定等待或掉线慢闪。
+- 已连接常亮。
+- 清除绑定快闪 6 次后进入未绑定等待。
 
-#define TOY_REMOTE_DEFAULT_RF_CHANNEL 76u
-#define TOY_REMOTE_CHANNEL_POOL_COUNT 16u
+### 4. controller EC11 中键事件
 
-static stc8h_u8 toy_remote_channel_pool_value(stc8h_u8 index)
-{
-    static const STC8H_CODE stc8h_u8 pool[TOY_REMOTE_CHANNEL_POOL_COUNT] = {
-        76u, 72u, 68u, 64u, 60u, 56u, 52u, 48u,
-        44u, 40u, 36u, 32u, 28u, 24u, 20u, 16u
-    };
-    return pool[(index < TOY_REMOTE_CHANNEL_POOL_COUNT) ? index : 0u];
-}
+- 新增轻量级按键事件 helper。
+- 正常模式支持短按、双击和 5 秒长按。
+- 配置模式支持短按切项和 3 秒长按保存。
+- 增加 host 测试覆盖短按、双击、长按和配置模式即时短按。
 
-static stc8h_u8 toy_remote_channel_pool_index(stc8h_u8 channel)
-{
-    stc8h_u8 i;
-    for (i = 0u; i < TOY_REMOTE_CHANNEL_POOL_COUNT; ++i) {
-        if (toy_remote_channel_pool_value(i) == channel) {
-            return i;
-        }
-    }
-    return 0xFFu;
-}
+### 5. controller 生命周期状态机
 
-static stc8h_u8 toy_remote_channel_pool_next(stc8h_u8 channel)
-{
-    stc8h_u8 index = toy_remote_channel_pool_index(channel);
-    if (index == 0xFFu) {
-        return TOY_REMOTE_DEFAULT_RF_CHANNEL;
-    }
-    ++index;
-    return toy_remote_channel_pool_value((index >= TOY_REMOTE_CHANNEL_POOL_COUNT) ? 0u : index);
-}
+- 上电显示 `Cxxx`。
+- 连续连接失败后显示 `Lxxx`，不自动扫描。
+- `Lxxx` 下双击 EC11 中键后进入扫描。
+- 扫描时直接显示 `S000..S125`，找到后显示 `Fxxx` 并保存频道。
+- 每次发送前清空本次 ACK 状态，只有收到匹配 `tx_id` 的 STATUS ACK 才判定连接有效。
+- 配置模式使用 RAM 草稿，保存退出前不写 EEPROM。
+- 配置模式下发安全控制：速度 0、刹车、灯/蜂鸣器/aux 关闭；舵机配置实时作用。
 
-static stc8h_u8 toy_remote_channel_pool_prev(stc8h_u8 channel)
-{
-    stc8h_u8 index = toy_remote_channel_pool_index(channel);
-    if (index == 0xFFu) {
-        return TOY_REMOTE_DEFAULT_RF_CHANNEL;
-    }
-    return toy_remote_channel_pool_value((index == 0u) ? (TOY_REMOTE_CHANNEL_POOL_COUNT - 1u) : (stc8h_u8)(index - 1u));
-}
+## 暂缓项
 
-#endif
-```
+### 已连接协商换频
 
-Extend `controller/src/app_display.h` with segment constants and helper functions for `Cxxx/Lxxx/Sxxx/Fxxx/Hxxx/E001/Pn:value`.
+目标方案仍保留：receiver 在已连接状态按 P30/P31 时不立即切走，而是在 ACK 状态里上报待切频道；controller 显示 `Hxxx` 并在旧频道确认；双方确认后切到新频道，成功显示 `Fxxx`。
 
-- [ ] **Step 6: Run helper tests and verify GREEN**
+本轮暂不实现，原因是 controller 当前尺寸为 `8105/8192` bytes，仅剩 `87` bytes。协商换频需要扩展控制/状态 payload，并增加双端状态机和超时回退逻辑，不适合继续塞入当前 8KB 版本。
 
-Run:
+当前实际行为：receiver P30/P31 会切换到预设频道并保存，主要用于未连接维护场景。若已连接时误按导致丢链，controller 会显示 `Lxxx`，用户需要在 `Lxxx` 下双击 EC11 中键手动扫描恢复。
 
-```sh
-sh tools/check_all.sh
-```
+## 验证方式
 
-Expected: host helper tests pass; firmware builds may still reflect old behavior but must compile.
+每个阶段以 `tools/check_all.sh` 为完整验证入口，覆盖：
 
-- [ ] **Step 7: Commit**
+- 业务协议 host 测试。
+- RF link host 集成测试。
+- 显示 helper 测试。
+- 频道池测试。
+- controller/receiver 配置默认值测试。
+- receiver LED 状态测试。
+- controller EC11 按键事件测试。
+- controller 和 receiver PlatformIO 构建。
+- 固件尺寸检查。
 
-```sh
-git add controller/src/app_display.h shared/toy_remote_channels.h tests/controller_display_test.c tests/channel_pool_test.c tools/check_all.sh
-git commit -m "feat: add channel display helpers"
-```
+2026-05-19 本轮最终验证结果：
 
-### Task 2: Default Channel And Receiver Preset Buttons
-
-**Files:**
-- Modify: `controller/src/app_config.h`
-- Modify: `receiver/src/app_config.c`
-- Modify: `receiver/src/main.c`
-- Test: `tests/channel_pool_test.c`
-
-- [ ] **Step 1: Write failing expectation**
-
-Extend `tests/channel_pool_test.c` to assert all default helpers use `76`; this already fails until firmware defaults include `toy_remote_channels.h`.
-
-- [ ] **Step 2: Implement defaults and receiver P30/P31 pool**
-
-Include `toy_remote_channels.h`. Set controller `APP_DEFAULT_RF_CHANNEL` to `TOY_REMOTE_DEFAULT_RF_CHANNEL`; set receiver `APP_CONFIG_DEFAULT_CHANNEL` to `TOY_REMOTE_DEFAULT_RF_CHANNEL`. In receiver `handle_channel_buttons()`, replace `+1/-1` with `toy_remote_channel_pool_next()` and `toy_remote_channel_pool_prev()`.
-
-- [ ] **Step 3: Verify**
-
-Run:
-
-```sh
-sh tools/check_all.sh
-```
-
-Expected: tests and builds pass; firmware size targets may need exact update if usage grows.
-
-- [ ] **Step 4: Commit**
-
-```sh
-git add controller/src/app_config.h receiver/src/app_config.c receiver/src/main.c tests/channel_pool_test.c
-git commit -m "feat: use default channel pool"
-```
-
-### Task 3: Receiver Indicator States
-
-**Files:**
-- Modify: `receiver/src/app_indicator.h`
-- Modify: `receiver/src/app_indicator.c`
-- Modify: `receiver/src/main.c`
-- Modify: `tests/app_indicator_test.c`
-
-- [ ] **Step 1: Write failing tests**
-
-Add tests for:
-
-```c
-app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING_UNBOUND, now);
-app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING_BOUND, now);
-app_indicator_set_state(&indicator, APP_INDICATOR_STATE_BINDING_CLEARED, now);
-```
-
-Expected patterns: unbound single short flash with long pause; bound/link lost slow 500ms blink; binding cleared fast 6 flashes then unbound.
-
-- [ ] **Step 2: Run RED**
-
-Run:
-
-```sh
-cc -std=c99 -Wall -Wextra -Ireceiver/src -I../Stc8hBase/core tests/app_indicator_test.c receiver/src/app_indicator.c -o /tmp/app_indicator_test
-```
-
-Expected: compile fails because new state names do not exist.
-
-- [ ] **Step 3: Implement states**
-
-Extend indicator enum and update logic. In receiver main, choose `WAITING_UNBOUND` when `bound_tx_id == 0`, `WAITING_BOUND` when bound but idle/lost, `CONNECTED` when valid control arrives, and `BINDING_CLEARED` after P30+P31 boot clear.
-
-- [ ] **Step 4: Verify**
-
-Run:
-
-```sh
-sh tools/check_all.sh
-```
-
-- [ ] **Step 5: Commit**
-
-```sh
-git add receiver/src/app_indicator.h receiver/src/app_indicator.c receiver/src/main.c tests/app_indicator_test.c
-git commit -m "feat: refine receiver status LED"
-```
-
-### Task 4: Controller Button Event Helper
-
-**Files:**
-- Create: `controller/src/app_button.h`
-- Create: `controller/src/app_button.c`
-- Create: `tests/button_event_test.c`
-- Modify: `tools/check_all.sh`
-
-- [ ] **Step 1: Write failing tests**
-
-Create tests that simulate 10ms ticks and assert:
-
-```c
-short press -> APP_BUTTON_EVENT_SHORT
-two short presses within double-click window -> APP_BUTTON_EVENT_DOUBLE
-held for 500 ticks -> APP_BUTTON_EVENT_LONG_5S
-held for 300 ticks in config mode -> APP_BUTTON_EVENT_LONG_3S
-```
-
-- [ ] **Step 2: Run RED**
-
-Compile fails because `app_button.h` does not exist.
-
-- [ ] **Step 3: Implement helper**
-
-Implement a tiny state machine that consumes active level and threshold ticks. It must not emit short/double when a long event fires.
-
-- [ ] **Step 4: Verify**
-
-Run `sh tools/check_all.sh`.
-
-- [ ] **Step 5: Commit**
-
-```sh
-git add controller/src/app_button.h controller/src/app_button.c tests/button_event_test.c tools/check_all.sh
-git commit -m "feat: add controller button events"
-```
-
-### Task 5: Controller Lifecycle State Machine And Config Mode
-
-**Files:**
-- Modify: `controller/src/main.c`
-- Modify: `controller/src/app_config.h`
-- Modify: `controller/src/app_config.c`
-- Test: existing host tests plus firmware build
-
-- [ ] **Step 1: Add tests where pure helpers exist**
-
-Use display and button tests from prior tasks as regression coverage. Do not add hardware-mocked tests for SPI/nRF24 in this pass.
-
-- [ ] **Step 2: Refactor `main.c` into explicit states**
-
-Add compact state values:
-
-```c
-APP_STATE_TRY_SAVED
-APP_STATE_CONNECTED
-APP_STATE_LOST
-APP_STATE_SCAN
-APP_STATE_CONFIG
-APP_STATE_RADIO_ERROR
-```
-
-Use valid STATUS ACK (`rx_status.tx_id == config.tx_id`) as the connected signal. Startup no longer calls `scan_channels()`. Repeated invalid/missing STATUS ACK moves to `LOST`. EC11 double event starts scan only from `LOST`. Display `C/L/S/F/E/P` using `app_display.h` helpers.
-
-- [ ] **Step 3: Implement config draft**
-
-Use a `config_draft` copy in config mode. `P1` direction reverse, `P2` steering reverse, `P3` steering middle, `P4` steering reduce. EC11 rotation edits draft. EC11 short switches item. EC11 long 3s saves draft to EEPROM and exits. Configuration mode sends safe control but applies draft steering settings to let servo be observed.
-
-- [ ] **Step 4: Verify**
-
-Run:
-
-```sh
-sh tools/check_all.sh
-```
-
-Expected: tests and builds pass, flash under hard 8192 limit. Update `tools/check_firmware_size.sh` targets only after checking actual sizes.
-
-- [ ] **Step 5: Commit**
-
-```sh
-git add controller/src/main.c controller/src/app_config.h controller/src/app_config.c tools/check_firmware_size.sh
-git commit -m "feat: implement controller lifecycle"
-```
-
-### Task 6: Protocol Extension For Future Channel Handoff
-
-**Files:**
-- Modify: `shared/toy_remote_protocol.h`
-- Modify: `shared/toy_remote_protocol.c`
-- Modify: `tests/toy_remote_protocol_test.c`
-- Modify: `docs/03-protocol.md`
-
-- [ ] **Step 1: Write failing protocol tests**
-
-Add tests for optional channel handoff fields:
-
-```c
-control.channel_command == TOY_REMOTE_CHANNEL_COMMAND_NONE
-control.channel_value <= 125
-status.pending_channel == TOY_REMOTE_CHANNEL_NONE
-status.pending_channel <= 125 or == 0xFF
-```
-
-- [ ] **Step 2: Decide implementation based on firmware size**
-
-If Task 5 leaves sufficient flash margin, add two bytes to control payload and one byte to status payload. If flash is too tight, keep this task as documentation-only and defer actual handoff to a separate pass.
-
-- [ ] **Step 3: Verify and commit**
-
-Run `sh tools/check_all.sh`; commit protocol changes only if implementation fits.
-
-### Task 7: Final Verification And Documentation Sync
-
-**Files:**
-- Modify: `docs/03-protocol.md`, `docs/04-logic-flows.md`, `docs/06-verification.md` only if implementation differs from target.
-- Modify: `tools/check_firmware_size.sh` target values after full build.
-
-- [ ] **Step 1: Run full verification**
-
-```sh
-sh tools/check_all.sh
-git diff --check
-git status --short
-```
-
-- [ ] **Step 2: Review scope**
-
-Confirm no `legacy/` files changed, no copied `Stc8hBase` source, and all new docs are Chinese except historical plan headers required by skills.
-
-- [ ] **Step 3: Commit final sync**
-
-```sh
-git add docs tools
-git commit -m "docs: sync lifecycle implementation notes"
-```
-
----
-
-## Self-Review
-
-Spec coverage:
-- Default channel 76: Task 2.
-- Manual scan only from `Lxxx`: Task 5.
-- Valid STATUS ACK as link success: Task 5.
-- Config mode `P1..P4`: Task 1 and Task 5.
-- Receiver LED states: Task 3.
-- Receiver preset channel pool: Task 2.
-- Connected channel handoff: Task 6 if firmware size allows; otherwise explicitly deferred.
-- One controller controlling multiple receivers: documented as out of scope in Task 7.
-
-Risk:
-- Firmware flash is tight. Task 6 is intentionally gated by measured size.
-- Controller `main.c` is currently large; avoid broad refactors beyond the state machine required by this feature.
+- controller flash `8105/8192`。
+- receiver flash `6904/8192`。
+- 两端均未超过 8KB。
