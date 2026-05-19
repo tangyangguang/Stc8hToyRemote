@@ -57,6 +57,22 @@ cc -std=c99 -Wall -Wextra \
 /tmp/channel_pool_test
 
 cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/controller_config_defaults_test.c" \
+    -o /tmp/controller_config_defaults_test
+/tmp/controller_config_defaults_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/receiver_config_defaults_test.c" \
+    -o /tmp/receiver_config_defaults_test
+/tmp/receiver_config_defaults_test
+
+cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     -I"$ROOT_DIR/../Stc8hBase/protocols" \

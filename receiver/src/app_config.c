@@ -5,7 +5,6 @@
 #define APP_CONFIG_MAGIC0 0x52u
 #define APP_CONFIG_MAGIC1 0x43u
 #define APP_CONFIG_VERSION 1u
-#define APP_CONFIG_DEFAULT_CHANNEL 40u
 
 static STC8H_DATA stc8h_u8 app_config_buf[APP_CONFIG_LEN];
 

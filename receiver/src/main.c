@@ -10,6 +10,7 @@
 #include "stc8h_sfr.h"
 #include "stc8h_spi.h"
 #include "stc8h_timer.h"
+#include "toy_remote_channels.h"
 #include "toy_remote_protocol.h"
 
 static volatile stc8h_u16 tick_ms;
@@ -172,7 +173,7 @@ static void handle_channel_buttons(void)
     if (TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) {
         if (ch_add_pressed == 0u) {
             ch_add_pressed = 1u;
-            config.rf_channel = (config.rf_channel >= 125u) ? 0u : (stc8h_u8)(config.rf_channel + 1u);
+            config.rf_channel = toy_remote_channel_pool_next(config.rf_channel);
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
@@ -186,7 +187,7 @@ static void handle_channel_buttons(void)
     if (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u) {
         if (ch_minus_pressed == 0u) {
             ch_minus_pressed = 1u;
-            config.rf_channel = (config.rf_channel == 0u) ? 125u : (stc8h_u8)(config.rf_channel - 1u);
+            config.rf_channel = toy_remote_channel_pool_prev(config.rf_channel);
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();

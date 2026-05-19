@@ -8,53 +8,33 @@
 
 static stc8h_u8 toy_remote_channel_pool_value(stc8h_u8 index)
 {
-    static STC8H_CODE stc8h_u8 pool[TOY_REMOTE_CHANNEL_POOL_COUNT] = {
-        76u, 72u, 68u, 64u, 60u, 56u, 52u, 48u,
-        44u, 40u, 36u, 32u, 28u, 24u, 20u, 16u
-    };
-
-    return pool[(index < TOY_REMOTE_CHANNEL_POOL_COUNT) ? index : 0u];
-}
-
-static stc8h_u8 toy_remote_channel_pool_index(stc8h_u8 channel)
-{
-    stc8h_u8 i;
-
-    for (i = 0u; i < TOY_REMOTE_CHANNEL_POOL_COUNT; ++i) {
-        if (toy_remote_channel_pool_value(i) == channel) {
-            return i;
-        }
+    if (index >= TOY_REMOTE_CHANNEL_POOL_COUNT) {
+        return TOY_REMOTE_DEFAULT_RF_CHANNEL;
     }
-    return 0xFFu;
+    return (stc8h_u8)(TOY_REMOTE_DEFAULT_RF_CHANNEL - (stc8h_u8)(index << 2));
 }
 
 static stc8h_u8 toy_remote_channel_pool_next(stc8h_u8 channel)
 {
-    stc8h_u8 index;
-
-    index = toy_remote_channel_pool_index(channel);
-    if (index == 0xFFu) {
+    if ((channel <= 16u) ||
+        (channel > TOY_REMOTE_DEFAULT_RF_CHANNEL) ||
+        ((channel & 0x03u) != 0u)) {
         return TOY_REMOTE_DEFAULT_RF_CHANNEL;
     }
-    ++index;
-    if (index >= TOY_REMOTE_CHANNEL_POOL_COUNT) {
-        index = 0u;
-    }
-    return toy_remote_channel_pool_value(index);
+    return (stc8h_u8)(channel - 4u);
 }
 
 static stc8h_u8 toy_remote_channel_pool_prev(stc8h_u8 channel)
 {
-    stc8h_u8 index;
-
-    index = toy_remote_channel_pool_index(channel);
-    if (index == 0xFFu) {
+    if ((channel < 16u) ||
+        (channel > TOY_REMOTE_DEFAULT_RF_CHANNEL) ||
+        ((channel & 0x03u) != 0u)) {
         return TOY_REMOTE_DEFAULT_RF_CHANNEL;
     }
-    if (index == 0u) {
-        index = TOY_REMOTE_CHANNEL_POOL_COUNT;
+    if (channel == TOY_REMOTE_DEFAULT_RF_CHANNEL) {
+        return 16u;
     }
-    return toy_remote_channel_pool_value((stc8h_u8)(index - 1u));
+    return (stc8h_u8)(channel + 4u);
 }
 
 #endif

@@ -3,6 +3,10 @@
 
 #include "stc8h_config.h"
 
+#ifndef APP_CONFIG_DEFAULT_CHANNEL
+#define APP_CONFIG_DEFAULT_CHANNEL 76u
+#endif
+
 typedef struct {
     stc8h_u16 bound_tx_id;
     stc8h_u8 rf_channel;
