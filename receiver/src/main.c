@@ -76,6 +76,13 @@ static void app_timer0_init_indicator_tick(void)
     }
 }
 
+static app_indicator_state_t app_waiting_indicator_state(void)
+{
+    return (config.bound_tx_id == 0u) ?
+        APP_INDICATOR_STATE_WAITING_UNBOUND :
+        APP_INDICATOR_STATE_WAITING_BOUND;
+}
+
 static void apply_safe_state(void)
 {
     control.direction = TOY_REMOTE_DIRECTION_FORWARD;
@@ -177,7 +184,7 @@ static void handle_channel_buttons(void)
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
-            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
+            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
             prepare_ack_status();
         }
     } else {
@@ -191,7 +198,7 @@ static void handle_channel_buttons(void)
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
-            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
+            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
             prepare_ack_status();
         }
     } else {
@@ -205,7 +212,7 @@ static void handle_idle_poll(void)
         ++idle_polls;
         if (idle_polls == APP_RECEIVER_IDLE_POLL_LIMIT) {
             apply_safe_state();
-            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING, app_tick_now());
+            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
         }
     }
 }
@@ -224,6 +231,7 @@ void main(void)
     if ((TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) && (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u)) {
         config.bound_tx_id = 0u;
         (void)app_config_save(&config);
+        app_indicator_set_state(&indicator, APP_INDICATOR_STATE_BINDING_CLEARED, app_tick_now());
     }
     status.tx_id = config.bound_tx_id;
     proto_rf_link_init(&link);
@@ -234,7 +242,9 @@ void main(void)
         radio_error = 1u;
         app_indicator_set_state(&indicator, APP_INDICATOR_STATE_RADIO_ERROR, app_tick_now());
     } else {
-        app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
+        if (indicator.requested_state != APP_INDICATOR_STATE_BINDING_CLEARED) {
+            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
+        }
         prepare_ack_status();
     }
 

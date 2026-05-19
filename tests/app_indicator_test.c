@@ -20,8 +20,35 @@ static void test_boot_flashes_three_times_then_waits(void)
 
     assert(app_indicator_update(&indicator, 0u) == APP_INDICATOR_LED_ON);
     run_boot_complete(&indicator);
+    assert(app_indicator_update(&indicator, 699u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 700u) == APP_INDICATOR_LED_OFF);
+}
+
+static void test_waiting_unbound_single_short_flash_after_boot(void)
+{
+    app_indicator_t indicator;
+
+    app_indicator_init(&indicator, 0u);
+    app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING_UNBOUND, 0u);
+    run_boot_complete(&indicator);
+
+    assert(app_indicator_update(&indicator, 699u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 700u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 1599u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 1600u) == APP_INDICATOR_LED_ON);
+}
+
+static void test_waiting_bound_slow_blinks_after_boot(void)
+{
+    app_indicator_t indicator;
+
+    app_indicator_init(&indicator, 0u);
+    app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING_BOUND, 0u);
+    run_boot_complete(&indicator);
+
     assert(app_indicator_update(&indicator, 1099u) == APP_INDICATOR_LED_ON);
     assert(app_indicator_update(&indicator, 1100u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 1600u) == APP_INDICATOR_LED_ON);
 }
 
 static void test_connected_waits_for_boot_then_stays_on(void)
@@ -64,11 +91,32 @@ static void test_radio_error_double_flashes_after_boot(void)
     assert(app_indicator_update(&indicator, 1600u) == APP_INDICATOR_LED_ON);
 }
 
+static void test_binding_cleared_fast_flashes_then_unbound(void)
+{
+    app_indicator_t indicator;
+
+    app_indicator_init(&indicator, 0u);
+    app_indicator_set_state(&indicator, APP_INDICATOR_STATE_BINDING_CLEARED, 0u);
+    run_boot_complete(&indicator);
+
+    assert(app_indicator_update(&indicator, 700u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 800u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 900u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 1000u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 1700u) == APP_INDICATOR_LED_OFF);
+    assert(app_indicator_update(&indicator, 1800u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 1899u) == APP_INDICATOR_LED_ON);
+    assert(app_indicator_update(&indicator, 1900u) == APP_INDICATOR_LED_OFF);
+}
+
 int main(void)
 {
     test_boot_flashes_three_times_then_waits();
+    test_waiting_unbound_single_short_flash_after_boot();
+    test_waiting_bound_slow_blinks_after_boot();
     test_connected_waits_for_boot_then_stays_on();
     test_connecting_flashes_fast_after_boot();
     test_radio_error_double_flashes_after_boot();
+    test_binding_cleared_fast_flashes_then_unbound();
     return 0;
 }
