@@ -1,4 +1,5 @@
 #include "app_config.h"
+#include "app_button.h"
 #include "app_display.h"
 #include "app_input.h"
 #include "app_radio.h"
@@ -33,6 +34,7 @@
 
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
+static STC8H_XDATA app_config_t config_draft;
 static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
@@ -46,22 +48,31 @@ static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
 static stc8h_u8 current_channel;
 static stc8h_u8 radio_failures;
+static stc8h_u8 app_state;
+static stc8h_u8 link_warning;
+static stc8h_u8 link_blink;
+static stc8h_u8 scan_requested;
+static app_button_t ec11_button;
 #if APP_INPUT_DIAG_DISPLAY
 static stc8h_u8 input_diag_blink;
 static stc8h_u8 input_diag_delta_hold;
 static stc8h_u8 input_diag_delta_segment;
 #endif
 static STC8H_XDATA stc8h_u8 config_mode;
-static STC8H_XDATA stc8h_u16 config_hold_ticks;
-static STC8H_XDATA stc8h_u8 config_wait_release;
 static STC8H_XDATA stc8h_u8 config_item;
-static STC8H_XDATA stc8h_u8 config_brake_prev;
-static STC8H_XDATA stc8h_u8 config_ec11_prev;
-static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 
-#define APP_CONFIG_ENTER_TICKS 300u
-#define APP_CONFIG_ITEM_REDUCE 0u
-#define APP_CONFIG_ITEM_MIDDLE 1u
+#define APP_CONFIG_ITEM_DIRECTION_REVERSE 1u
+#define APP_CONFIG_ITEM_STEERING_REVERSE 2u
+#define APP_CONFIG_ITEM_MIDDLE 3u
+#define APP_CONFIG_ITEM_REDUCE 4u
+#define APP_STATE_TRY_SAVED 0u
+#define APP_STATE_CONNECTED 1u
+#define APP_STATE_LOST 2u
+#define APP_BUTTON_LONG_NORMAL_TICKS 500u
+#define APP_BUTTON_LONG_CONFIG_TICKS 300u
+#define APP_BUTTON_DOUBLE_TICKS 30u
+#define APP_RADIO_FAILURE_LIMIT 10u
+#define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 50u
 #define APP_UI_UPDATE_MS 10u
 #define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
@@ -158,7 +169,11 @@ static void display_control(void)
         display_segments[3] = app_display_digit((stc8h_u8)(control.speed % 10u));
     }
 
-    if (tx_result != APP_RADIO_TX_DONE) {
+    ++link_blink;
+    if (link_blink >= APP_LINK_BLINK_TICKS) {
+        link_blink = 0u;
+    }
+    if ((link_warning != 0u) && (link_blink < (APP_LINK_BLINK_TICKS / 2u))) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
     display_commit_raw4();
@@ -237,56 +252,58 @@ static void display_voltage(stc8h_u16 value)
 
 static void display_config(void)
 {
-    display_segments[0] = app_display_digit((stc8h_u8)(config.steering_reduce / 10u));
-    display_segments[1] = app_display_digit((stc8h_u8)(config.steering_reduce % 10u));
-    display_segments[2] = app_display_digit((stc8h_u8)(config.steering_middle / 10u));
-    display_segments[3] = app_display_digit((stc8h_u8)(config.steering_middle % 10u));
-    if ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
-        display_segments[1] |= APP_DISPLAY_COLON;
+    stc8h_u8 value;
+
+    if (config_item == APP_CONFIG_ITEM_DIRECTION_REVERSE) {
+        value = ((config_draft.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) ? 1u : 0u;
+    } else if (config_item == APP_CONFIG_ITEM_STEERING_REVERSE) {
+        value = ((config_draft.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) ? 1u : 0u;
+    } else if (config_item == APP_CONFIG_ITEM_MIDDLE) {
+        value = config_draft.steering_middle;
+    } else {
+        value = config_draft.steering_reduce;
     }
-    if (config_item == APP_CONFIG_ITEM_MIDDLE) {
-        display_segments[2] |= APP_DISPLAY_COLON;
-    }
+    app_display_config_segments(config_item, value, display_segments);
     display_commit_raw4();
 }
 
 static void enter_config_mode(void)
 {
     config_mode = 1u;
+    config_draft = config;
     app_input_set_speed_accel_enabled(0u);
-    config_wait_release = 1u;
-    config_item = APP_CONFIG_ITEM_REDUCE;
-    config_brake_prev = 1u;
-    config_ec11_prev = 1u;
-    config_buzzer_prev = TOY_REMOTE_TX_BUZZER_ACTIVE();
+    app_button_init(&ec11_button);
+    config_item = APP_CONFIG_ITEM_DIRECTION_REVERSE;
     control.speed = 0u;
     control.brake = 1u;
     control.light = 0u;
     control.buzzer = 0u;
     control.aux_pwm = 0u;
     control.request_voltage = 0u;
+    display_config();
 }
 
-static void config_set_flag(stc8h_u8 mask, stc8h_u8 enabled)
+static void config_set_draft_flag(stc8h_u8 mask, stc8h_u8 enabled)
 {
-    stc8h_u8 old_flags;
-
-    old_flags = config.flags;
     if (enabled != 0u) {
-        config.flags |= mask;
+        config_draft.flags |= mask;
     } else {
-        config.flags &= (stc8h_u8)~mask;
-    }
-    if (config.flags != old_flags) {
-        (void)app_config_save(&config);
+        config_draft.flags &= (stc8h_u8)~mask;
     }
 }
 
-static void handle_config_mode(stc8h_s16 delta)
+static void exit_config_mode_save(void)
 {
-    stc8h_u8 brake_now;
-    stc8h_u8 ec11_now;
-    stc8h_u8 buzzer_now;
+    config = config_draft;
+    (void)app_config_save(&config);
+    config_mode = 0u;
+    app_state = APP_STATE_CONNECTED;
+    app_input_set_speed_accel_enabled(1u);
+    app_button_init(&ec11_button);
+}
+
+static void handle_config_mode(stc8h_s16 delta, app_button_event_t button_event)
+{
     stc8h_s16 value;
 
     control.speed = 0u;
@@ -295,73 +312,42 @@ static void handle_config_mode(stc8h_s16 delta)
     control.buzzer = 0u;
     control.aux_pwm = 0u;
     control.request_voltage = 0u;
-    config_set_flag(APP_CONFIG_FLAG_DIRECTION_REVERSE, TOY_REMOTE_TX_DIR_REVERSE());
 
-    brake_now = TOY_REMOTE_TX_BRAKE_ACTIVE();
-    ec11_now = TOY_REMOTE_TX_EC11_SW_ACTIVE();
-    buzzer_now = TOY_REMOTE_TX_BUZZER_ACTIVE();
-    if (config_wait_release != 0u) {
-        if ((brake_now == 0u) && (ec11_now == 0u)) {
-            config_wait_release = 0u;
+    if (button_event == APP_BUTTON_EVENT_SHORT) {
+        ++config_item;
+        if (config_item > APP_CONFIG_ITEM_REDUCE) {
+            config_item = APP_CONFIG_ITEM_DIRECTION_REVERSE;
         }
-    } else {
-        if ((brake_now != 0u) && (config_brake_prev == 0u)) {
-            config_set_flag(APP_CONFIG_FLAG_STEERING_REVERSE,
-                            (config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) == 0u);
-        }
-        if ((ec11_now != 0u) && (config_ec11_prev == 0u)) {
-            config_item = (config_item == APP_CONFIG_ITEM_REDUCE) ? APP_CONFIG_ITEM_MIDDLE : APP_CONFIG_ITEM_REDUCE;
-        }
-        if ((buzzer_now != 0u) && (config_buzzer_prev == 0u)) {
-            config_mode = 0u;
-            app_input_set_speed_accel_enabled(1u);
-            config_hold_ticks = 0u;
-        }
+    } else if (button_event == APP_BUTTON_EVENT_LONG) {
+        exit_config_mode_save();
+        return;
     }
 
     if (delta != 0) {
-        if (config_item == APP_CONFIG_ITEM_REDUCE) {
-            value = (stc8h_s16)((stc8h_s16)config.steering_reduce + delta);
+        if (config_item == APP_CONFIG_ITEM_DIRECTION_REVERSE) {
+            config_set_draft_flag(APP_CONFIG_FLAG_DIRECTION_REVERSE, (delta > 0) ? 1u : 0u);
+        } else if (config_item == APP_CONFIG_ITEM_STEERING_REVERSE) {
+            config_set_draft_flag(APP_CONFIG_FLAG_STEERING_REVERSE, (delta > 0) ? 1u : 0u);
+        } else if (config_item == APP_CONFIG_ITEM_REDUCE) {
+            value = (stc8h_s16)((stc8h_s16)config_draft.steering_reduce + delta);
             if (value < 0) {
                 value = 0;
             } else if (value > APP_CONFIG_STEERING_REDUCE_MAX) {
                 value = APP_CONFIG_STEERING_REDUCE_MAX;
             }
-            if (config.steering_reduce != (stc8h_u8)value) {
-                config.steering_reduce = (stc8h_u8)value;
-                (void)app_config_save(&config);
-            }
+            config_draft.steering_reduce = (stc8h_u8)value;
         } else {
-            value = (stc8h_s16)((stc8h_s16)config.steering_middle + delta);
+            value = (stc8h_s16)((stc8h_s16)config_draft.steering_middle + delta);
             if (value < APP_CONFIG_STEERING_MIDDLE_MIN) {
                 value = APP_CONFIG_STEERING_MIDDLE_MIN;
             } else if (value > APP_CONFIG_STEERING_MIDDLE_MAX) {
                 value = APP_CONFIG_STEERING_MIDDLE_MAX;
             }
-            if (config.steering_middle != (stc8h_u8)value) {
-                config.steering_middle = (stc8h_u8)value;
-                (void)app_config_save(&config);
-            }
+            config_draft.steering_middle = (stc8h_u8)value;
         }
     }
 
-    config_brake_prev = brake_now;
-    config_ec11_prev = ec11_now;
-    config_buzzer_prev = buzzer_now;
     display_config();
-}
-
-static void update_config_entry(void)
-{
-    if ((TOY_REMOTE_TX_EC11_SW_ACTIVE() != 0u) && (TOY_REMOTE_TX_BRAKE_ACTIVE() != 0u)) {
-        if (config_hold_ticks < APP_CONFIG_ENTER_TICKS) {
-            ++config_hold_ticks;
-        } else {
-            enter_config_mode();
-        }
-    } else {
-        config_hold_ticks = 0u;
-    }
 }
 
 static void make_control_packet(void)
@@ -371,18 +357,18 @@ static void make_control_packet(void)
 
     control.tx_id = config.tx_id;
     direction = control.direction;
-    if ((config.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) {
+    if ((((config_mode != 0u) ? config_draft.flags : config.flags) & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) {
         direction = (direction == 0u) ? 1u : 0u;
     }
     angle = (stc8h_s16)control.steering_angle;
-    if ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
+    if ((((config_mode != 0u) ? config_draft.flags : config.flags) & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
         angle = (stc8h_s16)(180 - angle);
     }
-    angle = (stc8h_s16)(angle + ((stc8h_s16)config.steering_middle << 1) - 90);
-    if (angle < (stc8h_s16)config.steering_reduce) {
-        angle = (stc8h_s16)config.steering_reduce;
-    } else if (angle > (stc8h_s16)(180 - config.steering_reduce)) {
-        angle = (stc8h_s16)(180 - config.steering_reduce);
+    angle = (stc8h_s16)(angle + ((stc8h_s16)((config_mode != 0u) ? config_draft.steering_middle : config.steering_middle) << 1) - 90);
+    if (angle < (stc8h_s16)((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce)) {
+        angle = (stc8h_s16)((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce);
+    } else if (angle > (stc8h_s16)(180 - ((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce))) {
+        angle = (stc8h_s16)(180 - ((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce));
     }
 
     payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
@@ -400,7 +386,13 @@ static void make_control_packet(void)
 
 static void display_channel(stc8h_u8 channel)
 {
-    app_display_channel_segments(channel, 1u, display_segments);
+    app_display_prefixed_channel_segments(APP_DISPLAY_S, channel, display_segments);
+    display_commit_raw4();
+}
+
+static void display_state_channel(stc8h_u8 prefix)
+{
+    app_display_prefixed_channel_segments(prefix, current_channel, display_segments);
     display_commit_raw4();
 }
 
@@ -443,6 +435,7 @@ static stc8h_u8 probe_current_channel(void)
     stc8h_u8 i;
 
     for (i = 0u; i < 2u; ++i) {
+        rx_status.tx_id = 0u;
         make_control_packet();
         tx_result = app_radio_send_packet_with_ack(packet);
         handle_ack_status();
@@ -459,12 +452,6 @@ static void scan_channels(void)
     stc8h_u8 channel;
 
     while (1) {
-        display_channel(current_channel);
-        if (probe_current_channel() != 0u) {
-            stc8h_delay_ms(750u);
-            return;
-        }
-
         for (channel = 0u; channel <= 125u; ++channel) {
             app_radio_set_channel(channel);
             current_channel = channel;
@@ -475,6 +462,8 @@ static void scan_channels(void)
                     config.last_channel = channel;
                     (void)app_config_save(&config);
                 }
+                app_display_prefixed_channel_segments(APP_DISPLAY_F, channel, display_segments);
+                display_commit_raw4();
                 stc8h_delay_ms(750u);
                 return;
             }
@@ -509,15 +498,29 @@ static void update_voltage_display(void)
 static void run_ui_slice(void)
 {
     stc8h_s16 delta;
+    app_button_event_t button_event;
 
     delta = app_input_update(&control);
+    button_event = app_button_update(&ec11_button,
+                                     TOY_REMOTE_TX_EC11_SW_ACTIVE(),
+                                     (config_mode != 0u) ? APP_BUTTON_LONG_CONFIG_TICKS : APP_BUTTON_LONG_NORMAL_TICKS,
+                                     (config_mode != 0u) ? 0u : APP_BUTTON_DOUBLE_TICKS);
     if (config_mode != 0u) {
-        handle_config_mode(delta);
+        handle_config_mode(delta, button_event);
     } else {
-        update_config_entry();
-        if (control.request_voltage != 0u) {
+        if (button_event == APP_BUTTON_EVENT_LONG) {
+            enter_config_mode();
+        } else if ((button_event == APP_BUTTON_EVENT_DOUBLE) && (app_state == APP_STATE_LOST)) {
+            scan_requested = 1u;
+        }
+
+        if (app_state == APP_STATE_TRY_SAVED) {
+            display_state_channel(APP_DISPLAY_C);
+        } else if (app_state == APP_STATE_LOST) {
+            display_state_channel(APP_DISPLAY_L);
+        } else if ((app_state == APP_STATE_CONNECTED) && (control.request_voltage != 0u)) {
             update_voltage_display();
-        } else {
+        } else if (app_state == APP_STATE_CONNECTED) {
             display_control();
         }
     }
@@ -584,7 +587,6 @@ static void display_frame_patterns(void)
 void main(void)
 {
 #if !APP_DISABLE_RADIO
-    stc8h_s16 delta;
     stc8h_u8 i;
 #endif
 
@@ -592,6 +594,7 @@ void main(void)
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
     app_input_init(&control);
+    app_button_init(&ec11_button);
     app_timer0_init_encoder_tick();
     if (app_config_load(&config) != STC8H_OK) {
         (void)app_config_save(&config);
@@ -599,7 +602,7 @@ void main(void)
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
     display_init();
-    display_channel(current_channel);
+    display_state_channel(APP_DISPLAY_C);
 #if APP_STARTUP_DISPLAY_TEST
     display_startup_self_test();
 #endif
@@ -614,7 +617,7 @@ void main(void)
     rx_status.voltage_dec = 0u;
     rx_status.tx_id = 0u;
     tx_result = APP_RADIO_TX_ERROR;
-    display_control();
+    app_state = APP_STATE_TRY_SAVED;
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 
 #if APP_DISABLE_RADIO
@@ -626,36 +629,52 @@ void main(void)
 #else
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
         tx_result = APP_RADIO_TX_ERROR;
+        display_segments[0] = APP_DISPLAY_E;
+        display_segments[1] = app_display_digit(0u);
+        display_segments[2] = app_display_digit(0u);
+        display_segments[3] = app_display_digit(1u);
+        display_commit_raw4();
         while (1) {
-            delta = app_input_update(&control);
+            (void)app_input_update(&control);
 #if APP_INPUT_DIAG_DISPLAY
-            display_input_diag(delta);
+            display_input_diag(0);
             stc8h_delay_ms(APP_INPUT_DIAG_REFRESH_MS);
 #else
-            display_control();
             stc8h_delay_ms(APP_UI_UPDATE_MS);
 #endif
         }
     }
-    scan_channels();
 
     while (1) {
+        rx_status.tx_id = 0u;
         make_control_packet();
         tx_result = app_radio_send_packet_with_ack(packet);
         handle_ack_status();
 
-        if (tx_result == APP_RADIO_TX_DONE) {
+        if (rx_status.tx_id == config.tx_id) {
             radio_failures = 0u;
-        } else if (radio_failures < 10u) {
+            link_warning = 0u;
+            if (config_mode == 0u) {
+                app_state = APP_STATE_CONNECTED;
+            }
+        } else if (radio_failures < APP_RADIO_FAILURE_LIMIT) {
             ++radio_failures;
+            link_warning = 1u;
         } else {
-            radio_failures = 0u;
-            scan_channels();
+            app_state = APP_STATE_LOST;
+            link_warning = 1u;
         }
 
         for (i = 0u; i < APP_UI_UPDATES_PER_LOOP; ++i) {
             run_ui_slice();
             stc8h_delay_ms(APP_UI_UPDATE_MS);
+        }
+        if ((scan_requested != 0u) && (app_state == APP_STATE_LOST)) {
+            scan_requested = 0u;
+            scan_channels();
+            radio_failures = 0u;
+            link_warning = 0u;
+            app_state = APP_STATE_CONNECTED;
         }
     }
 #endif
