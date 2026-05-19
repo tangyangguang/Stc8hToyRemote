@@ -75,6 +75,18 @@ static stc8h_u8 display_digit(stc8h_u8 value)
     return table[value];
 }
 
+static void display_commit_raw4(void)
+{
+    stc8h_u8 was_enabled;
+
+    was_enabled = (EA != 0u) ? 1u : 0u;
+    EA = 0;
+    (void)drv_tm1637_display_raw4(display_segments);
+    if (was_enabled != 0u) {
+        EA = 1;
+    }
+}
+
 STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
 {
     TF0 = 0;
@@ -131,7 +143,7 @@ static void display_control(void)
     if (tx_result != APP_RADIO_TX_DONE) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
-    (void)drv_tm1637_display_raw4(display_segments);
+    display_commit_raw4();
 }
 
 #if APP_STARTUP_DISPLAY_TEST
@@ -146,7 +158,7 @@ static void display_startup_self_test(void)
         display_segments[1] = segment;
         display_segments[2] = segment;
         display_segments[3] = segment;
-        (void)drv_tm1637_display_raw4(display_segments);
+        display_commit_raw4();
         stc8h_delay_ms(40u);
     }
 }
@@ -180,7 +192,7 @@ static void display_input_diag(stc8h_s16 delta)
         display_segments[1] |= APP_DISPLAY_COLON;
     }
 
-    (void)drv_tm1637_display_raw4(display_segments);
+    display_commit_raw4();
 }
 #endif
 
@@ -202,7 +214,7 @@ static void display_voltage(stc8h_u16 value)
     if (show_rx_voltage == 0u) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
-    (void)drv_tm1637_display_raw4(display_segments);
+    display_commit_raw4();
 }
 
 static void display_config(void)
@@ -217,7 +229,7 @@ static void display_config(void)
     if (config_item == APP_CONFIG_ITEM_MIDDLE) {
         display_segments[2] |= APP_DISPLAY_COLON;
     }
-    (void)drv_tm1637_display_raw4(display_segments);
+    display_commit_raw4();
 }
 
 static void enter_config_mode(void)
