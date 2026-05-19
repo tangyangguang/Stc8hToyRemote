@@ -29,6 +29,8 @@ static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
 static STC8H_XDATA stc8h_u8 display_segments[4];
+static STC8H_XDATA stc8h_u8 display_last_segments[4];
+static stc8h_u8 display_dirty;
 static app_radio_tx_result_t tx_result;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_divider;
@@ -83,12 +85,26 @@ static void display_commit_raw4(void)
 {
     stc8h_u8 was_enabled;
 
+    if ((display_dirty == 0u) &&
+        (display_segments[0] == display_last_segments[0]) &&
+        (display_segments[1] == display_last_segments[1]) &&
+        (display_segments[2] == display_last_segments[2]) &&
+        (display_segments[3] == display_last_segments[3])) {
+        return;
+    }
+
     was_enabled = (EA != 0u) ? 1u : 0u;
     EA = 0;
     (void)drv_tm1637_display_raw4(display_segments);
     if (was_enabled != 0u) {
         EA = 1;
     }
+
+    display_last_segments[0] = display_segments[0];
+    display_last_segments[1] = display_segments[1];
+    display_last_segments[2] = display_segments[2];
+    display_last_segments[3] = display_segments[3];
+    display_dirty = 0u;
 }
 
 STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
@@ -124,6 +140,11 @@ static void display_init(void)
     P1PU |= TOY_REMOTE_TX_TM1637_CLK_MASK;
     P3PU |= TOY_REMOTE_TX_TM1637_DIO_MASK;
     drv_tm1637_init();
+    display_last_segments[0] = 0xFFu;
+    display_last_segments[1] = 0xFFu;
+    display_last_segments[2] = 0xFFu;
+    display_last_segments[3] = 0xFFu;
+    display_dirty = 1u;
 }
 
 #define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)((speed) / 10u)))
