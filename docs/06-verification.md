@@ -89,8 +89,8 @@ pio run -t upload --upload-port <serial-port>
 固定参数：
 
 - 地址：`TOYR1`
-- controller 默认频道：40，可通过 `APP_DEFAULT_RF_CHANNEL` 编译期宏修改
-- receiver 保存频道：默认 40，可用 P30/P31 调整并保存
+- controller 默认频道：76，可通过 `APP_DEFAULT_RF_CHANNEL` 编译期宏修改
+- receiver 保存频道：默认 76，可用 P30/P31 在预设频道池中调整并保存
 - payload：32 bytes
 - controller：PTX
 - receiver：PRX
@@ -112,6 +112,8 @@ pio run -t upload --upload-port <serial-port>
 - 断电恢复后双方无需复位即可恢复通信，若不能恢复，需要记录 radio 状态寄存器。
 - 连续发送/轮询阶段的电流作为 bring-up 基线，不作为最终功耗目标。
 - 多接收机测试：把不同 receiver 调到不同频道后，controller 能扫描到目标频道。
+- 预设频道池测试：P30/P31 按 `76, 72, 68, 64, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16` 循环切换并保存。
+- 已连接换频测试：receiver 在已连接状态下请求切换频道时，controller 显示 `Hxxx`，双方确认后切到新频道并显示 `Fxxx`；失败时回退旧频道或进入 `Lxxx` 锁定重试。
 - 绑定测试：receiver 未绑定时接受第一个合法 `tx_id`；绑定后丢弃其他 `tx_id`；P30+P31 上电清除绑定。
 - receiver LED：上电启动快闪 3 次；nRF24 错误为双闪长停顿；未绑定为单短闪长停顿；已绑定未连接为慢闪；已连接为常亮；清除绑定为快闪 6 次。
 

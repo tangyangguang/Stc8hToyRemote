@@ -412,7 +412,7 @@ Add a short status note under phase 2 in `/Users/tyg/dir/codex_dir/Stc8hToyRemot
 阶段 2 first build:
 
 - 固定地址：`TOYR1`
-- 固定频道：40
+- 固定频道：40（早期 bring-up 临时值；当前默认频道目标为 76）
 - 固定 payload：32 bytes
 - controller 已提供 PTX 发送 loop。
 - receiver 已提供 PRX 接收 loop。
