@@ -22,6 +22,10 @@
 #define APP_DISABLE_RADIO 0
 #endif
 
+#ifndef APP_STATIC_DISPLAY_DIAG
+#define APP_STATIC_DISPLAY_DIAG 0
+#endif
+
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
@@ -523,6 +527,32 @@ static void run_ui_slice(void)
     }
 }
 
+#if APP_STATIC_DISPLAY_DIAG
+static void display_static_patterns(void)
+{
+    static const STC8H_CODE stc8h_u8 patterns[][4] = {
+        {0x06u, 0x06u, 0x00u, 0x00u},
+        {0x06u, 0x5Bu, 0x00u, 0x00u},
+        {0x06u, 0x6Du, 0x00u, 0x00u},
+        {0x3Fu, 0x7Du, 0x00u, 0x00u},
+        {0x7Fu, 0x7Fu, 0x00u, 0x00u}
+    };
+    stc8h_u8 i;
+
+    while (1) {
+        for (i = 0u; i < (stc8h_u8)(sizeof(patterns) / sizeof(patterns[0])); ++i) {
+            display_segments[0] = patterns[i][0];
+            display_segments[1] = patterns[i][1];
+            display_segments[2] = patterns[i][2];
+            display_segments[3] = patterns[i][3];
+            display_dirty = 1u;
+            display_commit_raw4();
+            stc8h_delay_ms(2000u);
+        }
+    }
+}
+#endif
+
 void main(void)
 {
 #if !APP_DISABLE_RADIO
@@ -543,6 +573,9 @@ void main(void)
     display_init();
 #if APP_STARTUP_DISPLAY_TEST
     display_startup_self_test();
+#endif
+#if APP_STATIC_DISPLAY_DIAG
+    display_static_patterns();
 #endif
     rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
     rx_status.voltage_int = 0u;
