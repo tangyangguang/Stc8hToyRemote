@@ -1,4 +1,5 @@
 #include "app_config.h"
+#include "app_display.h"
 #include "app_input.h"
 #include "app_radio.h"
 #include "board_pins.h"
@@ -58,12 +59,6 @@ static STC8H_XDATA stc8h_u8 config_brake_prev;
 static STC8H_XDATA stc8h_u8 config_ec11_prev;
 static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 
-#define APP_DISPLAY_BLANK 0x00u
-#define APP_DISPLAY_DASH 0x40u
-#define APP_DISPLAY_A 0x77u
-#define APP_DISPLAY_UP 0x23u
-#define APP_DISPLAY_DOWN 0x1Cu
-#define APP_DISPLAY_COLON 0x80u
 #define APP_CONFIG_ENTER_TICKS 300u
 #define APP_CONFIG_ITEM_REDUCE 0u
 #define APP_CONFIG_ITEM_MIDDLE 1u
@@ -78,16 +73,6 @@ static STC8H_XDATA stc8h_u8 config_buzzer_prev;
 #define APP_INPUT_DIAG_BLINK_TICKS 6u
 #define APP_INPUT_DIAG_DELTA_HOLD_TICKS 8u
 #endif
-
-static stc8h_u8 display_digit(stc8h_u8 value)
-{
-    static const STC8H_CODE stc8h_u8 table[10] = {
-        0x3Fu, 0x06u, 0x5Bu, 0x4Fu, 0x66u,
-        0x6Du, 0x7Du, 0x07u, 0x7Fu, 0x6Fu
-    };
-
-    return table[value];
-}
 
 static void display_commit_raw4(void)
 {
@@ -155,7 +140,7 @@ static void display_init(void)
     display_dirty = 1u;
 }
 
-#define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : display_digit((stc8h_u8)((speed) / 10u)))
+#define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : app_display_digit((stc8h_u8)((speed) / 10u)))
 
 static void display_control(void)
 {
@@ -170,7 +155,7 @@ static void display_control(void)
         display_segments[3] = APP_DISPLAY_DASH;
     } else {
         display_segments[2] = display_speed_tens(control.speed);
-        display_segments[3] = display_digit((stc8h_u8)(control.speed % 10u));
+        display_segments[3] = app_display_digit((stc8h_u8)(control.speed % 10u));
     }
 
     if (tx_result != APP_RADIO_TX_DONE) {
@@ -186,7 +171,7 @@ static void display_startup_self_test(void)
     stc8h_u8 segment;
 
     for (digit = 0u; digit < 10u; ++digit) {
-        segment = display_digit(digit);
+        segment = app_display_digit(digit);
         display_segments[0] = segment;
         display_segments[1] = segment;
         display_segments[2] = segment;
@@ -212,9 +197,9 @@ static void display_input_diag(stc8h_s16 delta)
         input_diag_delta_segment = APP_DISPLAY_BLANK;
     }
 
-    display_segments[0] = display_digit(TOY_REMOTE_TX_EC11_A_READ());
-    display_segments[1] = display_digit(TOY_REMOTE_TX_EC11_B_READ());
-    display_segments[2] = display_digit(TOY_REMOTE_TX_EC11_SW_ACTIVE());
+    display_segments[0] = app_display_digit(TOY_REMOTE_TX_EC11_A_READ());
+    display_segments[1] = app_display_digit(TOY_REMOTE_TX_EC11_B_READ());
+    display_segments[2] = app_display_digit(TOY_REMOTE_TX_EC11_SW_ACTIVE());
     display_segments[3] = (input_diag_delta_hold != 0u) ? input_diag_delta_segment : APP_DISPLAY_BLANK;
 
     ++input_diag_blink;
@@ -240,7 +225,7 @@ static void display_voltage(stc8h_u16 value)
 
     for (i = 4u; i != 0u; --i) {
         q = (stc8h_u16)(value / 10u);
-        display_segments[i - 1u] = display_digit((stc8h_u8)(value - (stc8h_u16)(q * 10u)));
+        display_segments[i - 1u] = app_display_digit((stc8h_u8)(value - (stc8h_u16)(q * 10u)));
         value = q;
     }
 
@@ -252,10 +237,10 @@ static void display_voltage(stc8h_u16 value)
 
 static void display_config(void)
 {
-    display_segments[0] = display_digit((stc8h_u8)(config.steering_reduce / 10u));
-    display_segments[1] = display_digit((stc8h_u8)(config.steering_reduce % 10u));
-    display_segments[2] = display_digit((stc8h_u8)(config.steering_middle / 10u));
-    display_segments[3] = display_digit((stc8h_u8)(config.steering_middle % 10u));
+    display_segments[0] = app_display_digit((stc8h_u8)(config.steering_reduce / 10u));
+    display_segments[1] = app_display_digit((stc8h_u8)(config.steering_reduce % 10u));
+    display_segments[2] = app_display_digit((stc8h_u8)(config.steering_middle / 10u));
+    display_segments[3] = app_display_digit((stc8h_u8)(config.steering_middle % 10u));
     if ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
@@ -413,6 +398,12 @@ static void make_control_packet(void)
     (void)proto_rf_link_send_data_fixed(&link, packet, payload);
 }
 
+static void display_channel(stc8h_u8 channel)
+{
+    app_display_channel_segments(channel, 1u, display_segments);
+    display_commit_raw4();
+}
+
 static void handle_ack_status(void)
 {
     const stc8h_u8 *ack;
@@ -466,28 +457,29 @@ static stc8h_u8 probe_current_channel(void)
 static void scan_channels(void)
 {
     stc8h_u8 channel;
-    stc8h_u8 old_channel;
 
-    old_channel = current_channel;
-    if (probe_current_channel() != 0u) {
-        return;
-    }
-
-    for (channel = 0u; channel <= 125u; ++channel) {
-        app_radio_set_channel(channel);
-        current_channel = channel;
-        rx_status.tx_id = 0u;
+    while (1) {
+        display_channel(current_channel);
         if (probe_current_channel() != 0u) {
-            if (config.last_channel != channel) {
-                config.last_channel = channel;
-                (void)app_config_save(&config);
-            }
+            stc8h_delay_ms(750u);
             return;
         }
-    }
 
-    current_channel = old_channel;
-    app_radio_set_channel(current_channel);
+        for (channel = 0u; channel <= 125u; ++channel) {
+            app_radio_set_channel(channel);
+            current_channel = channel;
+            display_channel(channel);
+            rx_status.tx_id = 0u;
+            if (probe_current_channel() != 0u) {
+                if (config.last_channel != channel) {
+                    config.last_channel = channel;
+                    (void)app_config_save(&config);
+                }
+                stc8h_delay_ms(750u);
+                return;
+            }
+        }
+    }
 }
 
 static void update_voltage_display(void)
@@ -607,6 +599,7 @@ void main(void)
     control.tx_id = config.tx_id;
     current_channel = config.last_channel;
     display_init();
+    display_channel(current_channel);
 #if APP_STARTUP_DISPLAY_TEST
     display_startup_self_test();
 #endif
