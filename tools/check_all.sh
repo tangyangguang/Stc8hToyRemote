@@ -11,6 +11,14 @@ cc -std=c99 -Wall -Wextra \
     -o /tmp/toy_remote_protocol_test
 /tmp/toy_remote_protocol_test
 
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/app_indicator_test.c" \
+    "$ROOT_DIR/receiver/src/app_indicator.c" \
+    -o /tmp/app_indicator_test
+/tmp/app_indicator_test
+
 cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
     -DTEST_STEPS=4 \
     -I"$ROOT_DIR/../Stc8hBase/core" \

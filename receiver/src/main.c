@@ -1,14 +1,20 @@
 #include "app_config.h"
+#include "app_indicator.h"
 #include "app_radio.h"
 #include "app_outputs.h"
 #include "app_status.h"
 #include "board_pins.h"
 #include "drv_nrf24l01.h"
 #include "proto_rf_link.h"
+#include "stc8h_interrupt.h"
+#include "stc8h_sfr.h"
 #include "stc8h_spi.h"
+#include "stc8h_timer.h"
 #include "toy_remote_protocol.h"
 
+static volatile stc8h_u16 tick_ms;
 static STC8H_XDATA proto_rf_link_t link;
+static STC8H_XDATA app_indicator_t indicator;
 static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t status;
@@ -24,6 +30,50 @@ static stc8h_u8 ch_add_pressed;
 static stc8h_u8 ch_minus_pressed;
 
 #define APP_RECEIVER_IDLE_POLL_LIMIT 60000u
+
+STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
+{
+    TF0 = 0;
+    ++tick_ms;
+}
+
+static stc8h_u16 app_tick_now(void)
+{
+    stc8h_u16 now;
+    stc8h_u8 interrupt_enabled;
+
+    interrupt_enabled = (EA != 0u) ? 1u : 0u;
+    EA = 0;
+    now = tick_ms;
+    if (interrupt_enabled != 0u) {
+        EA = 1;
+    }
+
+    return now;
+}
+
+static void app_indicator_write(stc8h_u8 led_on)
+{
+    if (led_on != 0u) {
+        TOY_REMOTE_RX_LED_ON();
+    } else {
+        TOY_REMOTE_RX_LED_OFF();
+    }
+}
+
+static void app_indicator_service(void)
+{
+    app_indicator_write(app_indicator_update(&indicator, app_tick_now()));
+}
+
+static void app_timer0_init_indicator_tick(void)
+{
+    if (stc8h_timer_init_1ms(STC8H_TIMER0) == STC8H_OK) {
+        ET0 = 1;
+        EA = 1;
+        TR0 = 1;
+    }
+}
 
 static void apply_safe_state(void)
 {
@@ -107,6 +157,7 @@ static void handle_packet(void)
             }
             idle_polls = 0u;
             link_lost = 0u;
+            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, app_tick_now());
             app_outputs_apply_control(&control);
             prepare_ack_status();
             return;
@@ -125,6 +176,7 @@ static void handle_channel_buttons(void)
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
+            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
             prepare_ack_status();
         }
     } else {
@@ -138,6 +190,7 @@ static void handle_channel_buttons(void)
             app_radio_set_channel(config.rf_channel);
             (void)app_config_save(&config);
             apply_safe_state();
+            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
             prepare_ack_status();
         }
     } else {
@@ -151,6 +204,7 @@ static void handle_idle_poll(void)
         ++idle_polls;
         if (idle_polls == APP_RECEIVER_IDLE_POLL_LIMIT) {
             apply_safe_state();
+            app_indicator_set_state(&indicator, APP_INDICATOR_STATE_WAITING, app_tick_now());
         }
     }
 }
@@ -159,6 +213,9 @@ void main(void)
 {
     stc8h_spi_init();
     app_outputs_init();
+    app_indicator_init(&indicator, 0u);
+    app_indicator_write(APP_INDICATOR_LED_ON);
+    app_timer0_init_indicator_tick();
     app_status_init(&status);
     (void)app_config_load(&config);
     P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
@@ -174,11 +231,14 @@ void main(void)
 
     if (app_radio_init_rx(config.rf_channel) != STC8H_OK) {
         radio_error = 1u;
+        app_indicator_set_state(&indicator, APP_INDICATOR_STATE_RADIO_ERROR, app_tick_now());
     } else {
+        app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTING, app_tick_now());
         prepare_ack_status();
     }
 
     while (1) {
+        app_indicator_service();
         handle_channel_buttons();
         if (radio_error == 0u) {
             if (app_radio_receive_packet(packet) == APP_RADIO_RX_PACKET) {

@@ -40,7 +40,6 @@ void app_outputs_apply_safe(void)
     TOY_REMOTE_RX_MOTOR_STOP();
     TOY_REMOTE_RX_LIGHT_OFF();
     TOY_REMOTE_RX_BUZZER_OFF();
-    TOY_REMOTE_RX_LED_OFF();
 }
 
 void app_outputs_init(void)
@@ -115,5 +114,4 @@ void app_outputs_apply_control(const toy_remote_control_t *control)
         TOY_REMOTE_RX_BUZZER_OFF();
     }
 
-    TOY_REMOTE_RX_LED_ON();
 }
