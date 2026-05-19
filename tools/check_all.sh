@@ -45,6 +45,13 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/button_event_test.c" \
+    -o /tmp/button_event_test
+/tmp/button_event_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_display_test.c" \
     -o /tmp/controller_display_test
 /tmp/controller_display_test
