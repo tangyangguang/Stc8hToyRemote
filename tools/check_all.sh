@@ -52,6 +52,13 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/channel_pool_test.c" \
+    -o /tmp/channel_pool_test
+/tmp/channel_pool_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
     -I"$ROOT_DIR/../Stc8hBase/protocols" \
     "$ROOT_DIR/tests/rf_link_integration_test.c" \
     "$ROOT_DIR/shared/toy_remote_protocol.c" \
