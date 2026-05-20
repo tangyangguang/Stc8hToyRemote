@@ -71,6 +71,21 @@ cc -std=c99 -Wall -Wextra \
 /tmp/receiver_radio_config_test
 
 cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/receiver_channel_policy_test.c" \
+    -o /tmp/receiver_channel_policy_test_fixed
+/tmp/receiver_channel_policy_test_fixed
+
+cc -std=c99 -Wall -Wextra \
+    -DAPP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1 \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/receiver_channel_policy_test.c" \
+    -o /tmp/receiver_channel_policy_test_buttons
+/tmp/receiver_channel_policy_test_buttons
+
+cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/channel_pool_test.c" \

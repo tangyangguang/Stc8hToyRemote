@@ -113,7 +113,9 @@ controller 使用 fixed-block EEPROM 保存 `tx_id`、`last_channel`、`flags`�
   -> 初始化 ADC 状态
   -> 读取 receiver 配置：bound_tx_id、rf_channel、servo_reverse
   -> 若 P30 和 P31 上电时同时按下，清除 bound_tx_id
-  -> 在保存频道初始化 nRF24 PRX
+  -> 初始化 nRF24 PRX
+      APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=0 时使用默认频道 76
+      APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1 时使用保存频道 rf_channel
       失败 -> LED 双闪长停顿循环，输出保持安全
   -> 预装 ACK 状态 payload
   -> 主循环：
@@ -142,7 +144,7 @@ receiver P31 上升沿 -> 切到上一个预设频道并保存配置
 receiver 上电时 P30+P31 同时按下 -> 清除绑定，保持频道
 ```
 
-receiver 本机频道调整用于多接收机部署和维护，不作为日常连接步骤。默认频道为 `76`，全新 controller 和 receiver 必须一致。P30/P31 的频道调整不推荐在 `0..125` 上逐步遍历，而是在预设频道池中切换：
+receiver 本机频道调整用于多接收机部署和维护，不作为日常连接步骤。默认频道为 `76`，全新 controller 和 receiver 必须一致。当前默认构建关闭 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`，运行时固定使用默认频道，避免烧录时 EEPROM 保留旧频道导致 controller 的 `C076/L076` 诊断误判为射频失败；需要多接收机本机调频道时再显式启用该宏。P30/P31 的频道调整不推荐在 `0..125` 上逐步遍历，而是在预设频道池中切换：
 
 ```text
 76, 72, 68, 64, 60, 56, 52, 48,

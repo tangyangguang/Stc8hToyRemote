@@ -25,9 +25,6 @@ static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
 static stc8h_u16 idle_polls;
 static stc8h_u8 radio_error;
 static stc8h_u8 link_lost;
-#ifndef APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
-#define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 0
-#endif
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
 static stc8h_u8 ch_add_pressed;
 static stc8h_u8 ch_minus_pressed;
@@ -254,7 +251,7 @@ void main(void)
     proto_rf_link_set_ids(&link, 2u, 1u);
     apply_safe_state();
 
-    if (app_radio_init_rx(config.rf_channel) != STC8H_OK) {
+    if (app_radio_init_rx(app_config_runtime_channel(&config)) != STC8H_OK) {
         radio_error = 1u;
         app_indicator_set_state(&indicator, APP_INDICATOR_STATE_RADIO_ERROR, app_tick_now());
     } else {

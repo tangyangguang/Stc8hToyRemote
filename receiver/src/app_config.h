@@ -7,11 +7,21 @@
 #define APP_CONFIG_DEFAULT_CHANNEL 76u
 #endif
 
+#ifndef APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
+#define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 0
+#endif
+
 typedef struct {
     stc8h_u16 bound_tx_id;
     stc8h_u8 rf_channel;
     stc8h_u8 servo_reverse;
 } app_config_t;
+
+#if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
+#define app_config_runtime_channel(config) ((config)->rf_channel)
+#else
+#define app_config_runtime_channel(config) ((void)(config), APP_CONFIG_DEFAULT_CHANNEL)
+#endif
 
 stc8h_status_t app_config_load(app_config_t *config);
 stc8h_status_t app_config_save(const app_config_t *config);

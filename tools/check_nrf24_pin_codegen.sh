@@ -68,6 +68,23 @@ check_receiver_ack_preload_loop() {
     fi
 }
 
+check_receiver_runtime_channel() {
+    rst_file=$1
+
+    if ! awk '
+        /mov[[:space:]]+dpl,[[:space:]]*#0x4c/ { saw_default_channel = NR }
+        /lcall[[:space:]]+_app_radio_init_rx/ {
+            if ((saw_default_channel > 0) && ((NR - saw_default_channel) <= 3)) {
+                saw_init = 1
+            }
+        }
+        END { exit saw_init ? 0 : 1 }
+    ' "$rst_file"; then
+        echo "receiver default build must initialize nRF24 RX on fixed channel 76" >&2
+        exit 1
+    fi
+}
+
 (cd "$ROOT_DIR/controller" && pio run)
 check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
 check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
@@ -80,3 +97,4 @@ check_rst "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_rad
 check_early_init_order "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_rst "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
 check_receiver_ack_preload_loop "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
+check_receiver_runtime_channel "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
