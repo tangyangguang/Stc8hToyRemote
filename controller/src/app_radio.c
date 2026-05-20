@@ -57,8 +57,18 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
         status = drv_nrf24l01_read_status();
         if ((status & DRV_NRF24L01_STATUS_TX_DONE) != 0u) {
             if ((status & DRV_NRF24L01_STATUS_RX_READY) != 0u) {
+#if DRV_NRF24L01_ENABLE_READ_DYNAMIC_PAYLOAD_SIZE
+                app_radio_ack_len = drv_nrf24l01_read_dynamic_payload_size();
+                if (app_radio_ack_len <= APP_RADIO_PACKET_SIZE) {
+                    (void)drv_nrf24l01_read_payload(app_radio_ack_packet, app_radio_ack_len);
+                } else {
+                    drv_nrf24l01_flush_rx();
+                    app_radio_ack_len = 0u;
+                }
+#else
                 (void)drv_nrf24l01_read_payload(app_radio_ack_packet, APP_RADIO_PACKET_SIZE);
                 app_radio_ack_len = APP_RADIO_PACKET_SIZE;
+#endif
             }
             drv_nrf24l01_clear_irq(status);
             return APP_RADIO_TX_DONE;
