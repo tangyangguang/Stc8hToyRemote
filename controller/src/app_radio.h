@@ -4,8 +4,11 @@
 #include "stc8h_config.h"
 
 #define APP_RADIO_PACKET_SIZE 32u
-/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us; required for 250kbps + 32-byte ACK payload.
- * ARC stays at 10 to tolerate observed ACK loss while keeping bounded send latency. */
+/* STATUS ACK is proto_rf_link's 9-byte header plus the 6-byte ToyRemote status payload.
+ * Keep it shorter than the 32-byte control packet to reduce 250kbps ACK airtime. */
+#define APP_RADIO_STATUS_ACK_SIZE 15u
+/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us. This is retained as margin for
+ * 250kbps ACK payloads while ARC=10 keeps send latency bounded. */
 #define APP_RADIO_RETRANSMIT_DELAY_CODE 5u
 #define APP_RADIO_RETRANSMIT_COUNT_CODE 10u
 

@@ -82,7 +82,7 @@ static stc8h_u8 ack_protocol_status(void)
     if (app_radio_ack_len == 0u) {
         return 0u;
     }
-    if (app_radio_ack_len != APP_RADIO_PACKET_SIZE) {
+    if (app_radio_ack_len != APP_RADIO_STATUS_ACK_SIZE) {
         return 1u;
     }
 

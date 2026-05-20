@@ -92,7 +92,8 @@ pio run -t upload --upload-port <serial-port>
 - controller 默认频道：76，可通过 `APP_DEFAULT_RF_CHANNEL` 编译期宏修改
 - receiver 默认频道：76；默认构建关闭 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`，运行时固定使用默认频道，不读取 EEPROM 保存频道作为 RF 运行频道
 - receiver 保存频道：启用 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1` 后，可用 P30/P31 在预设频道池中调整并保存
-- payload：32 bytes
+- control payload：32 bytes nRF24 packet
+- ACK status payload：15 bytes dynamic ACK payload
 - controller：PTX
 - receiver：PRX
 

@@ -105,7 +105,7 @@ static void prepare_ack_status(void)
     app_status_update(&status, &control, link_lost);
     status.tx_id = config.bound_tx_id;
 
-    for (i = 0u; i < APP_RADIO_PACKET_SIZE; ++i) {
+    for (i = 0u; i < APP_RADIO_STATUS_ACK_SIZE; ++i) {
         status_packet[i] = 0u;
     }
     status_packet[0] = PROTO_RF_LINK_MAGIC;
@@ -125,7 +125,7 @@ static void prepare_ack_status(void)
     ++link.seq_tx;
     drv_nrf24l01_flush_tx();
     for (i = 0u; i < APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT; ++i) {
-        (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_PACKET_SIZE);
+        (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_STATUS_ACK_SIZE);
     }
 }
 

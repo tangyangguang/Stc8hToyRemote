@@ -66,6 +66,24 @@ check_receiver_ack_preload_loop() {
         echo "receiver must preload all 3 nRF24 ACK payload FIFO slots" >&2
         exit 1
     fi
+
+    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_write_ack_payload_PARM_3,#0x0f' "$rst_file"; then
+        echo "receiver must write 15-byte status ACK payloads" >&2
+        exit 1
+    fi
+}
+
+check_controller_ack_read_len() {
+    rst_file=$1
+
+    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_read_payload_PARM_2,#0x0f' "$rst_file"; then
+        echo "controller must read fixed 15-byte status ACK payloads in normal build" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'mov[[:space:]]+_app_radio_ack_len,#0x0f' "$rst_file"; then
+        echo "controller must report fixed 15-byte status ACK length in normal build" >&2
+        exit 1
+    fi
 }
 
 check_receiver_runtime_channel() {
@@ -88,6 +106,7 @@ check_receiver_runtime_channel() {
 (cd "$ROOT_DIR/controller" && pio run)
 check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
 check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
+check_controller_ack_read_len "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
 
 (cd "$ROOT_DIR/controller" && pio run -c platformio_diag.ini -e STC8H1K08_radio_diag)
 check_early_init_order "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_radio_diag/src/radio_diag_main.rst"

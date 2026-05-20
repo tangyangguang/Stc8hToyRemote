@@ -73,8 +73,8 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
                     app_radio_ack_len = 0u;
                 }
 #else
-                (void)drv_nrf24l01_read_payload(app_radio_ack_packet, APP_RADIO_PACKET_SIZE);
-                app_radio_ack_len = APP_RADIO_PACKET_SIZE;
+                (void)drv_nrf24l01_read_payload(app_radio_ack_packet, APP_RADIO_STATUS_ACK_SIZE);
+                app_radio_ack_len = APP_RADIO_STATUS_ACK_SIZE;
 #endif
             }
             drv_nrf24l01_clear_irq(status);

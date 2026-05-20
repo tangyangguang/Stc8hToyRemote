@@ -395,7 +395,7 @@ static void handle_ack_status(void)
     const stc8h_u8 *ack;
     const stc8h_u8 *body;
 
-    if (app_radio_ack_len != APP_RADIO_PACKET_SIZE) {
+    if (app_radio_ack_len != APP_RADIO_STATUS_ACK_SIZE) {
         return;
     }
 
