@@ -4,9 +4,10 @@
 #include "stc8h_config.h"
 
 #define APP_RADIO_PACKET_SIZE 32u
-/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us; required for 250kbps + 32-byte ACK payload. */
+/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us; required for 250kbps + 32-byte ACK payload.
+ * ARC stays at 10 to tolerate observed ACK loss while keeping bounded send latency. */
 #define APP_RADIO_RETRANSMIT_DELAY_CODE 5u
-#define APP_RADIO_RETRANSMIT_COUNT_CODE 3u
+#define APP_RADIO_RETRANSMIT_COUNT_CODE 10u
 
 #ifndef APP_RADIO_ENABLE_TX_DIAG_STATUS
 #define APP_RADIO_ENABLE_TX_DIAG_STATUS 0

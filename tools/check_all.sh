@@ -64,6 +64,13 @@ cc -std=c99 -Wall -Wextra \
 /tmp/controller_radio_config_test
 
 cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/receiver_radio_config_test.c" \
+    -o /tmp/receiver_radio_config_test
+/tmp/receiver_radio_config_test
+
+cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/channel_pool_test.c" \

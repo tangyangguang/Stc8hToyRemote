@@ -55,6 +55,19 @@ check_early_init_order() {
     fi
 }
 
+check_receiver_ack_preload_loop() {
+    rst_file=$1
+
+    if ! awk '
+        /lcall[[:space:]]+_drv_nrf24l01_write_ack_payload/ { saw_write = 1 }
+        saw_write && /cjne[[:space:]]+r[0-7],#0x03/ { saw_count = 1 }
+        END { exit saw_count ? 0 : 1 }
+    ' "$rst_file"; then
+        echo "receiver must preload all 3 nRF24 ACK payload FIFO slots" >&2
+        exit 1
+    fi
+}
+
 (cd "$ROOT_DIR/controller" && pio run)
 check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
 check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
@@ -66,3 +79,4 @@ check_rst "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_rad
 (cd "$ROOT_DIR/receiver" && pio run)
 check_early_init_order "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_rst "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
+check_receiver_ack_preload_loop "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"

@@ -4,6 +4,9 @@
 #include "stc8h_config.h"
 
 #define APP_RADIO_PACKET_SIZE 32u
+/* nRF24 ACK payload uses the TX FIFO on PRX. Preload all 3 slots so
+ * retransmitted packets do not drain the FIFO into ACK_EMPTY. */
+#define APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT 3u
 
 typedef enum {
     APP_RADIO_RX_NONE = 0,

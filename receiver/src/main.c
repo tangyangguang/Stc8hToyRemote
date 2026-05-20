@@ -127,7 +127,9 @@ static void prepare_ack_status(void)
     TOY_REMOTE_PUT_U16_LE(status_packet, PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L, config.bound_tx_id);
     ++link.seq_tx;
     drv_nrf24l01_flush_tx();
-    (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_PACKET_SIZE);
+    for (i = 0u; i < APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT; ++i) {
+        (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_PACKET_SIZE);
+    }
 }
 
 static stc8h_status_t unpack_control_payload(void)
