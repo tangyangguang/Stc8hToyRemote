@@ -22,15 +22,13 @@ stc8h_status_t app_radio_init_rx(stc8h_u8 channel)
     if (drv_nrf24l01_config_pipe0_fixed(app_radio_addr) != STC8H_OK) {
         return STC8H_ERROR;
     }
-    if (drv_nrf24l01_enable_ack_payload(DRV_NRF24L01_PIPE0) != STC8H_OK) {
-        return STC8H_ERROR;
-    }
+    (void)drv_nrf24l01_enable_ack_payload(DRV_NRF24L01_PIPE0);
 
     drv_nrf24l01_set_auto_ack(DRV_NRF24L01_PIPE0);
     if (drv_nrf24l01_set_auto_retransmit(3u, 10u) != STC8H_OK) {
         return STC8H_ERROR;
     }
-    if (drv_nrf24l01_set_rate_power(DRV_NRF24L01_RATE_1MBPS, DRV_NRF24L01_POWER_0DBM) != STC8H_OK) {
+    if (drv_nrf24l01_set_rate_power(DRV_NRF24L01_RATE_250KBPS, DRV_NRF24L01_POWER_0DBM) != STC8H_OK) {
         return STC8H_ERROR;
     }
 

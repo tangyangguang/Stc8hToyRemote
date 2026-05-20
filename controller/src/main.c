@@ -42,7 +42,6 @@ static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
 static STC8H_XDATA stc8h_u8 display_segments[4];
 static STC8H_XDATA stc8h_u8 display_last_segments[4];
 static stc8h_u8 display_dirty;
-static app_radio_tx_result_t tx_result;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
@@ -71,7 +70,7 @@ static STC8H_XDATA stc8h_u8 config_item;
 #define APP_BUTTON_LONG_NORMAL_TICKS 500u
 #define APP_BUTTON_LONG_CONFIG_TICKS 300u
 #define APP_BUTTON_DOUBLE_TICKS 30u
-#define APP_RADIO_FAILURE_LIMIT 10u
+#define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 50u
 #define APP_UI_UPDATE_MS 10u
@@ -384,12 +383,6 @@ static void make_control_packet(void)
     (void)proto_rf_link_send_data_fixed(&link, packet, payload);
 }
 
-static void display_channel(stc8h_u8 channel)
-{
-    app_display_prefixed_channel_segments(APP_DISPLAY_S, channel, display_segments);
-    display_commit_raw4();
-}
-
 static void display_state_channel(stc8h_u8 prefix)
 {
     app_display_prefixed_channel_segments(prefix, current_channel, display_segments);
@@ -437,7 +430,7 @@ static stc8h_u8 probe_current_channel(void)
     for (i = 0u; i < 2u; ++i) {
         rx_status.tx_id = 0u;
         make_control_packet();
-        tx_result = app_radio_send_packet_with_ack(packet);
+        (void)app_radio_send_packet_with_ack(packet);
         handle_ack_status();
         if (rx_status.tx_id == config.tx_id) {
             return 1u;
@@ -455,7 +448,7 @@ static void scan_channels(void)
         for (channel = 0u; channel <= 125u; ++channel) {
             app_radio_set_channel(channel);
             current_channel = channel;
-            display_channel(channel);
+            display_state_channel(APP_DISPLAY_S);
             rx_status.tx_id = 0u;
             if (probe_current_channel() != 0u) {
                 if (config.last_channel != channel) {
@@ -603,6 +596,7 @@ void main(void)
     current_channel = config.last_channel;
     display_init();
     display_state_channel(APP_DISPLAY_C);
+    stc8h_delay_ms(150u);
 #if APP_STARTUP_DISPLAY_TEST
     display_startup_self_test();
 #endif
@@ -616,19 +610,16 @@ void main(void)
     rx_status.voltage_int = 0u;
     rx_status.voltage_dec = 0u;
     rx_status.tx_id = 0u;
-    tx_result = APP_RADIO_TX_ERROR;
     app_state = APP_STATE_TRY_SAVED;
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 
 #if APP_DISABLE_RADIO
-    tx_result = APP_RADIO_TX_DONE;
     while (1) {
         run_ui_slice();
         stc8h_delay_ms(APP_UI_UPDATE_MS);
     }
 #else
     if (app_radio_init_tx(current_channel) != STC8H_OK) {
-        tx_result = APP_RADIO_TX_ERROR;
         display_segments[0] = APP_DISPLAY_E;
         display_segments[1] = app_display_digit(0u);
         display_segments[2] = app_display_digit(0u);
@@ -648,7 +639,7 @@ void main(void)
     while (1) {
         rx_status.tx_id = 0u;
         make_control_packet();
-        tx_result = app_radio_send_packet_with_ack(packet);
+        (void)app_radio_send_packet_with_ack(packet);
         handle_ack_status();
 
         if (rx_status.tx_id == config.tx_id) {
