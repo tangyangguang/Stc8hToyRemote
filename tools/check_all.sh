@@ -100,3 +100,4 @@ cc -std=c99 -Wall -Wextra \
 sh "$ROOT_DIR/tools/check_controller_ec11_isr_codegen.sh"
 (cd "$ROOT_DIR/receiver" && pio run)
 "$ROOT_DIR/tools/check_firmware_size.sh"
+sh "$ROOT_DIR/tools/check_nrf24_pin_codegen.sh"
