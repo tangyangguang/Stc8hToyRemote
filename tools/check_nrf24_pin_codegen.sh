@@ -29,8 +29,40 @@ check_rst() {
     fi
 }
 
-(cd "$ROOT_DIR/controller" && pio run -c platformio_diag.ini -e STC8H1K08_radio_diag)
-(cd "$ROOT_DIR/receiver" && pio run)
+check_early_init_order() {
+    label=$1
+    rst_file=$2
 
+    if [ ! -f "$rst_file" ]; then
+        echo "$label main build artifact not found: $rst_file" >&2
+        exit 1
+    fi
+
+    nrf_line=$(awk '/lcall[[:space:]]+_drv_nrf24l01_init_pins/{ print NR; exit }' "$rst_file")
+    spi_line=$(awk '/lcall[[:space:]]+_stc8h_spi_init/{ print NR; exit }' "$rst_file")
+
+    if [ -z "$nrf_line" ]; then
+        echo "$label must drive nRF24 CE/CSN idle levels directly at boot" >&2
+        exit 1
+    fi
+    if [ -z "$spi_line" ]; then
+        echo "$label does not call stc8h_spi_init()" >&2
+        exit 1
+    fi
+    if [ "$nrf_line" -gt "$spi_line" ]; then
+        echo "$label initializes SPI before forcing nRF24 CE/CSN idle levels" >&2
+        exit 1
+    fi
+}
+
+(cd "$ROOT_DIR/controller" && pio run)
+check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
+check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
+
+(cd "$ROOT_DIR/controller" && pio run -c platformio_diag.ini -e STC8H1K08_radio_diag)
+check_early_init_order "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_radio_diag/src/radio_diag_main.rst"
 check_rst "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_radio_diag/src/drv_nrf24l01_wrap.rst"
+
+(cd "$ROOT_DIR/receiver" && pio run)
+check_early_init_order "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_rst "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"

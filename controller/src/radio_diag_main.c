@@ -138,6 +138,7 @@ void main(void)
 {
     app_radio_tx_result_t result;
 
+    drv_nrf24l01_init_pins();
     stc8h_spi_init();
     display_init();
     display_prefixed(APP_DISPLAY_C, APP_RADIO_DIAG_CHANNEL);

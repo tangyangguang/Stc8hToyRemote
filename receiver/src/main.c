@@ -228,6 +228,7 @@ static void handle_idle_poll(void)
 
 void main(void)
 {
+    drv_nrf24l01_init_pins();
     stc8h_spi_init();
     app_outputs_init();
     app_indicator_init(&indicator, 0u);

@@ -4,6 +4,7 @@
 #include "app_input.h"
 #include "app_radio.h"
 #include "board_pins.h"
+#include "drv_nrf24l01.h"
 #include "drv_tm1637.h"
 #include "proto_rf_link.h"
 #include "stc8h_delay.h"
@@ -583,6 +584,7 @@ void main(void)
     stc8h_u8 i;
 #endif
 
+    drv_nrf24l01_init_pins();
     stc8h_spi_init();
     proto_rf_link_init(&link);
     proto_rf_link_set_ids(&link, 1u, 2u);
