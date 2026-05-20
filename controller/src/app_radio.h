@@ -4,6 +4,9 @@
 #include "stc8h_config.h"
 
 #define APP_RADIO_PACKET_SIZE 32u
+/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us; required for 250kbps + 32-byte ACK payload. */
+#define APP_RADIO_RETRANSMIT_DELAY_CODE 5u
+#define APP_RADIO_RETRANSMIT_COUNT_CODE 3u
 
 typedef enum {
     APP_RADIO_TX_IDLE = 0,
