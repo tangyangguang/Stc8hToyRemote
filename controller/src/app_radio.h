@@ -5,10 +5,14 @@
 
 #define APP_RADIO_PACKET_SIZE 32u
 /* STATUS ACK is proto_rf_link's 9-byte header plus the 6-byte ToyRemote status payload.
- * Keep it shorter than the 32-byte control packet to reduce 250kbps ACK airtime. */
+ * Keep it shorter than the 32-byte control packet to reduce ACK airtime. */
 #define APP_RADIO_STATUS_ACK_SIZE 15u
-/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us. This is retained as margin for
- * 250kbps ACK payloads while ARC=10 keeps send latency bounded. */
+/* Match the legacy RF rate that was stable on this hardware: 1Mbps, 0dBm.
+ * Code values follow drv_nrf24l01_rate_t and drv_nrf24l01_power_t. */
+#define APP_RADIO_RATE_CODE 1u
+#define APP_RADIO_POWER_CODE 3u
+/* nRF24L01+ SETUP_RETR.ARD code 5 = 1500us. This keeps generous ACK timing
+ * margin at 1Mbps while ARC=10 keeps send latency bounded. */
 #define APP_RADIO_RETRANSMIT_DELAY_CODE 5u
 #define APP_RADIO_RETRANSMIT_COUNT_CODE 10u
 

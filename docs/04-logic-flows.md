@@ -129,7 +129,7 @@ controller 使用 fixed-block EEPROM 保存 `tx_id`、`last_channel`、`flags`�
        接收超时后进入安全状态
 ```
 
-ACK 状态包只发送有效的链路头和状态体：`9 + 6 = 15` 字节，不填满 32 字节 nRF24 payload。这样减少 250kbps 下 ACK payload 的空中时间，降低 `MAX_RT` 概率；controller 正常固件按固定 15 字节读取，`radio_diag` 保留动态长度读取用于诊断。
+无线速率使用 legacy 已验证的 1Mbps、0dBm。ACK 状态包只发送有效的链路头和状态体：`9 + 6 = 15` 字节，不填满 32 字节 nRF24 payload。这样减少 ACK payload 的空中时间，降低 `MAX_RT` 概率；controller 正常固件按固定 15 字节读取，`radio_diag` 保留动态长度读取用于诊断。
 
 绑定和频道流程：
 

@@ -28,7 +28,8 @@ stc8h_status_t app_radio_init_rx(stc8h_u8 channel)
     if (drv_nrf24l01_set_auto_retransmit(3u, 10u) != STC8H_OK) {
         return STC8H_ERROR;
     }
-    if (drv_nrf24l01_set_rate_power(DRV_NRF24L01_RATE_250KBPS, DRV_NRF24L01_POWER_0DBM) != STC8H_OK) {
+    if (drv_nrf24l01_set_rate_power((drv_nrf24l01_rate_t)APP_RADIO_RATE_CODE,
+                                    (drv_nrf24l01_power_t)APP_RADIO_POWER_CODE) != STC8H_OK) {
         return STC8H_ERROR;
     }
 

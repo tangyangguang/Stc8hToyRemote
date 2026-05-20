@@ -5,6 +5,8 @@
 
 #define APP_RADIO_PACKET_SIZE 32u
 #define APP_RADIO_STATUS_ACK_SIZE 15u
+#define APP_RADIO_RATE_CODE 1u
+#define APP_RADIO_POWER_CODE 3u
 /* nRF24 ACK payload uses the TX FIFO on PRX. Preload all 3 slots so
  * retransmitted packets do not drain the FIFO into ACK_EMPTY. */
 #define APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT 3u

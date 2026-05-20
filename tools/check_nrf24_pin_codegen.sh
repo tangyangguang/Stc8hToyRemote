@@ -103,10 +103,30 @@ check_receiver_runtime_channel() {
     fi
 }
 
+check_radio_rate_power() {
+    label=$1
+    rst_file=$2
+
+    if ! awk '
+        /mov[[:space:]]+_drv_nrf24l01_set_rate_power_PARM_2,#0x03/ { saw_power = NR }
+        /mov[[:space:]]+dpl,[[:space:]]*#0x01/ { saw_rate = NR }
+        /lcall[[:space:]]+_drv_nrf24l01_set_rate_power/ {
+            if ((saw_power > 0) && (saw_rate > 0) && ((NR - saw_power) <= 3) && ((NR - saw_rate) <= 3)) {
+                saw_call = 1
+            }
+        }
+        END { exit saw_call ? 0 : 1 }
+    ' "$rst_file"; then
+        echo "$label must configure nRF24 RF rate/power as 1Mbps, 0dBm" >&2
+        exit 1
+    fi
+}
+
 (cd "$ROOT_DIR/controller" && pio run)
 check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
 check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
 check_controller_ack_read_len "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
+check_radio_rate_power "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
 
 (cd "$ROOT_DIR/controller" && pio run -c platformio_diag.ini -e STC8H1K08_radio_diag)
 check_early_init_order "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_radio_diag/src/radio_diag_main.rst"
@@ -117,3 +137,4 @@ check_early_init_order "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/m
 check_rst "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
 check_receiver_ack_preload_loop "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_receiver_runtime_channel "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
+check_radio_rate_power "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/app_radio.rst"
