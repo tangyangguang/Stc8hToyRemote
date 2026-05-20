@@ -117,7 +117,7 @@ static void display_tx_result(app_radio_tx_result_t result)
         return;
     }
     if (result == APP_RADIO_TX_ERROR) {
-        display_prefixed(APP_DISPLAY_E, APP_RADIO_DIAG_CHANNEL);
+        display_prefixed(APP_DISPLAY_E, app_radio_last_status);
         return;
     }
 
