@@ -4,6 +4,7 @@
 #include "app_display.h"
 #include "app_radio.h"
 #include "board_pins.h"
+#include "drv_nrf24l01.h"
 #include "drv_tm1637.h"
 #include "proto_rf_link.h"
 #include "stc8h_delay.h"
@@ -141,6 +142,14 @@ void main(void)
     display_init();
     display_prefixed(APP_DISPLAY_C, APP_RADIO_DIAG_CHANNEL);
     stc8h_delay_ms(150u);
+    drv_nrf24l01_init_pins();
+    if (drv_nrf24l01_check_present() != STC8H_OK) {
+        display_prefixed(APP_DISPLAY_C, 0u);
+        while (1) {
+        }
+    }
+    display_prefixed(APP_DISPLAY_C, 1u);
+    stc8h_delay_ms(500u);
 
     if (app_radio_init_tx(APP_RADIO_DIAG_CHANNEL) != STC8H_OK) {
         display_prefixed(APP_DISPLAY_E, 1u);
