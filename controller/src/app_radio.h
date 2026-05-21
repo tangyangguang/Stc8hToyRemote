@@ -7,13 +7,13 @@
 /* STATUS ACK is proto_rf_link's 9-byte header plus the 6-byte ToyRemote status payload.
  * Keep it shorter than the 32-byte control packet to reduce ACK airtime. */
 #define APP_RADIO_STATUS_ACK_SIZE 15u
-/* Match the legacy RF rate that was stable on this hardware: 1Mbps, 0dBm.
+/* Distance-priority default: 250kbps, 0dBm.
  * Code values follow drv_nrf24l01_rate_t and drv_nrf24l01_power_t. */
-#define APP_RADIO_RATE_CODE 1u
+#define APP_RADIO_RATE_CODE 0u
 #define APP_RADIO_POWER_CODE 3u
-/* nRF24L01+ SETUP_RETR: ARD code 1 = 500us, ARC code 15 = 15 retries.
- * This is the Stc8hBase pair-diag stable set for 1Mbps + 15-byte ACK payload. */
-#define APP_RADIO_RETRANSMIT_DELAY_CODE 1u
+/* nRF24L01+ SETUP_RETR: ARD code 3 = 1000us, ARC code 15 = 15 retries.
+ * This is the Stc8hBase pair-diag stable set for 250kbps + 15-byte ACK payload. */
+#define APP_RADIO_RETRANSMIT_DELAY_CODE 3u
 #define APP_RADIO_RETRANSMIT_COUNT_CODE 15u
 
 #ifndef APP_RADIO_ENABLE_TX_DIAG_STATUS

@@ -121,7 +121,13 @@ check_radio_rate_power() {
 
     if ! awk '
         /mov[[:space:]]+_drv_nrf24l01_set_rate_power_PARM_2,#0x03/ { saw_power = NR }
-        /mov[[:space:]]+dpl,[[:space:]]*#0x01/ { saw_rate = NR }
+        /mov[[:space:]]+dpl,[[:space:]]*#0x00/ { saw_rate = NR }
+        /clr[[:space:]]+a/ { saw_clr = NR }
+        /mov[[:space:]]+dpl,a/ {
+            if ((saw_clr > 0) && ((NR - saw_clr) <= 2)) {
+                saw_rate = NR
+            }
+        }
         /lcall[[:space:]]+_drv_nrf24l01_set_rate_power/ {
             if ((saw_power > 0) && (saw_rate > 0) && ((NR - saw_power) <= 3) && ((NR - saw_rate) <= 3)) {
                 saw_call = 1
@@ -129,7 +135,7 @@ check_radio_rate_power() {
         }
         END { exit saw_call ? 0 : 1 }
     ' "$rst_file"; then
-        echo "$label must configure nRF24 RF rate/power as 1Mbps, 0dBm" >&2
+        echo "$label must configure nRF24 RF rate/power as 250kbps, 0dBm" >&2
         exit 1
     fi
 }
@@ -140,7 +146,7 @@ check_radio_retransmit() {
 
     if ! awk '
         /mov[[:space:]]+_drv_nrf24l01_set_auto_retransmit_PARM_2,#0x0f/ { saw_count = NR }
-        /mov[[:space:]]+dpl,[[:space:]]*#0x01/ { saw_delay = NR }
+        /mov[[:space:]]+dpl,[[:space:]]*#0x03/ { saw_delay = NR }
         /lcall[[:space:]]+_drv_nrf24l01_set_auto_retransmit/ {
             if ((saw_count > 0) && (saw_delay > 0) && ((NR - saw_count) <= 3) && ((NR - saw_delay) <= 3)) {
                 saw_call = 1
@@ -148,7 +154,7 @@ check_radio_retransmit() {
         }
         END { exit saw_call ? 0 : 1 }
     ' "$rst_file"; then
-        echo "$label must configure nRF24 retransmit as ARD=500us, ARC=15" >&2
+        echo "$label must configure nRF24 retransmit as ARD=1000us, ARC=15" >&2
         exit 1
     fi
 }
