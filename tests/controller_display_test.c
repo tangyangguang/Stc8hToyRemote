@@ -1,3 +1,4 @@
+#define APP_DISPLAY_ENABLE_LEGACY_CHANNEL 1
 #include "app_display.h"
 
 #include <assert.h>
@@ -48,6 +49,37 @@ static void test_error_display_shows_e001(void)
     assert(segments[3] == app_display_digit(1u));
 }
 
+static void test_decimal_helpers_format_without_losing_leading_zeroes(void)
+{
+    stc8h_u8 segments[4];
+
+    app_display_set_2_digits(7u, &segments[2]);
+    assert(segments[2] == app_display_digit(0u));
+    assert(segments[3] == app_display_digit(7u));
+
+    app_display_set_3_digits(76u, &segments[1]);
+    assert(segments[1] == app_display_digit(0u));
+    assert(segments[2] == app_display_digit(7u));
+    assert(segments[3] == app_display_digit(6u));
+
+    app_display_set_3_digits(125u, &segments[1]);
+    assert(segments[1] == app_display_digit(1u));
+    assert(segments[2] == app_display_digit(2u));
+    assert(segments[3] == app_display_digit(5u));
+
+    app_display_set_4_digits(9999u, segments);
+    assert(segments[0] == app_display_digit(9u));
+    assert(segments[1] == app_display_digit(9u));
+    assert(segments[2] == app_display_digit(9u));
+    assert(segments[3] == app_display_digit(9u));
+
+    app_display_set_4_digits(10000u, segments);
+    assert(segments[0] == app_display_digit(9u));
+    assert(segments[1] == app_display_digit(9u));
+    assert(segments[2] == app_display_digit(9u));
+    assert(segments[3] == app_display_digit(9u));
+}
+
 static void test_config_display_shows_p_item_colon_value(void)
 {
     stc8h_u8 segments[4];
@@ -70,6 +102,7 @@ int main(void)
     test_channel_display_uses_status_prefix_and_three_digits();
     test_legacy_numeric_channel_display_still_works();
     test_error_display_shows_e001();
+    test_decimal_helpers_format_without_losing_leading_zeroes();
     test_config_display_shows_p_item_colon_value();
     return 0;
 }

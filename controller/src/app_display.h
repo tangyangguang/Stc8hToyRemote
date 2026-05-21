@@ -17,6 +17,10 @@
 #define APP_DISPLAY_DOWN 0x1Cu
 #define APP_DISPLAY_COLON 0x80u
 
+#ifndef APP_DISPLAY_ENABLE_LEGACY_CHANNEL
+#define APP_DISPLAY_ENABLE_LEGACY_CHANNEL 0
+#endif
+
 static stc8h_u8 app_display_digit(stc8h_u8 value)
 {
     static STC8H_CODE stc8h_u8 table[10] = {
@@ -27,38 +31,82 @@ static stc8h_u8 app_display_digit(stc8h_u8 value)
     return table[value];
 }
 
+#define app_display_set_2_digits(value, segments) do { \
+    stc8h_u8 app_display_v_ = (stc8h_u8)(value); \
+    stc8h_u8 app_display_digit_ = 0u; \
+    while (app_display_v_ >= 10u) { \
+        app_display_v_ = (stc8h_u8)(app_display_v_ - 10u); \
+        ++app_display_digit_; \
+    } \
+    (segments)[0] = app_display_digit(app_display_digit_); \
+    (segments)[1] = app_display_digit(app_display_v_); \
+} while (0)
+
+#define app_display_set_3_digits(value, segments) do { \
+    stc8h_u8 app_display_v3_ = (stc8h_u8)(value); \
+    stc8h_u8 app_display_digit3_ = 0u; \
+    while (app_display_v3_ >= 100u) { \
+        app_display_v3_ = (stc8h_u8)(app_display_v3_ - 100u); \
+        ++app_display_digit3_; \
+    } \
+    (segments)[0] = app_display_digit(app_display_digit3_); \
+    app_display_set_2_digits(app_display_v3_, &(segments)[1]); \
+} while (0)
+
+#define app_display_set_4_digits(value, segments) do { \
+    stc8h_u16 app_display_v4_ = (stc8h_u16)(value); \
+    stc8h_u8 app_display_digit4_ = 0u; \
+    if (app_display_v4_ > 9999u) { \
+        app_display_v4_ = 9999u; \
+    } \
+    while (app_display_v4_ >= 1000u) { \
+        app_display_v4_ = (stc8h_u16)(app_display_v4_ - 1000u); \
+        ++app_display_digit4_; \
+    } \
+    (segments)[0] = app_display_digit(app_display_digit4_); \
+    app_display_digit4_ = 0u; \
+    while (app_display_v4_ >= 100u) { \
+        app_display_v4_ = (stc8h_u16)(app_display_v4_ - 100u); \
+        ++app_display_digit4_; \
+    } \
+    (segments)[1] = app_display_digit(app_display_digit4_); \
+    app_display_set_2_digits((stc8h_u8)app_display_v4_, &(segments)[2]); \
+} while (0)
+
+#if APP_DISPLAY_ENABLE_LEGACY_CHANNEL
 static void app_display_channel_segments(stc8h_u8 channel, stc8h_u8 colon, stc8h_u8 *segments)
 {
     segments[0] = APP_DISPLAY_BLANK;
-    segments[1] = (channel >= 100u) ? app_display_digit(1u) : APP_DISPLAY_BLANK;
-    segments[2] = app_display_digit((channel >= 100u) ? (stc8h_u8)((channel - 100u) / 10u) : (stc8h_u8)(channel / 10u));
-    segments[3] = app_display_digit((stc8h_u8)(channel % 10u));
+    if (channel >= 100u) {
+        segments[1] = app_display_digit(1u);
+        channel = (stc8h_u8)(channel - 100u);
+    } else {
+        segments[1] = APP_DISPLAY_BLANK;
+    }
+    app_display_set_2_digits(channel, &segments[2]);
     if (colon != 0u) {
         segments[1] |= APP_DISPLAY_COLON;
     }
 }
-
-#define app_display_set_3_digits(value, segments) do { \
-    (segments)[1] = app_display_digit((stc8h_u8)((value) / 100u)); \
-    (segments)[2] = app_display_digit((stc8h_u8)(((value) / 10u) % 10u)); \
-    (segments)[3] = app_display_digit((stc8h_u8)((value) % 10u)); \
-} while (0)
+#endif
 
 #define app_display_prefixed_channel_segments(prefix, channel, segments) do { \
     (segments)[0] = (prefix); \
-    app_display_set_3_digits((channel), (segments)); \
+    app_display_set_3_digits((channel), &(segments)[1]); \
 } while (0)
 
 #define app_display_error_segments(code, segments) do { \
     (segments)[0] = APP_DISPLAY_E; \
-    app_display_set_3_digits((code), (segments)); \
+    app_display_set_3_digits((code), &(segments)[1]); \
 } while (0)
 
 #define app_display_config_segments(item, value, segments) do { \
     (segments)[0] = APP_DISPLAY_P; \
     (segments)[1] = (stc8h_u8)(app_display_digit((item)) | APP_DISPLAY_COLON); \
-    (segments)[2] = ((value) < 10u) ? APP_DISPLAY_BLANK : app_display_digit((stc8h_u8)((value) / 10u)); \
-    (segments)[3] = app_display_digit((stc8h_u8)((value) % 10u)); \
+    app_display_set_2_digits((value), &(segments)[2]); \
+    if ((value) < 10u) { \
+        (segments)[2] = APP_DISPLAY_BLANK; \
+    } \
 } while (0)
 
 #endif

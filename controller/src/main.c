@@ -151,8 +151,6 @@ static void display_init(void)
     display_dirty = 1u;
 }
 
-#define display_speed_tens(speed) (((speed) >= 100u) ? APP_DISPLAY_A : app_display_digit((stc8h_u8)((speed) / 10u)))
-
 static void display_control(void)
 {
     display_segments[1] = APP_DISPLAY_BLANK;
@@ -164,9 +162,11 @@ static void display_control(void)
     if ((control.brake != 0u) && (control.speed == 0u)) {
         display_segments[2] = APP_DISPLAY_DASH;
         display_segments[3] = APP_DISPLAY_DASH;
+    } else if (control.speed >= 100u) {
+        display_segments[2] = APP_DISPLAY_A;
+        display_segments[3] = app_display_digit(0u);
     } else {
-        display_segments[2] = display_speed_tens(control.speed);
-        display_segments[3] = app_display_digit((stc8h_u8)(control.speed % 10u));
+        app_display_set_2_digits(control.speed, &display_segments[2]);
     }
 
     ++link_blink;
@@ -231,18 +231,7 @@ static void display_input_diag(stc8h_s16 delta)
 
 static void display_voltage(stc8h_u16 value)
 {
-    stc8h_u8 i;
-    stc8h_u16 q;
-
-    if (value > 9999u) {
-        value = 9999u;
-    }
-
-    for (i = 4u; i != 0u; --i) {
-        q = (stc8h_u16)(value / 10u);
-        display_segments[i - 1u] = app_display_digit((stc8h_u8)(value - (stc8h_u16)(q * 10u)));
-        value = q;
-    }
+    app_display_set_4_digits(value, display_segments);
 
     if (show_rx_voltage == 0u) {
         display_segments[1] |= APP_DISPLAY_COLON;
@@ -468,8 +457,7 @@ static void scan_channels(void)
                     config.last_channel = channel;
                     (void)app_config_save(&config);
                 }
-                app_display_prefixed_channel_segments(APP_DISPLAY_F, channel, display_segments);
-                display_commit_raw4();
+                display_state_channel(APP_DISPLAY_F);
                 stc8h_delay_ms(750u);
                 return;
             }
