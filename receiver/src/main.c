@@ -25,12 +25,33 @@ static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
 static stc8h_u16 idle_polls;
 static stc8h_u8 radio_error;
 static stc8h_u8 link_lost;
+static stc8h_u8 last_control_seq;
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
 static stc8h_u8 ch_add_pressed;
 static stc8h_u8 ch_minus_pressed;
 #endif
 
 #define APP_RECEIVER_IDLE_POLL_LIMIT 60000u
+
+#if APP_RADIO_ENABLE_STATS
+typedef struct {
+    stc8h_u16 rx_count;
+    stc8h_u16 lost;
+    stc8h_u16 dup;
+    stc8h_u16 ptx_reset;
+    stc8h_u16 ack_load;
+    stc8h_u16 ack_busy;
+    stc8h_u16 ack_fail;
+    stc8h_u16 last_tx_id;
+    stc8h_u8 last_seq;
+    stc8h_u8 have_seq;
+} app_receiver_rf_stats_t;
+
+static STC8H_XDATA app_receiver_rf_stats_t receiver_rf_stats;
+#define receiver_stats_inc(field) do { ++receiver_rf_stats.field; } while (0)
+#else
+#define receiver_stats_inc(field) do { } while (0)
+#endif
 
 STC8H_INTERRUPT(timer0_isr, STC8H_VECTOR_TIMER0)
 {
@@ -98,9 +119,55 @@ static void apply_safe_state(void)
     link_lost = 1u;
 }
 
-static void prepare_ack_status(void)
+#if APP_RADIO_ENABLE_STATS
+static void receiver_stats_track_packet(void)
+{
+    stc8h_u8 seq;
+    stc8h_u8 expected;
+
+    seq = packet[3];
+    ++receiver_rf_stats.rx_count;
+    if ((receiver_rf_stats.have_seq != 0u) && (receiver_rf_stats.last_tx_id == control.tx_id)) {
+        expected = (stc8h_u8)(receiver_rf_stats.last_seq + 1u);
+        if (seq == receiver_rf_stats.last_seq) {
+            ++receiver_rf_stats.dup;
+        } else if (seq != expected) {
+            if (seq < receiver_rf_stats.last_seq) {
+                ++receiver_rf_stats.ptx_reset;
+            } else {
+                receiver_rf_stats.lost = (stc8h_u16)(receiver_rf_stats.lost + (stc8h_u8)(seq - expected));
+            }
+        }
+    } else if (receiver_rf_stats.have_seq != 0u) {
+        ++receiver_rf_stats.ptx_reset;
+    }
+    receiver_rf_stats.last_seq = seq;
+    receiver_rf_stats.last_tx_id = control.tx_id;
+    receiver_rf_stats.have_seq = 1u;
+}
+#else
+#define receiver_stats_track_packet() do { } while (0)
+#endif
+
+#if APP_RADIO_ENABLE_STATS
+static void record_ack_preload_status(stc8h_status_t ack_status)
+{
+    if (ack_status == STC8H_OK) {
+        receiver_stats_inc(ack_load);
+    } else if (ack_status == STC8H_BUSY) {
+        receiver_stats_inc(ack_busy);
+    } else {
+        receiver_stats_inc(ack_fail);
+    }
+}
+#else
+#define record_ack_preload_status(ack_status) do { (void)(ack_status); } while (0)
+#endif
+
+static void prepare_ack_status(stc8h_u8 replace_pending)
 {
     stc8h_u8 i;
+    stc8h_status_t ack_status;
 
     app_status_update(&status, &control, link_lost);
     status.tx_id = config.bound_tx_id;
@@ -112,7 +179,7 @@ static void prepare_ack_status(void)
     status_packet[1] = PROTO_RF_LINK_VERSION;
     status_packet[2] = PROTO_RF_LINK_PACKET_STATUS;
     status_packet[3] = link.seq_tx;
-    status_packet[4] = packet[3];
+    status_packet[4] = last_control_seq;
     status_packet[5] = 0u;
     status_packet[6] = 2u;
     status_packet[7] = 1u;
@@ -123,9 +190,17 @@ static void prepare_ack_status(void)
     status_packet[PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] = status.voltage_dec;
     TOY_REMOTE_PUT_U16_LE(status_packet, PROTO_RF_LINK_HEADER_SIZE + TOY_REMOTE_STATUS_OFFSET_TX_ID_L, config.bound_tx_id);
     ++link.seq_tx;
-    drv_nrf24l01_flush_tx();
-    for (i = 0u; i < APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT; ++i) {
-        (void)drv_nrf24l01_write_ack_payload(0u, status_packet, APP_RADIO_STATUS_ACK_SIZE);
+    if (replace_pending != 0u) {
+        for (i = 0u; i < APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT; ++i) {
+            ack_status = drv_nrf24l01_preload_ack_payload(0u, status_packet, APP_RADIO_STATUS_ACK_SIZE,
+                                                          (i == 0u) ? APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER :
+                                                                      APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
+            record_ack_preload_status(ack_status);
+        }
+    } else {
+        ack_status = drv_nrf24l01_preload_ack_payload(0u, status_packet, APP_RADIO_STATUS_ACK_SIZE,
+                                                      APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
+        record_ack_preload_status(ack_status);
     }
 }
 
@@ -168,11 +243,13 @@ static void handle_packet(void)
             } else if (control.tx_id != config.bound_tx_id) {
                 return;
             }
+            last_control_seq = packet[3];
+            receiver_stats_track_packet();
             idle_polls = 0u;
             link_lost = 0u;
             app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, app_tick_now());
             app_outputs_apply_control(&control);
-            prepare_ack_status();
+            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
             if (save_binding != 0u) {
                 (void)app_config_save(&config);
             }
@@ -192,7 +269,7 @@ static void handle_channel_buttons(void)
             (void)app_config_save(&config);
             apply_safe_state();
             app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
-            prepare_ack_status();
+            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
         }
     } else {
         ch_add_pressed = 0u;
@@ -206,7 +283,7 @@ static void handle_channel_buttons(void)
             (void)app_config_save(&config);
             apply_safe_state();
             app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
-            prepare_ack_status();
+            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
         }
     } else {
         ch_minus_pressed = 0u;
@@ -221,6 +298,7 @@ static void handle_idle_poll(void)
         if (idle_polls == APP_RECEIVER_IDLE_POLL_LIMIT) {
             apply_safe_state();
             app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
+            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
         }
     }
 }
@@ -258,7 +336,7 @@ void main(void)
         if (indicator.requested_state != APP_INDICATOR_STATE_BINDING_CLEARED) {
             app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
         }
-        prepare_ack_status();
+        prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
     }
 
     while (1) {

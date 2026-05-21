@@ -22,18 +22,27 @@
 #error "APP_RADIO_POWER_CODE must document the nRF24 RF output power."
 #endif
 
-static void test_status_ack_payload_uses_legacy_rate_and_bounded_retransmit_settings(void)
+static void test_status_ack_payload_uses_base_verified_rf_settings(void)
 {
     assert(APP_RADIO_PACKET_SIZE == 32u);
     assert(APP_RADIO_STATUS_ACK_SIZE == 15u);
     assert(APP_RADIO_RATE_CODE == 1u);
     assert(APP_RADIO_POWER_CODE == 3u);
-    assert(APP_RADIO_RETRANSMIT_DELAY_CODE == 5u);
-    assert(APP_RADIO_RETRANSMIT_COUNT_CODE == 10u);
+    assert(APP_RADIO_RETRANSMIT_DELAY_CODE == 1u);
+    assert(APP_RADIO_RETRANSMIT_COUNT_CODE == 15u);
+}
+
+static void test_tx_results_classify_radio_ack_payload_state(void)
+{
+    assert(APP_RADIO_TX_DONE != APP_RADIO_TX_ACK_PAYLOAD_OK);
+    assert(APP_RADIO_TX_ACK_PAYLOAD_OK != APP_RADIO_TX_ACK_EMPTY);
+    assert(APP_RADIO_TX_ACK_EMPTY != APP_RADIO_TX_ACK_BAD);
+    assert(APP_RADIO_TX_MAX_RETRY != APP_RADIO_TX_ACK_BAD);
 }
 
 int main(void)
 {
-    test_status_ack_payload_uses_legacy_rate_and_bounded_retransmit_settings();
+    test_status_ack_payload_uses_base_verified_rf_settings();
+    test_tx_results_classify_radio_ack_payload_state();
     return 0;
 }

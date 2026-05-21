@@ -59,29 +59,41 @@ check_receiver_ack_preload_loop() {
     rst_file=$1
 
     if ! awk '
-        /lcall[[:space:]]+_drv_nrf24l01_write_ack_payload/ { saw_write = 1 }
-        saw_write && /cjne[[:space:]]+r[0-7],#0x03/ { saw_count = 1 }
+        /lcall[[:space:]]+_drv_nrf24l01_preload_ack_payload/ { saw_preload = 1 }
+        saw_preload && /cjne[[:space:]]+r[0-7],#0x03/ { saw_count = 1 }
         END { exit saw_count ? 0 : 1 }
     ' "$rst_file"; then
-        echo "receiver must preload all 3 nRF24 ACK payload FIFO slots" >&2
+        echo "receiver must preload all 3 nRF24 ACK payload FIFO slots through the base helper" >&2
         exit 1
     fi
 
-    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_write_ack_payload_PARM_3,#0x0f' "$rst_file"; then
+    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_preload_ack_payload_PARM_3,#0x0f' "$rst_file"; then
         echo "receiver must write 15-byte status ACK payloads" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_preload_ack_payload_PARM_4,#0x00' "$rst_file"; then
+        echo "receiver normal RX path must append ACK payload without replacing pending FIFO" >&2
+        exit 1
+    fi
+    if grep -Eq 'lcall[[:space:]]+_drv_nrf24l01_write_ack_payload' "$rst_file"; then
+        echo "receiver main must not bypass the base ACK preload helper" >&2
         exit 1
     fi
 }
 
-check_controller_ack_read_len() {
+check_controller_ack_payload_classification() {
     rst_file=$1
 
-    if ! grep -Eq 'mov[[:space:]]+_drv_nrf24l01_read_payload_PARM_2,#0x0f' "$rst_file"; then
-        echo "controller must read fixed 15-byte status ACK payloads in normal build" >&2
+    if ! grep -Eq 'lcall[[:space:]]+_drv_nrf24l01_read_dynamic_payload_size' "$rst_file"; then
+        echo "controller must classify ACK payload length with R_RX_PL_WID" >&2
         exit 1
     fi
-    if ! grep -Eq 'mov[[:space:]]+_app_radio_ack_len,#0x0f' "$rst_file"; then
-        echo "controller must report fixed 15-byte status ACK length in normal build" >&2
+    if ! grep -Eq 'cjne[[:space:]]+r[0-7],#0x0f' "$rst_file"; then
+        echo "controller must require 15-byte status ACK payloads" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'mov[[:space:]]+_app_radio_ack_len,r[0-7]' "$rst_file"; then
+        echo "controller must only report ACK length after a validated dynamic width" >&2
         exit 1
     fi
 }
@@ -122,11 +134,31 @@ check_radio_rate_power() {
     fi
 }
 
+check_radio_retransmit() {
+    label=$1
+    rst_file=$2
+
+    if ! awk '
+        /mov[[:space:]]+_drv_nrf24l01_set_auto_retransmit_PARM_2,#0x0f/ { saw_count = NR }
+        /mov[[:space:]]+dpl,[[:space:]]*#0x01/ { saw_delay = NR }
+        /lcall[[:space:]]+_drv_nrf24l01_set_auto_retransmit/ {
+            if ((saw_count > 0) && (saw_delay > 0) && ((NR - saw_count) <= 3) && ((NR - saw_delay) <= 3)) {
+                saw_call = 1
+            }
+        }
+        END { exit saw_call ? 0 : 1 }
+    ' "$rst_file"; then
+        echo "$label must configure nRF24 retransmit as ARD=500us, ARC=15" >&2
+        exit 1
+    fi
+}
+
 (cd "$ROOT_DIR/controller" && pio run)
 check_early_init_order "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/main.rst"
 check_rst "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/drv_nrf24l01_wrap.rst"
-check_controller_ack_read_len "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
+check_controller_ack_payload_classification "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
 check_radio_rate_power "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
+check_radio_retransmit "controller" "$ROOT_DIR/controller/.pio/build/STC8H1K08/src/app_radio.rst"
 
 (cd "$ROOT_DIR/controller" && pio run -c platformio_diag.ini -e STC8H1K08_radio_diag)
 check_early_init_order "controller radio_diag" "$ROOT_DIR/controller/.pio/build/STC8H1K08_radio_diag/src/radio_diag_main.rst"
@@ -138,3 +170,4 @@ check_rst "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/drv_nrf24l01_w
 check_receiver_ack_preload_loop "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_receiver_runtime_channel "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/main.rst"
 check_radio_rate_power "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/app_radio.rst"
+check_radio_retransmit "receiver" "$ROOT_DIR/receiver/.pio/build/STC8H1K08/src/app_radio.rst"

@@ -390,13 +390,13 @@ static void display_state_channel(stc8h_u8 prefix)
     display_commit_raw4();
 }
 
-static void handle_ack_status(void)
+static stc8h_u8 handle_ack_status(void)
 {
     const stc8h_u8 *ack;
     const stc8h_u8 *body;
 
     if (app_radio_ack_len != APP_RADIO_STATUS_ACK_SIZE) {
-        return;
+        return 0u;
     }
 
     ack = app_radio_ack_packet;
@@ -409,19 +409,34 @@ static void handle_ack_status(void)
         (ack[8] != TOY_REMOTE_STATUS_PAYLOAD_SIZE) ||
         (body[TOY_REMOTE_STATUS_OFFSET_TX_ID_L] != (stc8h_u8)config.tx_id) ||
         (body[TOY_REMOTE_STATUS_OFFSET_TX_ID_H] != (stc8h_u8)(config.tx_id >> 8))) {
-        return;
+        return 0u;
     }
     if ((body[TOY_REMOTE_STATUS_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
         (body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE] > TOY_REMOTE_LINK_STATE_LOST) ||
         (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] > TOY_REMOTE_VOLTAGE_INT_MAX) ||
         (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC] > TOY_REMOTE_VOLTAGE_DEC_MAX)) {
-        return;
+        return 0u;
     }
 
     rx_status.link_state = body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
     rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
     rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
     rx_status.tx_id = config.tx_id;
+    return 1u;
+}
+
+static stc8h_u8 send_control_packet(void)
+{
+    app_radio_tx_result_t result;
+
+    make_control_packet();
+    result = app_radio_send_packet_with_ack(packet);
+    if (result == APP_RADIO_TX_ACK_PAYLOAD_OK) {
+        if (handle_ack_status() != 0u) {
+            return 1u;
+        }
+    }
+    return 0u;
 }
 
 static stc8h_u8 probe_current_channel(void)
@@ -430,10 +445,7 @@ static stc8h_u8 probe_current_channel(void)
 
     for (i = 0u; i < 2u; ++i) {
         rx_status.tx_id = 0u;
-        make_control_packet();
-        (void)app_radio_send_packet_with_ack(packet);
-        handle_ack_status();
-        if (rx_status.tx_id == config.tx_id) {
+        if (send_control_packet() != 0u) {
             return 1u;
         }
         stc8h_delay_ms(5u);
@@ -640,9 +652,7 @@ void main(void)
 
     while (1) {
         rx_status.tx_id = 0u;
-        make_control_packet();
-        (void)app_radio_send_packet_with_ack(packet);
-        handle_ack_status();
+        (void)send_control_packet();
 
         if (rx_status.tx_id == config.tx_id) {
             radio_failures = 0u;

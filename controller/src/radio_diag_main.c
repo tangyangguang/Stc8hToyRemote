@@ -121,6 +121,14 @@ static void display_tx_result(app_radio_tx_result_t result)
         display_prefixed(APP_DISPLAY_E, app_radio_last_status);
         return;
     }
+    if (result == APP_RADIO_TX_ACK_EMPTY) {
+        display_prefixed(APP_RADIO_DIAG_T, APP_RADIO_DIAG_CHANNEL);
+        return;
+    }
+    if (result == APP_RADIO_TX_ACK_BAD) {
+        display_prefixed(APP_DISPLAY_A, 0u);
+        return;
+    }
 
     ack_status = ack_protocol_status();
     if (ack_status == 0u) {
