@@ -26,6 +26,18 @@ cc -std=c99 -Wall -Wextra \
     -o /tmp/app_outputs_calc_test
 /tmp/app_outputs_calc_test
 
+cc -std=c99 -Wall -Wextra \
+    -DAPP_OUTPUT_MOTOR_MIN_DUTY=15u \
+    -DAPP_OUTPUTS_CALC_EXPECTED_MIN_DUTY=15u \
+    -DAPP_OUTPUTS_CALC_EXPECTED_DUTY_25=32u \
+    -DAPP_OUTPUTS_CALC_EXPECTED_DUTY_39=45u \
+    -DAPP_OUTPUTS_CALC_EXPECTED_DUTY_40=46u \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/app_outputs_calc_test.c" \
+    -o /tmp/app_outputs_calc_test_min15
+/tmp/app_outputs_calc_test_min15
+
 cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
     -DTEST_STEPS=4 \
     -I"$ROOT_DIR/../Stc8hBase/core" \

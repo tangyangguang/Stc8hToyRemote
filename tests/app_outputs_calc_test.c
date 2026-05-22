@@ -2,14 +2,26 @@
 
 #include <assert.h>
 
+#ifndef APP_OUTPUTS_CALC_EXPECTED_MIN_DUTY
+#define APP_OUTPUTS_CALC_EXPECTED_MIN_DUTY 20u
+#define APP_OUTPUTS_CALC_EXPECTED_DUTY_25 36u
+#define APP_OUTPUTS_CALC_EXPECTED_DUTY_39 48u
+#define APP_OUTPUTS_CALC_EXPECTED_DUTY_40 49u
+#endif
+
+static void test_motor_min_duty_is_configurable(void)
+{
+    assert(APP_OUTPUT_MOTOR_MIN_DUTY == APP_OUTPUTS_CALC_EXPECTED_MIN_DUTY);
+}
+
 static void test_motor_speed_maps_from_soft_start_to_full_duty(void)
 {
     assert(APP_OUTPUT_MOTOR_DUTY(0u) == 0u);
     assert(APP_OUTPUT_MOTOR_DUTY(4u) == 0u);
-    assert(APP_OUTPUT_MOTOR_DUTY(5u) == 10u);
-    assert(APP_OUTPUT_MOTOR_DUTY(25u) == 28u);
-    assert(APP_OUTPUT_MOTOR_DUTY(39u) == 42u);
-    assert(APP_OUTPUT_MOTOR_DUTY(40u) == 43u);
+    assert(APP_OUTPUT_MOTOR_DUTY(5u) == APP_OUTPUTS_CALC_EXPECTED_MIN_DUTY);
+    assert(APP_OUTPUT_MOTOR_DUTY(25u) == APP_OUTPUTS_CALC_EXPECTED_DUTY_25);
+    assert(APP_OUTPUT_MOTOR_DUTY(39u) == APP_OUTPUTS_CALC_EXPECTED_DUTY_39);
+    assert(APP_OUTPUT_MOTOR_DUTY(40u) == APP_OUTPUTS_CALC_EXPECTED_DUTY_40);
     assert(APP_OUTPUT_MOTOR_DUTY(100u) == APP_OUTPUT_FAST_PWM_PERIOD);
 }
 
@@ -42,12 +54,12 @@ static void test_motor_pair_applies_direction_and_active_brake(void)
     stc8h_u16 rev;
 
     APP_OUTPUT_SET_MOTOR_DUTIES(0u, 25u, 0u, fwd, rev);
-    assert(fwd == 28u);
+    assert(fwd == APP_OUTPUTS_CALC_EXPECTED_DUTY_25);
     assert(rev == 0u);
 
     APP_OUTPUT_SET_MOTOR_DUTIES(1u, 25u, 0u, fwd, rev);
     assert(fwd == 0u);
-    assert(rev == 28u);
+    assert(rev == APP_OUTPUTS_CALC_EXPECTED_DUTY_25);
 
     APP_OUTPUT_SET_MOTOR_DUTIES(0u, 0u, 1u, fwd, rev);
     assert(fwd == APP_OUTPUT_FAST_PWM_PERIOD);
@@ -56,6 +68,7 @@ static void test_motor_pair_applies_direction_and_active_brake(void)
 
 int main(void)
 {
+    test_motor_min_duty_is_configurable();
     test_motor_speed_maps_from_soft_start_to_full_duty();
     test_percent_output_is_period_based();
     test_servo_angle_keeps_independent_50hz_range();
