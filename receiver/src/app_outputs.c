@@ -1,30 +1,8 @@
 #include "app_outputs.h"
+#include "app_outputs_calc.h"
 #include "board_pins.h"
 #include "stc8h_pwm.h"
 #include "stc8h_sfr.h"
-
-#define APP_OUTPUT_SERVO_PRESCALER 11u
-#define APP_OUTPUT_SERVO_PERIOD 18431u
-#define APP_OUTPUT_SERVO_MIN_DUTY 461u
-#define APP_OUTPUT_SERVO_MAX_DUTY 2303u
-#define APP_OUTPUT_SERVO_CENTER_DUTY 1382u
-#define APP_OUTPUT_FAST_PWM_PERIOD 1105u
-
-static stc8h_u16 app_outputs_percent_to_fast_duty(stc8h_u8 percent)
-{
-    stc8h_u16 duty;
-
-    duty = (stc8h_u16)((stc8h_u16)percent * 11u);
-    return (stc8h_u16)(duty + ((percent + 10u) / 20u));
-}
-
-static stc8h_u16 app_outputs_angle_to_servo_duty(stc8h_u8 angle)
-{
-    stc8h_u16 duty;
-
-    duty = (stc8h_u16)(APP_OUTPUT_SERVO_MIN_DUTY + ((stc8h_u16)angle * 10u) + ((angle + 2u) >> 2));
-    return (duty > APP_OUTPUT_SERVO_MAX_DUTY) ? APP_OUTPUT_SERVO_MAX_DUTY : duty;
-}
 
 static void app_outputs_write_pwm(stc8h_u16 servo, stc8h_u16 aux, stc8h_u16 fwd, stc8h_u16 rev)
 {
@@ -66,6 +44,7 @@ void app_outputs_init(void)
     (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1, APP_OUTPUT_SERVO_CENTER_DUTY);
     (void)stc8h_pwm_enable(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1);
 
+    (void)stc8h_pwm_set_prescaler(STC8H_PWM_GROUP_B, APP_OUTPUT_FAST_PWM_PRESCALER);
     (void)stc8h_pwm_set_period(STC8H_PWM_GROUP_B, APP_OUTPUT_FAST_PWM_PERIOD);
     (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_6, STC8H_PWM_PIN_PWM6_P54);
     (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_7, STC8H_PWM_PIN_PWM7_P33);
@@ -79,26 +58,12 @@ void app_outputs_init(void)
 
 void app_outputs_apply_control(const toy_remote_control_t *control)
 {
-    stc8h_u16 motor_duty;
     stc8h_u16 fwd_duty;
     stc8h_u16 rev_duty;
 
-    TOY_REMOTE_RX_MOTOR_STOP();
-    if ((control->brake != 0u) || (control->speed == 0u)) {
-        fwd_duty = 0u;
-        rev_duty = 0u;
-    } else {
-        motor_duty = app_outputs_percent_to_fast_duty(control->speed);
-        if (control->direction == TOY_REMOTE_DIRECTION_REVERSE) {
-            fwd_duty = 0u;
-            rev_duty = motor_duty;
-        } else {
-            fwd_duty = motor_duty;
-            rev_duty = 0u;
-        }
-    }
-    app_outputs_write_pwm(app_outputs_angle_to_servo_duty(control->steering_angle),
-                          app_outputs_percent_to_fast_duty(control->aux_pwm),
+    APP_OUTPUT_SET_MOTOR_DUTIES(control->direction, control->speed, control->brake, fwd_duty, rev_duty);
+    app_outputs_write_pwm(APP_OUTPUT_SERVO_DUTY(control->steering_angle),
+                          APP_OUTPUT_FAST_DUTY(control->aux_pwm),
                           fwd_duty,
                           rev_duty);
 

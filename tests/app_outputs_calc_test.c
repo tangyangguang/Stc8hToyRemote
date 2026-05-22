@@ -1,0 +1,63 @@
+#include "app_outputs_calc.h"
+
+#include <assert.h>
+
+static void test_motor_speed_uses_legacy_start_threshold(void)
+{
+    assert(APP_OUTPUT_MOTOR_DUTY(0u) == 0u);
+    assert(APP_OUTPUT_MOTOR_DUTY(4u) == 0u);
+    assert(APP_OUTPUT_MOTOR_DUTY(5u) == APP_OUTPUT_MOTOR_MIN_DUTY);
+    assert(APP_OUTPUT_MOTOR_DUTY(39u) == APP_OUTPUT_MOTOR_MIN_DUTY);
+    assert(APP_OUTPUT_MOTOR_DUTY(40u) == 40u);
+    assert(APP_OUTPUT_MOTOR_DUTY(100u) == APP_OUTPUT_FAST_PWM_PERIOD);
+}
+
+static void test_percent_output_is_period_based(void)
+{
+    assert(APP_OUTPUT_FAST_DUTY(0u) == 0u);
+    assert(APP_OUTPUT_FAST_DUTY(50u) == 50u);
+    assert(APP_OUTPUT_FAST_DUTY(100u) == APP_OUTPUT_FAST_PWM_PERIOD);
+}
+
+static void test_servo_angle_keeps_independent_50hz_range(void)
+{
+    stc8h_u16 min_duty;
+    stc8h_u16 center_duty;
+    stc8h_u16 max_duty;
+
+    min_duty = APP_OUTPUT_SERVO_DUTY(0u);
+    center_duty = APP_OUTPUT_SERVO_DUTY(90u);
+    max_duty = APP_OUTPUT_SERVO_DUTY(180u);
+
+    assert(min_duty == APP_OUTPUT_SERVO_MIN_DUTY);
+    assert(center_duty > min_duty);
+    assert(center_duty < max_duty);
+    assert(max_duty == APP_OUTPUT_SERVO_MAX_DUTY);
+}
+
+static void test_motor_pair_applies_direction_and_active_brake(void)
+{
+    stc8h_u16 fwd;
+    stc8h_u16 rev;
+
+    APP_OUTPUT_SET_MOTOR_DUTIES(0u, 25u, 0u, fwd, rev);
+    assert(fwd == APP_OUTPUT_MOTOR_MIN_DUTY);
+    assert(rev == 0u);
+
+    APP_OUTPUT_SET_MOTOR_DUTIES(1u, 25u, 0u, fwd, rev);
+    assert(fwd == 0u);
+    assert(rev == APP_OUTPUT_MOTOR_MIN_DUTY);
+
+    APP_OUTPUT_SET_MOTOR_DUTIES(0u, 0u, 1u, fwd, rev);
+    assert(fwd == APP_OUTPUT_FAST_PWM_PERIOD);
+    assert(rev == APP_OUTPUT_FAST_PWM_PERIOD);
+}
+
+int main(void)
+{
+    test_motor_speed_uses_legacy_start_threshold();
+    test_percent_output_is_period_based();
+    test_servo_angle_keeps_independent_50hz_range();
+    test_motor_pair_applies_direction_and_active_brake();
+    return 0;
+}
