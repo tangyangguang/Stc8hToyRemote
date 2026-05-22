@@ -11,10 +11,13 @@
 #define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 0
 #endif
 
+#ifndef APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS
+#define APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS 1
+#endif
+
 typedef struct {
     stc8h_u16 bound_tx_id;
     stc8h_u8 rf_channel;
-    stc8h_u8 servo_reverse;
 } app_config_t;
 
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS

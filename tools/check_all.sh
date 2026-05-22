@@ -147,6 +147,7 @@ cc -std=c99 -Wall -Wextra \
 (cd "$ROOT_DIR/controller" && pio run)
 sh "$ROOT_DIR/tools/check_controller_ec11_isr_codegen.sh"
 sh "$ROOT_DIR/tools/check_controller_input_diag_source.sh"
+sh "$ROOT_DIR/tools/check_radio_init_source.sh"
 (cd "$ROOT_DIR/receiver" && pio run)
 "$ROOT_DIR/tools/check_firmware_size.sh"
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_motor_diag)

@@ -195,6 +195,9 @@ stc8h_status_t toy_remote_pack_control(stc8h_u8 *payload, const toy_remote_contr
     if ((payload == 0) || (toy_remote_validate_control(control) != STC8H_OK)) {
         return STC8H_ERROR;
     }
+    if (control->tx_id == 0u) {
+        return STC8H_ERROR;
+    }
 
     payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
     payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = control->direction;
@@ -231,6 +234,9 @@ stc8h_status_t toy_remote_unpack_control(toy_remote_control_t *control, const st
     control->request_voltage = payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE];
     control->tx_id = (stc8h_u16)((stc8h_u16)payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_L] |
                                   ((stc8h_u16)payload[TOY_REMOTE_CONTROL_OFFSET_TX_ID_H] << 8));
+    if (control->tx_id == 0u) {
+        return STC8H_ERROR;
+    }
     return toy_remote_validate_control(control);
 }
 #endif

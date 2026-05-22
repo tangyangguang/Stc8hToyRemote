@@ -87,6 +87,7 @@ pio run -t upload --upload-port /dev/cu.usbserial-120
 
 - `APP_OUTPUT_MOTOR_MIN_DUTY`：电机最低有效 PWM 占空比，默认 `20u`。
 - `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`：是否启用 receiver P30/P31 本机频道维护键，默认关闭。
+- `APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS`：是否启用 receiver P30+P31 上电清绑定，默认开启。
 - `APP_RADIO_ENABLE_STATS`：RF 轻量统计，默认关闭。
 - `APP_INPUT_DIAG_DISPLAY`：controller 输入显示诊断，默认关闭。
 

@@ -102,7 +102,7 @@ P30+P31 上电同时按下 -> 清除绑定
   tx_id 不匹配 -> 丢弃
 ```
 
-receiver 默认关闭 P30/P31 频道维护键。启用 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1` 后，P30/P31 只适合未连接维护场景，在预设频道池中切换并保存。
+receiver 默认关闭 P30/P31 运行期频道维护键，但默认保留 P30+P31 上电清绑定。启用 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1` 后，P30/P31 只适合未连接维护场景，在预设频道池中切换并保存。
 
 预设频道池：
 
@@ -163,4 +163,4 @@ receiver voltage
 bound tx_id
 ```
 
-receiver 启动和恢复时用 replace 方式重置 ACK FIFO；正常收到包后追加下一份 ACK payload，不在每次 RX 后 flush TX。
+receiver 启动、恢复和首次绑定后用 replace 方式重置 ACK FIFO；正常收到包后追加下一份 ACK payload，不在每次 RX 后 flush TX。

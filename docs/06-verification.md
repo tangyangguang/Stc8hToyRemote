@@ -19,8 +19,8 @@
 
 | 固件 | 当前大小 | 阈值 |
 | --- | --- | --- |
-| controller | 7660/8192 | <= 7950 |
-| receiver | 6882/8192 | <= 6904 |
+| controller | 7808/8192 | <= 7950 |
+| receiver | 6857/8192 | <= 6904 |
 
 ## 单独构建
 
@@ -153,3 +153,5 @@ pio run -c platformio_diag.ini -e STC8H1K08_radio_diag -t upload --upload-port /
 - 切换后 receiver 输出保持安全。
 - controller 需要在 `Lxxx` 下双击手动扫描找到新频道。
 - 已连接状态下不做协商换频；误切频道按丢链处理。
+
+默认固件保留 P30+P31 上电清绑定。验收时同时按住 P30/P31 再给 receiver 上电，LED 应快闪 6 次并进入未绑定等待，频道保持默认策略不变。

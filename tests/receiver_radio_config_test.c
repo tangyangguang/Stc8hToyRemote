@@ -34,6 +34,10 @@
 #error "receiver must document startup/recovery ACK replace policy."
 #endif
 
+#ifndef APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_BIND
+#error "receiver must replace ACK FIFO after first binding."
+#endif
+
 static void test_receiver_preloads_short_status_ack_payload_fifo(void)
 {
     assert(APP_RADIO_PACKET_SIZE == 32u);
@@ -45,6 +49,7 @@ static void test_receiver_preloads_short_status_ack_payload_fifo(void)
     assert(APP_RADIO_ACK_PAYLOAD_PRELOAD_COUNT == 3u);
     assert(APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX == 0u);
     assert(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER == 1u);
+    assert(APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_BIND == 1u);
 }
 
 int main(void)

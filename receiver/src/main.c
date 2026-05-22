@@ -249,7 +249,8 @@ static void handle_packet(void)
             link_lost = 0u;
             app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, app_tick_now());
             app_outputs_apply_control(&control);
-            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
+            prepare_ack_status((save_binding != 0u) ? APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_BIND :
+                                                   APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
             if (save_binding != 0u) {
                 (void)app_config_save(&config);
             }
@@ -315,9 +316,11 @@ void main(void)
     if (app_config_load(&config) != STC8H_OK) {
         (void)app_config_save(&config);
     }
-#if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
+#if APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS || APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
     P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
     P3M0 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
+#endif
+#if APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS
     if ((TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) && (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u)) {
         config.bound_tx_id = 0u;
         (void)app_config_save(&config);

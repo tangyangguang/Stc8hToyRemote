@@ -5,6 +5,7 @@
 #define APP_CONFIG_MAGIC0 0x52u
 #define APP_CONFIG_MAGIC1 0x43u
 #define APP_CONFIG_VERSION 2u
+#define APP_CONFIG_RESERVED_OFFSET 7u
 
 static STC8H_DATA stc8h_u8 app_config_buf[APP_CONFIG_LEN];
 
@@ -24,7 +25,6 @@ static void app_config_set_defaults(app_config_t *config)
 {
     config->bound_tx_id = 0u;
     config->rf_channel = APP_CONFIG_DEFAULT_CHANNEL;
-    config->servo_reverse = 0u;
 }
 
 stc8h_status_t app_config_load(app_config_t *config)
@@ -44,8 +44,7 @@ stc8h_status_t app_config_load(app_config_t *config)
 
     config->bound_tx_id = (stc8h_u16)((stc8h_u16)app_config_buf[4] | ((stc8h_u16)app_config_buf[5] << 8));
     config->rf_channel = app_config_buf[6];
-    config->servo_reverse = app_config_buf[7];
-    if ((config->rf_channel > 125u) || (config->servo_reverse > 1u)) {
+    if (config->rf_channel > 125u) {
         app_config_set_defaults(config);
         return STC8H_ERROR;
     }
@@ -61,7 +60,7 @@ stc8h_status_t app_config_save(const app_config_t *config)
     app_config_buf[4] = (stc8h_u8)config->bound_tx_id;
     app_config_buf[5] = (stc8h_u8)(config->bound_tx_id >> 8);
     app_config_buf[6] = config->rf_channel;
-    app_config_buf[7] = config->servo_reverse;
+    app_config_buf[APP_CONFIG_RESERVED_OFFSET] = 0u;
     app_config_buf[8] = app_config_checksum();
 
     return stc8h_eeprom_save_fixed(app_config_buf);

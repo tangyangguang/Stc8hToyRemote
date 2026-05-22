@@ -44,7 +44,7 @@ controller/receiver application
 - `app_outputs_calc`：输出曲线宏；电机最低有效 duty 由 `APP_OUTPUT_MOTOR_MIN_DUTY` 配置，默认 20%。
 - `app_indicator`：receiver LED 生命周期状态。
 - `app_status`：状态回传数据，按请求低频采样电池电压。
-- `app_config`：EEPROM fixed-block 配置，保存绑定 `tx_id` 和频道配置。
+- `app_config`：EEPROM fixed-block 配置，保存绑定 `tx_id` 和频道配置；配置版本 2 的 byte7 为保留字节，保存时写 0。
 - `app_radio`：nRF24 PRX 初始化、收包、ACK payload 预装和频道设置。
 - `main`：绑定、收包、输出应用、安全态和 ACK 状态更新。
 
@@ -64,7 +64,7 @@ controller/receiver application
 | Dynamic payload | 用于 ACK payload |
 | SETUP_RETR | ARD 1000us，ARC 15 |
 
-receiver 启动和恢复时预装 3 个 ACK payload 槽；正常收到控制包后追加下一份 ACK payload，避免每包 flush TX 造成空 ACK。
+receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 ACK FIFO，确保回传新的 `tx_id`；正常收到控制包后追加下一份 ACK payload，避免每包 flush TX 造成空 ACK。
 
 ## 输出策略
 

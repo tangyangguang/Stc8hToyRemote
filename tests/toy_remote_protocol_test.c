@@ -32,6 +32,37 @@ static void test_control_safe_defaults_are_neutral(void)
     assert(toy_remote_validate_control(&control) == STC8H_OK);
 }
 
+static void test_control_pack_rejects_zero_tx_id_on_wire(void)
+{
+    stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
+    toy_remote_control_t control;
+
+    toy_remote_control_set_safe(&control);
+    control.tx_id = 0u;
+
+    assert(toy_remote_validate_control(&control) == STC8H_OK);
+    assert(toy_remote_pack_control(payload, &control) == STC8H_ERROR);
+}
+
+static void test_control_unpack_rejects_zero_tx_id_on_wire(void)
+{
+    stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
+    toy_remote_control_t control;
+
+    payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
+    payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = TOY_REMOTE_DIRECTION_FORWARD;
+    payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = 0u;
+    payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = 0u;
+    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = TOY_REMOTE_STEERING_CENTER;
+    payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = 0u;
+    payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = 0u;
+    payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = 0u;
+    payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = 0u;
+    TOY_REMOTE_PUT_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L, 0u);
+
+    assert(toy_remote_unpack_control(&control, payload, TOY_REMOTE_CONTROL_PAYLOAD_SIZE) == STC8H_ERROR);
+}
+
 static void test_status_rejects_invalid_decimal_voltage(void)
 {
     stc8h_u8 payload[TOY_REMOTE_STATUS_PAYLOAD_SIZE];
@@ -193,6 +224,8 @@ int main(void)
 {
     test_control_pack_rejects_invalid_range();
     test_control_safe_defaults_are_neutral();
+    test_control_pack_rejects_zero_tx_id_on_wire();
+    test_control_unpack_rejects_zero_tx_id_on_wire();
     test_status_rejects_invalid_decimal_voltage();
     test_control_apply_brake_hold_preserves_speed();
     test_control_apply_brake_clear_zeros_speed();

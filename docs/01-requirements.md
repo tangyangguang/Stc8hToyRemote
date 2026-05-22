@@ -44,7 +44,8 @@
 ## 频道和绑定
 
 - 默认频道为 `76`，controller 和 receiver 的全新默认配置必须一致。
-- receiver 默认构建关闭 P30/P31 频道维护键，运行时固定使用默认频道，避免 EEPROM 中旧频道造成误判。
+- receiver 默认构建关闭 P30/P31 运行期频道维护键，运行时固定使用默认频道，避免 EEPROM 中旧频道造成误判。
+- receiver 默认保留 P30+P31 上电同时按下清绑定入口，便于现场处理误绑定。
 - 需要多接收机维护时，可显式启用 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1`，P30/P31 在预设频道池中切换并保存。
 - 已连接状态下不实现协商换频；误切频道后按丢链处理，controller 显示 `Lxxx` 后可手动扫描恢复。
 

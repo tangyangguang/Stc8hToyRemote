@@ -61,6 +61,7 @@ receiver：
 
 - `APP_OUTPUT_MOTOR_MIN_DUTY` 控制电机最低有效 duty，默认 20%。
 - `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS` 默认关闭；启用后 P30/P31 只用于维护式频道切换。
+- `APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS` 默认开启；用于 P30+P31 上电清除绑定。
 - `APP_RADIO_ENABLE_STATS` 可启用 RF 统计，默认关闭以节省 flash。
 - `APP_INPUT_DIAG_DISPLAY` 可启用 controller 输入显示诊断，默认关闭。
 
