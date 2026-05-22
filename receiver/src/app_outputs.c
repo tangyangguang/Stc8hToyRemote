@@ -58,14 +58,12 @@ void app_outputs_init(void)
 
 void app_outputs_apply_control(const toy_remote_control_t *control)
 {
-    stc8h_u16 aux_duty;
     stc8h_u16 fwd_duty;
     stc8h_u16 rev_duty;
 
-    aux_duty = APP_OUTPUT_MOTOR_SUPPLY_DUTY(control->speed, control->brake);
     APP_OUTPUT_SET_MOTOR_DUTIES(control->direction, control->speed, control->brake, fwd_duty, rev_duty);
     app_outputs_write_pwm(APP_OUTPUT_SERVO_DUTY(control->steering_angle),
-                          aux_duty,
+                          APP_OUTPUT_FAST_DUTY(control->aux_pwm),
                           fwd_duty,
                           rev_duty);
 

@@ -17,9 +17,6 @@
 #define APP_OUTPUT_FAST_DUTY(percent) \
     (((percent) > APP_OUTPUT_FAST_PWM_PERIOD) ? APP_OUTPUT_FAST_PWM_PERIOD : (percent))
 
-#define APP_OUTPUT_MOTOR_SUPPLY_DUTY(speed, brake) \
-    ((((brake) != 0u) || ((speed) >= APP_OUTPUT_MOTOR_MIN_SPEED)) ? APP_OUTPUT_FAST_PWM_PERIOD : 0u)
-
 #define APP_OUTPUT_MOTOR_DUTY(speed) \
     (((speed) < APP_OUTPUT_MOTOR_MIN_SPEED) ? 0u : \
      (APP_OUTPUT_MOTOR_MIN_DUTY + (((stc8h_u16)(speed) * 3u) / 5u)))
