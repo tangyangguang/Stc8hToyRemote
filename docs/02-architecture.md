@@ -5,56 +5,78 @@
 ```text
 controller/receiver application
   shared/toy_remote_protocol
-  proto_rf_link
-  drv_nrf24l01
-  stc8h_spi/gpio/timer/adc/pwm
+  Stc8hBase/protocols/proto_rf_link
+  Stc8hBase/drivers/drv_nrf24l01
+  Stc8hBase/hal + core
 ```
 
 职责边界：
 
-- `Stc8hBase` 提供芯片 HAL、外设驱动和通用链路协议。
-- `shared/` 只定义玩具遥控业务 payload、字段常量、校验和 pack/unpack。
-- `controller/` 放遥控器板级引脚、输入采样、显示、无线发送和节能策略。
-- `receiver/` 放接收机板级引脚、输出执行、安全状态、无线接收和节能策略。
-- `legacy/` 只读，只作为需求线索。
+- `Stc8hBase` 提供芯片 SFR、HAL、通用驱动和通用 RF 链路协议。
+- `shared/` 定义 ToyRemote 业务 payload、字段范围、pack/unpack 和安全默认值。
+- `controller/` 负责遥控器输入、显示、配置保存、PTX 发送和链路状态机。
+- `receiver/` 负责接收、绑定、安全输出、PRX ACK 状态回传和执行器驱动。
+- `legacy/` 只读，只作为需求和硬件线索来源。
 
 ## 构建策略
 
-项目使用 PlatformIO wrapper 引入 `../Stc8hBase` 源文件。wrapper 只为当前固件实际使用的 `.c` 文件存在，不提前编译后续阶段才需要的模块。
+项目使用 PlatformIO wrapper 引入 `../Stc8hBase` 的必要 `.c` 文件。STC8H1K08 只有 8KB flash 和 1.25KB RAM；SDCC 会为被编译进固件的函数分配参数区，因此只编译当前固件实际使用的基础库模块。
 
-原因：
+构建裁剪通过 `platformio.ini` 的宏完成：
 
-- STC8H1K08 只有 8KB flash 和 1.25KB RAM。
-- SDCC 会为被编译进固件的函数分配参数区，即使当前主循环暂时没有调用全部函数。
-- 只编译实际使用模块能降低 flash、DSEG 和链接风险，也符合基础库应用集成策略。
+- `PROTO_RF_LINK_ENABLE_*`：只启用固定 DATA 发送或固定 DATA 轮询所需路径。
+- `TOY_REMOTE_ENABLE_*`：STC 固件关闭未用的通用协议 API；host 测试保留完整 API。
+- `DRV_NRF24L01_ENABLE_*`：按 PTX/PRX 和诊断需要裁剪 nRF24 API。
+- `STC8H_PWM_*`：receiver 使用固定 PWM 通道，关闭运行期通道检查和 duty clamp。
 
-当前阶段 2 固件只编译：
+## Controller 模块
 
-- `drv_nrf24l01`
-- `stc8h_spi`
-- 应用侧 `app_radio`
+- `app_input`：EC11、按键和 ADC 采样；Timer0 ISR 解码 EC11，主循环消费累计 delta。
+- `app_display`：TM1637 段码和状态显示。
+- `app_button`：EC11 中键短按、双击、长按事件。
+- `app_config`：EEPROM fixed-block 配置，保存 `tx_id`、频道和舵机/方向校准。
+- `app_radio`：nRF24 PTX 初始化、发送、ACK payload 分类和 MAX_RT 恢复。
+- `main`：启动流程、配置模式、频道扫描、控制包打包和显示状态机。
 
-`proto_rf_link` 和 `toy_remote_protocol` 在阶段 3 接入链路层时再加入固件 wrapper。`shared/toy_remote_protocol` 已通过本机 C 测试验证。
+## Receiver 模块
 
-## 当前模块
+- `app_outputs`：PWM 和 GPIO 输出，包含舵机、电机、灯、蜂鸣器和辅助 PWM。
+- `app_outputs_calc`：输出曲线宏；电机最低有效 duty 由 `APP_OUTPUT_MOTOR_MIN_DUTY` 配置，默认 20%。
+- `app_indicator`：receiver LED 生命周期状态。
+- `app_status`：状态回传数据，按请求低频采样电池电压。
+- `app_config`：EEPROM fixed-block 配置，保存绑定 `tx_id` 和频道配置。
+- `app_radio`：nRF24 PRX 初始化、收包、ACK payload 预装和频道设置。
+- `main`：绑定、收包、输出应用、安全态和 ACK 状态更新。
 
-controller：
+## RF 配置
 
-- `controller/src/app_radio.h/.c`：配置 nRF24L01 为 PTX，发送固定 32 字节测试包。
-- `controller/src/main.c`：初始化 SPI 和 radio，循环发送测试包。
+默认应用配置：
 
-receiver：
+| 项 | 值 |
+| --- | --- |
+| 地址 | `TOYR1` |
+| 默认频道 | `76` |
+| 速率 | 250kbps |
+| 发射功率 | 0dBm |
+| 控制包 | 32 字节 nRF24 payload，内含 11 字节 ToyRemote control |
+| ACK payload | 15 字节，9 字节 `proto_rf_link` 头 + 6 字节 ToyRemote status |
+| Auto ACK | 开 |
+| Dynamic payload | 用于 ACK payload |
+| SETUP_RETR | ARD 1000us，ARC 15 |
 
-- `receiver/src/app_radio.h/.c`：配置 nRF24L01 为 PRX，接收固定 32 字节测试包。
-- `receiver/src/main.c`：初始化 SPI 和 radio，循环接收测试包并记录 seq。
+receiver 启动和恢复时预装 3 个 ACK payload 槽；正常收到控制包后追加下一份 ACK payload，避免每包 flush TX 造成空 ACK。
 
-shared：
+## 输出策略
 
-- `shared/toy_remote_protocol.h/.c`：业务协议字段、范围校验、安全默认值、pack/unpack。
+- AT8236 电机只由 `P3.3/PWM7` 和 `P3.4/PWM8` 控制。
+- `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；controller 当前始终发送 `0`，所以默认关闭。
+- 舵机使用 `P1.0/PWM1P`，50Hz，安全态回中。
+- 灯光和蜂鸣器低电平有效，安全态关闭。
+- receiver LED 高电平亮，用于生命周期状态提示。
 
 ## 资源原则
 
-- 新增基础能力前先确认是否属于当前阶段真实需要。
-- 不为单次使用创建抽象。
-- 不复制基础库源码。
-- 遇到基础库能力不足时，不在应用项目临时绕过；整理问题给基础库项目处理。
+- 不复制基础库代码，不在应用层绕开已确认属于基础库的问题。
+- 不为旧 API 或旧 EEPROM 布局保留兼容负担。
+- 新增功能必须同时评估 controller 和 receiver flash 余量。
+- 无线 payload 必须按字节手工打包，不直接发送 C struct。

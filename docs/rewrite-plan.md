@@ -1,208 +1,76 @@
-# 重写路线图
+# 当前实现总览
 
-本文件只记录阶段路线。详细需求和设计见：
+本文记录当前最终实现的结构和维护边界。
 
-- [需求说明](01-requirements.md)
-- [架构设计](02-architecture.md)
-- [协议设计](03-protocol.md)
-- [重要逻辑流程](04-logic-flows.md)
-- [节能设计](05-power.md)
-- [验证计划](06-verification.md)
+## 目标
 
-## 1. 项目目标
+本项目在 STC8H1K08 + nRF24L01 硬件上实现玩具遥控器 controller 和接收机 receiver 固件：
 
-本项目重写 STC8H 玩具遥控器 controller 和接收机 receiver 固件。重写目标不是迁移旧实现，而是从旧项目提取真实业务需求，评估合理性，然后基于当前 monorepo 和 `../Stc8hBase` 独立设计清晰、可维护、可验证的新方案。
+- controller 采集用户输入并周期发送最新控制状态。
+- receiver 接收合法控制包后驱动电机、舵机、灯、蜂鸣器和辅助 PWM。
+- receiver 通过 ACK payload 回传短状态。
+- 双端使用 `../Stc8hBase` 的 HAL、nRF24 驱动和 `proto_rf_link`，应用层只保留 ToyRemote 业务。
+- 掉线或射频错误时 receiver 进入明确安全输出。
 
-成功标准：
-
-- controller 和 receiver 都能独立编译、烧录和诊断。
-- 双板 nRF24L01 通信稳定，断开、恢复和失败状态可观察。
-- receiver 掉线后进入明确安全状态：电机停止，灯和蜂鸣器关闭或进入预定义安全状态。
-- 两端都按电池供电项目设计，默认降低无效轮询、无线占空比、显示占空比和外设耗电。
-- 业务协议集中在 `shared/toy_remote_protocol.h/.c`，无线 payload 全部手工按字节打包。
-
-## 2. Legacy 使用边界
-
-`legacy/old-prj/` 只作为需求线索来源：
-
-- 可以提取：硬件接线线索、控制输入、执行输出、用户可观察行为、异常场景、需要诊断的状态。
-- 必须评估：这些需求是否仍合理，是否需要补充安全、节能、版本、校验和验证标准。
-- 禁止使用：旧代码结构、旧函数、旧协议流程、旧全局缓冲区、旧 nRF24L01 实现、旧 EEPROM 布局和旧 API 兼容层。
-
-旧实现中不合理的做法不迁移。新项目按当前目标和最佳实践重新设计。
-
-## 3. 需求定义
-
-### 3.1 controller 需求
-
-- 读取用户输入：方向、速度、刹车、转向角度、灯、蜂鸣器、辅助 PWM、状态/电压请求。
-- 周期发送最新控制状态。遥控类业务以“最新状态”为准，不排队重发过期控制包。
-- 显示必要运行状态，例如速度、方向、连接状态、电池电压或错误状态。
-- 通信失败时给出可观察状态，避免用户误以为接收机仍受控。
-- 电池供电下应限制显示刷新、无线发送频率和阻塞等待时间；空闲或长时间无操作时预留低功耗策略。
-
-### 3.2 receiver 需求
-
-- 接收并验证 controller 的控制 payload。
-- 输出执行器状态：电机、舵机、灯、蜂鸣器和辅助 PWM。
-- 定期或按请求回传状态，例如链路状态和电池电压。
-- 超过业务包超时时间后立即进入安全状态：
-  - 电机速度为 0，驱动进入停止或明确刹车/滑行策略。
-  - 灯关闭。
-  - 蜂鸣器关闭。
-  - 辅助 PWM 关闭。
-  - 舵机策略需要硬件确认：默认保持最近有效角度，若实测存在安全风险再改为中位。
-- 电池供电下应减少无意义 PWM 输出、ADC 采样和状态回传；断联等待时降低无线和外设活动频率。
-
-### 3.3 通信需求
-
-- 使用 `Stc8hBase/drivers/drv_nrf24l01` 访问 nRF24L01，不复用旧实现。
-- 使用 `Stc8hBase/protocols/proto_rf_link` 作为 32 字节链路层。
-- 链路包只负责连接、状态、序号、超时和 payload 搬运；玩具遥控业务语义只放在 `shared/`。
-- ACK payload 只能作为短状态优化，不作为唯一双向业务协议。
-- 第一阶段固定地址和固定频道；频道扫描、绑定和持久化配置后续单独设计。
-
-## 4. 独立设计
-
-### 4.1 分层
+## 模块关系
 
 ```text
-controller/receiver application
-  shared/toy_remote_protocol
-  proto_rf_link
-  drv_nrf24l01
-  stc8h_spi/gpio/timer/adc/pwm
+controller/src      遥控器输入、显示、配置、无线发送
+receiver/src        接收机绑定、安全态、无线接收、输出驱动
+shared/             ToyRemote 控制/状态 payload
+../Stc8hBase        STC8H HAL、nRF24L01 驱动、RF 链路协议
+tests/              host 侧协议和配置测试
+tools/              检查、尺寸、上传和诊断辅助脚本
 ```
 
-边界：
+## 当前默认通信方案
 
-- `Stc8hBase` 提供芯片 HAL、外设驱动和通用链路协议。
-- `shared/` 只定义玩具遥控业务 payload 和 pack/unpack。
-- `controller/` 和 `receiver/` 只放各自板级引脚、状态机、输入输出和节能策略。
+| 项 | 值 |
+| --- | --- |
+| 地址 | `TOYR1` |
+| 默认频道 | `76` |
+| 速率 | 250kbps |
+| 发射功率 | 0dBm |
+| 控制包 | 32 字节固定 nRF24 payload |
+| ACK 状态 | 15 字节动态 ACK payload |
+| Auto ACK | 开 |
+| SETUP_RETR | ARD 1000us，ARC 15 |
 
-### 4.2 业务 payload
+receiver 初始化和恢复时预装 3 个 ACK payload；正常收到控制包后追加下一份 ACK payload，不在每包 RX 后清空 TX FIFO。
 
-控制 payload 手工按字节打包：
-
-```text
-byte0 version
-byte1 direction
-byte2 speed
-byte3 brake
-byte4 steering_angle
-byte5 light
-byte6 buzzer
-byte7 aux_pwm
-byte8 request_voltage
-```
-
-状态 payload 手工按字节打包：
-
-```text
-byte0 version
-byte1 link_state
-byte2 voltage_int
-byte3 voltage_dec
-```
-
-所有字段必须在解包时做版本和长度检查。范围检查由业务层处理，例如 speed 限制到 0..100，steering_angle 限制到 0..180。
-
-### 4.3 状态机
+## 当前业务能力
 
 controller：
 
-```text
-BOOT -> RADIO_CHECK -> CONNECTING -> CONNECTED -> LINK_LOST
-```
+- EC11 调速，正常模式支持快转加速。
+- EC11 中键短按清零刹车，长按进入配置，`Lxxx` 下双击扫描。
+- 方向、独立刹车、灯、蜂鸣器、Fn 和转向 ADC。
+- TM1637 显示连接状态、速度、方向、配置项和电压。
+- EEPROM 保存 `tx_id`、频道和校准配置。
 
 receiver：
 
-```text
-BOOT -> RADIO_CHECK -> WAIT_CONTROLLER -> CONNECTED -> SAFE_STATE
-```
+- 绑定第一个合法非零 `tx_id`，已绑定后只接受匹配 controller。
+- AT8236：P3.3/PWM7 前进，P3.4/PWM8 后退。
+- 舵机：P1.0/PWM1P，50Hz。
+- 灯、蜂鸣器、LED 和辅助 PWM。
+- 按请求采样电池电压并回传。
+- 掉线安全态关闭电机、灯、蜂鸣器、辅助 PWM，并让舵机回中。
 
-receiver 的 `SAFE_STATE` 是业务安全状态，不等同于芯片休眠。进入安全状态后仍可低频监听恢复连接。
+## 配置和扩展边界
 
-### 4.4 节能要求
+- `APP_OUTPUT_MOTOR_MIN_DUTY` 控制电机最低有效 duty，默认 20%。
+- `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS` 默认关闭；启用后 P30/P31 只用于维护式频道切换。
+- `APP_RADIO_ENABLE_STATS` 可启用 RF 统计，默认关闭以节省 flash。
+- `APP_INPUT_DIAG_DISPLAY` 可启用 controller 输入显示诊断，默认关闭。
 
-两个固件都必须把节能作为设计输入，而不是后期补丁：
+新增功能前必须先检查 flash 余量、RAM 参数区、无线 payload 字段和 receiver 安全态影响。
 
-- 无线：控制包发送频率按操控体验选择最小可接受值；断联重试降频；避免忙等 `STATUS`。
-- 显示：TM1637 只在内容变化或低频节拍刷新；空闲可降低亮度或关闭显示。
-- ADC：电池电压和摇杆采样按需求限频；电压无请求时不高频采样。
-- PWM：安全状态关闭不必要 PWM；舵机和电机输出按实际硬件确认是否可以停 PWM。
-- 主循环：用 1ms tick 或软定时调度，不在主循环做长时间阻塞延时。
-- 低功耗：后续硬件验证后再引入 idle/power-down；引入前必须确认 nRF24L01、按键和必要唤醒源。
+## 不支持的内容
 
-## 5. 实施阶段
+- 旧 API 兼容层。
+- 旧无线 payload 格式。
+- 旧 EEPROM 地址和布局。
+- 旧 `my_nRF24L01` 驱动。
 
-### 阶段 1：最小骨架
-
-- `controller` 和 `receiver` 都能用 PlatformIO 编译。
-- 两边都能 include `stc8h_config.h`、`drv_nrf24l01.h`、`proto_rf_link.h`。
-- `shared/toy_remote_protocol` 能被两个固件共同引用。
-- 不接真实业务输入输出，只验证分层和构建。
-
-### 阶段 2：nRF24L01 双板通信
-
-- 使用固定地址、固定频道、固定 payload。
-- 验证 `TX_DONE`、`MAX_RETRY` 和断开恢复。
-- 暂不接入业务输入输出。
-- 记录无线发送频率、失败重试策略和断联降频策略。
-
-阶段 2 first build:
-
-- 固定地址：`TOYR1`
-- 固定频道：40（早期 bring-up 临时值；当前默认频道目标为 76）
-- 固定 payload：32 bytes
-- controller 已提供 PTX 发送 loop。
-- receiver 已提供 PRX 接收 loop。
-- 硬件待验证：真实双板 `TX_DONE`、`MAX_RETRY`、`RX_READY`、断电恢复和断联功耗。
-
-### 阶段 3：接入 `proto_rf_link`
-
-- 使用 32 字节链路包。
-- 先实现 `HELLO`、`DATA`、`STATUS`。
-- 明确掉线超时和 receiver 安全状态。
-- controller 高频发送最新控制状态，receiver 低频或按需回传状态。
-
-阶段 3 first build:
-
-- controller 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_SEND_DATA`，把 `toy_remote_control_t` 手工打包为业务 payload 后交给 `proto_rf_link_send_data()`。
-- receiver 按基础库裁剪宏只启用 `PROTO_RF_LINK_ENABLE_POLL`，收到 `DATA` 后解包为 `toy_remote_control_t`。
-- `shared/toy_remote_protocol` 默认保留完整 API；STC8H1K08 固件按阶段通过 `TOY_REMOTE_ENABLE_*` 只编译当前使用的业务协议 API，避免 SDCC wrapper 把未用函数参数区占进 DSEG。
-- receiver 当前以轮询空闲计数实现掉线保护：超过 `APP_RECEIVER_IDLE_POLL_LIMIT` 未收到有效控制包时写入安全控制值。
-- STATUS 已通过 nRF24 ACK payload 回传。controller 成功发送 DATA 后读取 ACK payload，验证 `proto_rf_link` STATUS 头，再更新接收端电压显示字段。
-- STC8H1K08 RAM 约束下，主控制链路继续使用 `proto_rf_link_send_data()`/`proto_rf_link_poll()`；ACK 状态热路径按同一线格式做轻量处理，避免 `proto_rf_link_poll()` 在 controller 上额外占用 21 字节 OSEG。
-
-### 阶段 4：迁移业务
-
-- controller 迁移摇杆、EC11、按键、TM1637 显示。
-- receiver 迁移电机、舵机、灯、蜂鸣器、电压采样。
-- 旧业务字段重设计为新的 `toy_remote_protocol` payload。
-- 每迁移一个硬件能力，都要记录节能策略和安全状态。
-
-阶段 4 first build:
-
-- controller 已按旧硬件引脚接入 EC11 调速、EC11 按键清速度刹车、单独刹车、方向、灯、蜂鸣器、Fn 和转向 ADC。
-- controller ADC 当前按 loop 分频低频采样，避免每个无线包都阻塞读取；Fn 按下时显示本机电压和接收端回传电压。
-- controller 已接入 TM1637：正常显示方向/刹车/速度/发送状态，Fn 显示电压。
-- receiver 已接入灯、蜂鸣器、LED、AT8236 IN1/IN2、舵机和 MOS PWM；掉线安全态会关闭电机/MOS/灯/蜂鸣器，并把舵机回中。
-- receiver 已接入 ADC1/P1.1 电池电压采样，并在 controller 请求时低频更新 ACK 状态。
-
-## 6. 暂不做
-
-- 不做频道扫描。
-- 不做绑定持久化。
-- 不做加密、mesh、路由、多节点调度。
-- 不做旧项目 API 兼容层。
-
-如果后续需要持久化频道、校准值或用户配置，必须先补充独立设计：数据版本、长度、CRC、默认值、备份恢复和升级路径。
-
-## 7. 验证方式
-
-- 构建验证：controller 和 receiver 分别 PlatformIO 编译通过。
-- 协议验证：`toy_remote_protocol` pack/unpack 对版本、长度和字段边界有明确行为。
-- 无线验证：记录连接、断开、恢复、`MAX_RETRY`、`RX_READY` 和状态回传。
-- 安全验证：receiver 在超时后电机、灯、蜂鸣器和 aux PWM 符合安全状态。
-- 节能验证：记录关键循环频率、发送周期、显示刷新周期、ADC 采样周期和断联重试周期。
+诊断固件和验证命令保留在 `docs/06-verification.md`，用于后续硬件问题复现和定位。

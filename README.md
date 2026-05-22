@@ -1,38 +1,16 @@
 # Stc8hToyRemote
 
-STC8H 玩具遥控器和接收机重写项目。
+STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构建，公共芯片能力来自相邻基础库 `../Stc8hBase`，应用层只保留玩具遥控业务协议和板级逻辑。
 
-本项目从旧 Keil 工程重写，不保留旧 API 兼容层。旧项目已移动到：
+## 当前功能
 
-```text
-legacy/old-prj/
-```
-
-`legacy/` 只作为需求线索来源，不在其中修改代码，不参考旧实现方案。
-
-## 基础库
-
-基础库位于相邻目录：
-
-```text
-../Stc8hBase
-```
-
-新代码优先使用基础库的：
-
-```text
-core/
-hal/
-drivers/
-protocols/
-```
-
-其中 nRF24L01 通信使用：
-
-```text
-drivers/drv_nrf24l01.h
-protocols/proto_rf_link.h
-```
+- controller 读取 EC11 速度、EC11 中键、方向、刹车、灯、蜂鸣器、Fn、电位器转向输入。
+- controller 通过 TM1637 显示连接状态、方向、速度、配置项和电压。
+- receiver 接收控制包，驱动 AT8236 电机、舵机、灯、蜂鸣器和辅助 PWM。
+- nRF24L01 使用固定地址 `TOYR1`、默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
+- receiver 未绑定时绑定第一台合法 `tx_id` 的 controller；已绑定后拒绝其他 `tx_id`。
+- receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机回中。
+- controller 丢链后显示 `Lxxx` 并锁定当前频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 ## 目录
 
@@ -40,34 +18,37 @@ protocols/proto_rf_link.h
 controller/  遥控器固件
 receiver/    接收机固件
 shared/      玩具遥控业务协议
-docs/        需求、架构、协议、流程、节能和验证文档
-legacy/      旧项目，只读参考
-tests/       本机协议测试
+docs/        最终需求、架构、协议、流程、硬件和验证文档
+legacy/      旧项目，只读需求参考
+tests/       本机 C 测试
+tools/       检查、尺寸和烧录辅助脚本
 ```
+
+## 基础库边界
+
+新代码引用相邻目录：
+
+```text
+../Stc8hBase
+```
+
+应用项目使用基础库的 `core/`、`hal/`、`drivers/`、`protocols/`，不复制基础库源码，不复用旧项目 `my_nRF24L01` 实现。nRF24L01 通信通过 `drv_nrf24l01` 和 `proto_rf_link` 接入；玩具遥控业务 payload 只放在 `shared/`。
 
 ## 文档
 
-- `docs/01-requirements.md`：需求说明和 legacy 边界。
-- `docs/02-architecture.md`：分层、构建策略和资源原则。
-- `docs/03-protocol.md`：链路层和业务 payload。
-- `docs/04-logic-flows.md`：controller、receiver、安全状态和无线失败流程。
-- `docs/05-power.md`：电池供电节能设计。
-- `docs/06-verification.md`：本机、构建和硬件验证计划。
-- `docs/07-tx-v2-notes-assessment.md`：Tx V2.x 记录需求评估。
-- `docs/rewrite-plan.md`：阶段路线图。
+- `docs/01-requirements.md`：最终需求和非目标。
+- `docs/02-architecture.md`：分层、模块、资源和配置策略。
+- `docs/03-protocol.md`：RF 链路、业务 payload、绑定和安全字段。
+- `docs/04-logic-flows.md`：controller/receiver 生命周期和安全状态。
+- `docs/05-power.md`：当前节能策略和低功耗边界。
+- `docs/06-verification.md`：构建、烧录、实机验收和诊断命令。
+- `docs/07-tx-v2-notes-assessment.md`：旧 Tx V2.x 记录的最终取舍。
+- `docs/08-hardware-map.md`：当前硬件引脚映射。
+- `docs/09-project-review-prompt.md`：用于整体代码和方案评审的提示词。
+- `docs/legacy-notes.md`：`legacy/` 只读规则。
+- `docs/rewrite-plan.md`：当前实现概览和后续边界。
 
-## 当前阶段
-
-当前已完成阶段 2 first build：固定地址、固定频道、固定 32-byte payload 的 nRF24L01 双板通信骨架。
-
-阶段顺序：
-
-1. 验证 controller/receiver 能引用 `Stc8hBase`。
-2. 做 nRF24L01 固定 payload 双板通信。
-3. 接入 `proto_rf_link`。
-4. 迁移摇杆、EC11、按键、显示、电机、舵机、灯、蜂鸣器等业务功能。
-
-## 验证
+## 构建检查
 
 全量检查：
 
@@ -75,29 +56,40 @@ tests/       本机协议测试
 ./tools/check_all.sh
 ```
 
-本机协议测试：
-
-```sh
-cc -std=c99 -Wall -Wextra -Ishared -I../Stc8hBase/core tests/toy_remote_protocol_test.c shared/toy_remote_protocol.c -o /tmp/toy_remote_protocol_test
-/tmp/toy_remote_protocol_test
-```
-
-固件构建：
+单独构建：
 
 ```sh
 (cd controller && pio run)
 (cd receiver && pio run)
 ```
 
-固件上传：
+当前尺寸阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash，新增功能必须先确认 controller 和 receiver 均不过界。
+
+## 烧录
+
+controller 默认上传口：
 
 ```sh
-(cd controller && pio run -t upload --upload-port <serial-port>)
-(cd receiver && pio run -t upload --upload-port <serial-port>)
+cd controller
+pio run -t upload --upload-port /dev/cu.usbserial-110
 ```
 
-`<serial-port>` 示例：`/dev/cu.usbserial-110`。上传配置使用 PlatformIO 自带 `tool-stcgal`，协议 `stc8g`，默认下载波特率 `38400`，并通过 `custom_stcgal_trim = 11059` 把 IRC 设置到约 11.059MHz。若个别旧板在 `Target frequency` 或 `Finishing write` 阶段掉帧，可临时加 `--project-option custom_stcgal_baud=9600` 复测。
+receiver 默认上传口：
 
-## 构建约束
+```sh
+cd receiver
+pio run -t upload --upload-port /dev/cu.usbserial-120
+```
 
-PlatformIO wrapper 只为当前固件实际使用的 `Stc8hBase` `.c` 文件存在。不要提前编译后续阶段才需要的基础库模块；STC8H1K08 的 flash 和内部 RAM 都很小，未使用函数也会增加 SDCC 链接压力。
+上传脚本使用 `stcgal` 的 `stc8g` 协议，并带自动重试和回退。烧录经验见 `STCGAL_UPLOAD_NOTES.md`。
+
+## 关键编译期配置
+
+- `APP_OUTPUT_MOTOR_MIN_DUTY`：电机最低有效 PWM 占空比，默认 `20u`。
+- `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`：是否启用 receiver P30/P31 本机频道维护键，默认关闭。
+- `APP_RADIO_ENABLE_STATS`：RF 轻量统计，默认关闭。
+- `APP_INPUT_DIAG_DISPLAY`：controller 输入显示诊断，默认关闭。
+
+## Legacy 规则
+
+`legacy/old-prj/` 只用于确认硬件接线、业务需求和用户可观察行为；不能修改其中代码，不能把旧代码结构、旧协议流程、旧 EEPROM 布局或旧 nRF24 驱动迁移到新项目。
