@@ -6,9 +6,10 @@ static void test_motor_speed_uses_legacy_start_threshold(void)
 {
     assert(APP_OUTPUT_MOTOR_DUTY(0u) == 0u);
     assert(APP_OUTPUT_MOTOR_DUTY(4u) == 0u);
-    assert(APP_OUTPUT_MOTOR_DUTY(5u) == APP_OUTPUT_MOTOR_MIN_DUTY);
-    assert(APP_OUTPUT_MOTOR_DUTY(39u) == APP_OUTPUT_MOTOR_MIN_DUTY);
-    assert(APP_OUTPUT_MOTOR_DUTY(40u) == 40u);
+    assert(APP_OUTPUT_MOTOR_DUTY(5u) == 43u);
+    assert(APP_OUTPUT_MOTOR_DUTY(25u) == 55u);
+    assert(APP_OUTPUT_MOTOR_DUTY(39u) == 63u);
+    assert(APP_OUTPUT_MOTOR_DUTY(40u) == 64u);
     assert(APP_OUTPUT_MOTOR_DUTY(100u) == APP_OUTPUT_FAST_PWM_PERIOD);
 }
 
@@ -41,12 +42,12 @@ static void test_motor_pair_applies_direction_and_active_brake(void)
     stc8h_u16 rev;
 
     APP_OUTPUT_SET_MOTOR_DUTIES(0u, 25u, 0u, fwd, rev);
-    assert(fwd == APP_OUTPUT_MOTOR_MIN_DUTY);
+    assert(fwd == 55u);
     assert(rev == 0u);
 
     APP_OUTPUT_SET_MOTOR_DUTIES(1u, 25u, 0u, fwd, rev);
     assert(fwd == 0u);
-    assert(rev == APP_OUTPUT_MOTOR_MIN_DUTY);
+    assert(rev == 55u);
 
     APP_OUTPUT_SET_MOTOR_DUTIES(0u, 0u, 1u, fwd, rev);
     assert(fwd == APP_OUTPUT_FAST_PWM_PERIOD);

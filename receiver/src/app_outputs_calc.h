@@ -19,7 +19,7 @@
 
 #define APP_OUTPUT_MOTOR_DUTY(speed) \
     (((speed) < APP_OUTPUT_MOTOR_MIN_SPEED) ? 0u : \
-     (((speed) < APP_OUTPUT_MOTOR_MIN_DUTY) ? APP_OUTPUT_MOTOR_MIN_DUTY : APP_OUTPUT_FAST_DUTY(speed)))
+     (APP_OUTPUT_MOTOR_MIN_DUTY + (((stc8h_u16)(speed) * 3u) / 5u)))
 
 #define APP_OUTPUT_SERVO_RAW_DUTY(angle) \
     (APP_OUTPUT_SERVO_MIN_DUTY + ((stc8h_u16)(angle) * 10u) + (((angle) + 2u) >> 2))
