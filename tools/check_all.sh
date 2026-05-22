@@ -139,4 +139,6 @@ sh "$ROOT_DIR/tools/check_controller_input_diag_source.sh"
 "$ROOT_DIR/tools/check_firmware_size.sh"
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_motor_diag)
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_control_diag)
+(cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_radio_motor_diag)
+(cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_control_gpio_diag)
 sh "$ROOT_DIR/tools/check_nrf24_pin_codegen.sh"

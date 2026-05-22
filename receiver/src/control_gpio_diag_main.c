@@ -1,0 +1,110 @@
+#if APP_RECEIVER_CONTROL_GPIO_DIAG_MAIN
+
+#include "app_config.h"
+#include "app_radio.h"
+#include "board_pins.h"
+#include "drv_nrf24l01.h"
+#include "proto_rf_link.h"
+#include "stc8h_spi.h"
+#include "toy_remote_protocol.h"
+
+#define CONTROL_GPIO_DIAG_IDLE_LIMIT 60000u
+
+static STC8H_XDATA proto_rf_link_t link;
+static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
+static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
+static stc8h_u16 idle_polls;
+
+static void control_gpio_diag_stop(void)
+{
+    TOY_REMOTE_RX_MOTOR_STOP();
+    TOY_REMOTE_RX_LED_OFF();
+}
+
+static void control_gpio_diag_forward(void)
+{
+    P3 |= TOY_REMOTE_RX_MOTOR_IN1_MASK;
+    P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN2_MASK;
+    TOY_REMOTE_RX_LED_ON();
+}
+
+static void control_gpio_diag_reverse(void)
+{
+    P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN1_MASK;
+    P3 |= TOY_REMOTE_RX_MOTOR_IN2_MASK;
+    TOY_REMOTE_RX_LED_ON();
+}
+
+static stc8h_status_t control_gpio_diag_valid_payload(void)
+{
+    if ((payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] != TOY_REMOTE_PROTOCOL_VERSION) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] > TOY_REMOTE_DIRECTION_REVERSE) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] > TOY_REMOTE_CONTROL_SPEED_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] > TOY_REMOTE_STEERING_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] > 1u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] > TOY_REMOTE_CONTROL_AUX_PWM_MAX) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] > 1u) ||
+        (TOY_REMOTE_GET_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L) == 0u)) {
+        return STC8H_ERROR;
+    }
+    return STC8H_OK;
+}
+
+static void control_gpio_diag_handle_packet(void)
+{
+    if (proto_rf_link_poll_data_fixed(&link, packet, payload) != STC8H_OK) {
+        return;
+    }
+    if (control_gpio_diag_valid_payload() != STC8H_OK) {
+        return;
+    }
+
+    idle_polls = 0u;
+    if ((payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] != 0u) ||
+        (payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] < 5u)) {
+        control_gpio_diag_stop();
+    } else if (payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] == TOY_REMOTE_DIRECTION_REVERSE) {
+        control_gpio_diag_reverse();
+    } else {
+        control_gpio_diag_forward();
+    }
+}
+
+void main(void)
+{
+    P3M0 |= (stc8h_u8)(TOY_REMOTE_RX_MOTOR_IN1_MASK |
+                       TOY_REMOTE_RX_MOTOR_IN2_MASK |
+                       TOY_REMOTE_RX_LED_MASK);
+    P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_MOTOR_IN1_MASK |
+                        TOY_REMOTE_RX_MOTOR_IN2_MASK |
+                        TOY_REMOTE_RX_LED_MASK);
+    control_gpio_diag_stop();
+
+    drv_nrf24l01_init_pins();
+    stc8h_spi_init();
+    proto_rf_link_init(&link);
+    proto_rf_link_set_ids(&link, 2u, 1u);
+
+    if (app_radio_init_rx(APP_CONFIG_DEFAULT_CHANNEL) != STC8H_OK) {
+        while (1) {
+            TOY_REMOTE_RX_LED_ON();
+        }
+    }
+
+    while (1) {
+        if (app_radio_receive_packet(packet) == APP_RADIO_RX_PACKET) {
+            control_gpio_diag_handle_packet();
+        } else if (idle_polls < CONTROL_GPIO_DIAG_IDLE_LIMIT) {
+            ++idle_polls;
+            if (idle_polls == CONTROL_GPIO_DIAG_IDLE_LIMIT) {
+                control_gpio_diag_stop();
+            }
+        }
+    }
+}
+
+#else
+typedef unsigned char control_gpio_diag_main_disabled_t;
+#endif
