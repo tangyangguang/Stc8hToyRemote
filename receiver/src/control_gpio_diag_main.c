@@ -9,6 +9,7 @@
 #include "toy_remote_protocol.h"
 
 #define CONTROL_GPIO_DIAG_IDLE_LIMIT 60000u
+#define CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK 0x10u
 
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
@@ -17,12 +18,14 @@ static stc8h_u16 idle_polls;
 
 static void control_gpio_diag_stop(void)
 {
+    P5 &= (stc8h_u8)~CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK;
     TOY_REMOTE_RX_MOTOR_STOP();
     TOY_REMOTE_RX_LED_OFF();
 }
 
 static void control_gpio_diag_forward(void)
 {
+    P5 |= CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK;
     P3 |= TOY_REMOTE_RX_MOTOR_IN1_MASK;
     P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN2_MASK;
     TOY_REMOTE_RX_LED_ON();
@@ -30,6 +33,7 @@ static void control_gpio_diag_forward(void)
 
 static void control_gpio_diag_reverse(void)
 {
+    P5 |= CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK;
     P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN1_MASK;
     P3 |= TOY_REMOTE_RX_MOTOR_IN2_MASK;
     TOY_REMOTE_RX_LED_ON();
@@ -80,6 +84,8 @@ void main(void)
     P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_MOTOR_IN1_MASK |
                         TOY_REMOTE_RX_MOTOR_IN2_MASK |
                         TOY_REMOTE_RX_LED_MASK);
+    P5M0 |= CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK;
+    P5M1 &= (stc8h_u8)~CONTROL_GPIO_DIAG_MOTOR_SUPPLY_MASK;
     control_gpio_diag_stop();
 
     drv_nrf24l01_init_pins();
