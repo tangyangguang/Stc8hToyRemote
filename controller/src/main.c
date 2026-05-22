@@ -56,7 +56,6 @@ static app_button_t ec11_button;
 #if APP_INPUT_DIAG_DISPLAY
 static stc8h_u8 input_diag_blink;
 static stc8h_u8 input_diag_delta_hold;
-static stc8h_u8 input_diag_delta_segment;
 #endif
 static STC8H_XDATA stc8h_u8 config_mode;
 static STC8H_XDATA stc8h_u8 config_item;
@@ -200,28 +199,40 @@ static void display_startup_self_test(void)
 #if APP_INPUT_DIAG_DISPLAY
 static void display_input_diag(stc8h_s16 delta)
 {
-    if (delta > 0) {
-        input_diag_delta_segment = APP_DISPLAY_UP;
-        input_diag_delta_hold = APP_INPUT_DIAG_DELTA_HOLD_TICKS;
-    } else if (delta < 0) {
-        input_diag_delta_segment = APP_DISPLAY_DOWN;
+    stc8h_u8 brake_sources;
+
+    if (delta != 0) {
         input_diag_delta_hold = APP_INPUT_DIAG_DELTA_HOLD_TICKS;
     } else if (input_diag_delta_hold != 0u) {
         --input_diag_delta_hold;
-    } else {
-        input_diag_delta_segment = APP_DISPLAY_BLANK;
     }
 
-    display_segments[0] = app_display_digit(TOY_REMOTE_TX_EC11_A_READ());
-    display_segments[1] = app_display_digit(TOY_REMOTE_TX_EC11_B_READ());
-    display_segments[2] = app_display_digit(TOY_REMOTE_TX_EC11_SW_ACTIVE());
-    display_segments[3] = (input_diag_delta_hold != 0u) ? input_diag_delta_segment : APP_DISPLAY_BLANK;
+    brake_sources = 0u;
+    if (TOY_REMOTE_TX_EC11_SW_ACTIVE() != 0u) {
+        brake_sources |= 1u;
+    }
+    if (TOY_REMOTE_TX_BRAKE_ACTIVE() != 0u) {
+        brake_sources |= 2u;
+    }
+
+    if (control.brake != 0u) {
+        display_segments[0] = APP_DISPLAY_DASH;
+    } else {
+        display_segments[0] = (TOY_REMOTE_TX_DIR_REVERSE() != 0u) ? APP_DISPLAY_DOWN : APP_DISPLAY_UP;
+    }
+    display_segments[1] = app_display_digit(brake_sources);
+    if (control.speed >= 100u) {
+        display_segments[2] = APP_DISPLAY_A;
+        display_segments[3] = app_display_digit(0u);
+    } else {
+        app_display_set_2_digits(control.speed, &display_segments[2]);
+    }
 
     ++input_diag_blink;
     if (input_diag_blink >= APP_INPUT_DIAG_BLINK_TICKS) {
         input_diag_blink = 0u;
     }
-    if (input_diag_blink < (APP_INPUT_DIAG_BLINK_TICKS / 2u)) {
+    if ((input_diag_delta_hold != 0u) || (input_diag_blink < (APP_INPUT_DIAG_BLINK_TICKS / 2u))) {
         display_segments[1] |= APP_DISPLAY_COLON;
     }
 
@@ -492,9 +503,14 @@ static void update_voltage_display(void)
 static void run_ui_slice(void)
 {
     stc8h_s16 delta;
+#if !APP_INPUT_DIAG_DISPLAY
     app_button_event_t button_event;
+#endif
 
     delta = app_input_update(&control);
+#if APP_INPUT_DIAG_DISPLAY
+    display_input_diag(delta);
+#else
     button_event = app_button_update(&ec11_button,
                                      TOY_REMOTE_TX_EC11_SW_ACTIVE(),
                                      (config_mode != 0u) ? APP_BUTTON_LONG_CONFIG_TICKS : APP_BUTTON_LONG_NORMAL_TICKS,
@@ -518,6 +534,7 @@ static void run_ui_slice(void)
             display_control();
         }
     }
+#endif
 }
 
 #if APP_STATIC_DISPLAY_DIAG
