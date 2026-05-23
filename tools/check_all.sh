@@ -83,11 +83,31 @@ cc -std=c99 -Wall -Wextra \
 /tmp/controller_radio_config_test
 
 cc -std=c99 -Wall -Wextra \
+    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=1 \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    "$ROOT_DIR/tests/controller_radio_init_behavior_test.c" \
+    "$ROOT_DIR/controller/src/app_radio.c" \
+    -o /tmp/controller_radio_init_behavior_test
+/tmp/controller_radio_init_behavior_test
+
+cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_radio_config_test.c" \
     -o /tmp/receiver_radio_config_test
 /tmp/receiver_radio_config_test
+
+cc -std=c99 -Wall -Wextra \
+    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=1 \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    "$ROOT_DIR/tests/receiver_radio_init_behavior_test.c" \
+    "$ROOT_DIR/receiver/src/app_radio.c" \
+    -o /tmp/receiver_radio_init_behavior_test
+/tmp/receiver_radio_init_behavior_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
@@ -147,6 +167,7 @@ cc -std=c99 -Wall -Wextra \
 (cd "$ROOT_DIR/controller" && pio run)
 sh "$ROOT_DIR/tools/check_controller_ec11_isr_codegen.sh"
 sh "$ROOT_DIR/tools/check_controller_input_diag_source.sh"
+sh "$ROOT_DIR/tools/check_controller_display_source.sh"
 sh "$ROOT_DIR/tools/check_radio_init_source.sh"
 (cd "$ROOT_DIR/receiver" && pio run)
 "$ROOT_DIR/tools/check_firmware_size.sh"

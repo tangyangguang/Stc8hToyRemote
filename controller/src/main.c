@@ -86,8 +86,6 @@ static STC8H_XDATA stc8h_u8 config_item;
 
 static void display_commit_raw4(void)
 {
-    stc8h_u8 was_enabled;
-
     if ((display_dirty == 0u) &&
         (display_segments[0] == display_last_segments[0]) &&
         (display_segments[1] == display_last_segments[1]) &&
@@ -96,12 +94,7 @@ static void display_commit_raw4(void)
         return;
     }
 
-    was_enabled = (EA != 0u) ? 1u : 0u;
-    EA = 0;
     (void)drv_tm1637_display_raw4(display_segments);
-    if (was_enabled != 0u) {
-        EA = 1;
-    }
 
     display_last_segments[0] = display_segments[0];
     display_last_segments[1] = display_segments[1];
