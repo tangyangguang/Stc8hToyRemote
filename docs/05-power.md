@@ -1,6 +1,6 @@
 # 节能设计
 
-controller 和 receiver 都按电池设备处理。当前目标是在不破坏操控实时性和安全输出的前提下，减少无意义的无线、显示、ADC 和 PWM 活动。
+controller 和 receiver 都按电池设备处理。目标是在不破坏操控实时性和安全输出的前提下，减少无意义的无线、显示、ADC 和 PWM 活动。
 
 ## 通用原则
 
@@ -29,7 +29,7 @@ controller 和 receiver 都按电池设备处理。当前目标是在不破坏�
 
 ## 低功耗扩展前置条件
 
-后续若引入 idle/power-down，必须先验证：
+引入 idle/power-down 前必须验证：
 
 - nRF24L01 CE/CSN/SPI 静态电平。
 - nRF24L01 保持 RX、standby 或 power-down 后的恢复时间。

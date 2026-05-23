@@ -2,7 +2,7 @@
 
 STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构建，公共芯片能力来自相邻基础库 `../Stc8hBase`，应用层只保留玩具遥控业务协议和板级逻辑。
 
-## 当前功能
+## 功能
 
 - controller 读取 EC11 速度、EC11 中键、方向、刹车、灯、蜂鸣器、Fn、电位器转向输入。
 - controller 通过 TM1637 显示连接状态、方向、速度、配置项和电压。
@@ -10,7 +10,7 @@ STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构
 - nRF24L01 使用固定地址 `TOYR1`、默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
 - receiver 未绑定时绑定第一台合法 `tx_id` 的 controller；已绑定后拒绝其他 `tx_id`。
 - receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机回中。
-- controller 丢链后显示 `Lxxx` 并锁定当前频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
+- controller 丢链后显示 `Lxxx` 并锁定该频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 ## 目录
 
@@ -40,13 +40,11 @@ tools/       检查、尺寸和烧录辅助脚本
 - `docs/02-architecture.md`：分层、模块、资源和配置策略。
 - `docs/03-protocol.md`：RF 链路、业务 payload、绑定和安全字段。
 - `docs/04-logic-flows.md`：controller/receiver 生命周期和安全状态。
-- `docs/05-power.md`：当前节能策略和低功耗边界。
+- `docs/05-power.md`：节能策略和低功耗边界。
 - `docs/06-verification.md`：构建、烧录、实机验收和诊断命令。
-- `docs/07-tx-v2-notes-assessment.md`：旧 Tx V2.x 记录的最终取舍。
-- `docs/08-hardware-map.md`：当前硬件引脚映射。
-- `docs/09-project-review-prompt.md`：用于整体代码和方案评审的提示词。
-- `docs/legacy-notes.md`：`legacy/` 只读规则。
-- `docs/rewrite-plan.md`：当前实现概览和后续边界。
+- `docs/07-ec11-input.md`：EC11 输入采样、加速和中键语义。
+- `docs/08-hardware-map.md`：硬件引脚映射。
+- `docs/09-upload.md`：STCGAL 烧录配置、命令和排查方法。
 
 ## 构建检查
 
@@ -63,7 +61,7 @@ tools/       检查、尺寸和烧录辅助脚本
 (cd receiver && pio run)
 ```
 
-当前尺寸阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash，新增功能必须先确认 controller 和 receiver 均不过界。
+尺寸阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash，新增功能必须先确认 controller 和 receiver 均不过界。
 
 ## 烧录
 
@@ -81,7 +79,7 @@ cd receiver
 pio run -t upload --upload-port /dev/cu.usbserial-120
 ```
 
-上传脚本使用 `stcgal` 的 `stc8g` 协议，并带自动重试和回退。烧录经验见 `STCGAL_UPLOAD_NOTES.md`。
+上传脚本使用 `stcgal` 的 `stc8g` 协议，并带自动重试和回退。烧录说明见 `docs/09-upload.md`。
 
 ## 关键编译期配置
 

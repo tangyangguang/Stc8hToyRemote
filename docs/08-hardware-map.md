@@ -11,7 +11,7 @@
 | SCK | P1.5 | SPI group 0 |
 | MOSI | P1.3 | SPI group 0 |
 | MISO | P1.4 | SPI group 0 |
-| IRQ | P3.2 | nRF24L01 IRQ，引脚保留；当前应用轮询 `STATUS` |
+| IRQ | P3.2 | nRF24L01 IRQ，引脚保留；应用轮询 `STATUS` |
 
 ## Controller
 

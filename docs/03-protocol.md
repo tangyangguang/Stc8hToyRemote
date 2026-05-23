@@ -33,7 +33,7 @@ controller 使用 src `1`、dst `2` 发送 `DATA`；receiver 使用 src `2`、ds
 | 状态 ACK 长度 | 15 字节 |
 | SETUP_RETR | ARD 1000us，ARC 15 |
 
-250kbps + 15 字节 ACK payload 是当前距离优先默认配置。不要把 250kbps + 32 字节 ACK payload + 1500us ARD 作为长期默认。
+250kbps + 15 字节 ACK payload 是距离优先默认配置。不要把 250kbps + 32 字节 ACK payload + 1500us ARD 作为长期默认。
 
 ## 控制 payload
 
@@ -55,7 +55,7 @@ byte10 tx_id high
 
 字段范围：
 
-- `version`: 当前为 `1`
+- `version`: 固定为 `1`
 - `direction`: `0` 前进，`1` 后退
 - `speed`: `0..100`
 - `brake`: `0..1`
@@ -83,11 +83,11 @@ byte5 tx_id high
 
 字段范围：
 
-- `version`: 当前为 `1`
+- `version`: 固定为 `1`
 - `link_state`: `0` idle, `1` connecting, `2` connected, `3` lost
 - `voltage_int`: `0..99`
 - `voltage_dec`: `0..99`
-- `tx_id`: receiver 当前绑定的 controller ID
+- `tx_id`: receiver 已绑定的 controller ID
 
 电压使用百分之一伏表示。例如 7.42V 回传为 `voltage_int=7`、`voltage_dec=42`。
 
@@ -106,7 +106,7 @@ controller 在发包前完成输入归约：
 - EC11 中键短按：`brake=1` 且 `speed=0`。
 - 单独刹车键：`brake=1`，速度保持。
 - 转向 ADC 归约为 `0..180`，再应用舵机反向、中位和端点收缩。
-- `aux_pwm` 当前无 controller 输入映射，默认发送 `0`。
+- `aux_pwm` 无 controller 输入映射，默认发送 `0`。
 
 receiver 不解释原始按键，只执行归约后的 payload。
 

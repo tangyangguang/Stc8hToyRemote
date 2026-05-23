@@ -20,7 +20,7 @@ controller/receiver application
 
 ## 构建策略
 
-项目使用 PlatformIO wrapper 引入 `../Stc8hBase` 的必要 `.c` 文件。STC8H1K08 只有 8KB flash 和 1.25KB RAM；SDCC 会为被编译进固件的函数分配参数区，因此只编译当前固件实际使用的基础库模块。
+项目使用 PlatformIO wrapper 引入 `../Stc8hBase` 的必要 `.c` 文件。STC8H1K08 只有 8KB flash 和 1.25KB RAM；SDCC 会为被编译进固件的函数分配参数区，因此只编译固件实际使用的基础库模块。
 
 构建裁剪通过 `platformio.ini` 的宏完成：
 
@@ -69,7 +69,7 @@ receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 
 ## 输出策略
 
 - AT8236 电机只由 `P3.3/PWM7` 和 `P3.4/PWM8` 控制。
-- `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；与 AT8236 共用 PWM-B 频率，controller 当前始终发送 `0`，所以默认关闭。
+- `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；与 AT8236 共用 PWM-B 频率，controller 默认发送 `0`，所以默认关闭。
 - 舵机使用 `P1.0/PWM1P`，50Hz，安全态回中。
 - 灯光和蜂鸣器低电平有效，安全态关闭。
 - receiver LED 高电平亮，用于生命周期状态提示。
