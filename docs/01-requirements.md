@@ -31,7 +31,8 @@
 - 接收并验证 controller 控制 payload。
 - 未绑定时绑定第一个合法非零 `tx_id`；已绑定后只接受相同 `tx_id`。
 - 驱动 AT8236 电机、舵机、灯、蜂鸣器和辅助 PWM。
-- 电机最低有效 PWM 占空比可通过 `APP_OUTPUT_MOTOR_MIN_DUTY` 编译期宏配置，默认 20%。
+- AT8236 与辅助 PWM 共用 PWM-B，默认约 20.03kHz；频率通过 `APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD` 编译期宏配置。
+- 电机最低有效 PWM 占空比可通过 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 编译期宏配置，默认 20%。
 - 按请求回传链路状态和电池电压。
 - 掉线或射频错误时进入安全状态：
   - AT8236 IN1/IN2 duty 为 0。

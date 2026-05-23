@@ -20,7 +20,7 @@
 | 固件 | 当前大小 | 阈值 |
 | --- | --- | --- |
 | controller | 7788/8192 | <= 7950 |
-| receiver | 6857/8192 | <= 6904 |
+| receiver | 6902/8192 | <= 6904 |
 
 ## 单独构建
 
@@ -92,12 +92,13 @@ controller：
 receiver：
 
 - 速度小于 5 时电机不转。
-- 速度等于 5 时电机 duty 为 `APP_OUTPUT_MOTOR_MIN_DUTY`，默认 20%。
+- 速度等于 5 时电机 duty 为 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 对应的最低占空比，默认 20%。
 - 速度 100 时 duty 为 100%。
 - 前进时 P3.3/PWM7 输出，P3.4/PWM8 为 0。
 - 后退时 P3.4/PWM8 输出，P3.3/PWM7 为 0。
 - 刹车时 P3.3/PWM7 和 P3.4/PWM8 同时 100%。
 - 掉线后 AT8236 duty、灯、蜂鸣器和辅助 PWM 均关闭，舵机回中。
+- AT8236 PWM-B 频率默认约 20.03kHz；若修改 `APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD`，需重新核对低速起步、噪声和温升。
 
 ## 诊断固件
 

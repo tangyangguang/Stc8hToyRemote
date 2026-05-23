@@ -38,9 +38,9 @@
 | LED | P3.7 | 高电平亮，用于生命周期状态 |
 | RF 频道 + | P3.0 | 低电平有效；默认构建关闭频道维护键 |
 | RF 频道 - | P3.1 | 低电平有效；默认构建关闭频道维护键 |
-| AT8236 IN1 | P3.3 / PWM7_2 | 前进 PWM，10kHz |
-| AT8236 IN2 | P3.4 / PWM8_2 | 后退 PWM，10kHz |
-| 辅助 PWM | P5.4 / PWM6_2 | 来自 `aux_pwm`，controller 默认发送 0 |
+| AT8236 IN1 | P3.3 / PWM7_2 | 前进 PWM，默认约 20.03kHz |
+| AT8236 IN2 | P3.4 / PWM8_2 | 后退 PWM，默认约 20.03kHz |
+| 辅助 PWM | P5.4 / PWM6_2 | 与 AT8236 共用 PWM-B 频率；来自 `aux_pwm`，controller 默认发送 0 |
 | 舵机 | P1.0 / PWM1P | 50Hz 舵机 PWM |
 | 电池电压 | ADC1 / P1.1 | 按请求低频采样并回传 |
 

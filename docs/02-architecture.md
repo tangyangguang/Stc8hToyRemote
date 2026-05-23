@@ -41,7 +41,7 @@ controller/receiver application
 ## Receiver 模块
 
 - `app_outputs`：PWM 和 GPIO 输出，包含舵机、电机、灯、蜂鸣器和辅助 PWM。
-- `app_outputs_calc`：输出曲线宏；电机最低有效 duty 由 `APP_OUTPUT_MOTOR_MIN_DUTY` 配置，默认 20%。
+- `app_outputs_calc`：输出曲线宏；PWM-B 默认约 20.03kHz，电机最低有效 duty 由 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 配置，默认 20%。
 - `app_indicator`：receiver LED 生命周期状态。
 - `app_status`：状态回传数据，按请求低频采样电池电压。
 - `app_config`：EEPROM fixed-block 配置，保存绑定 `tx_id` 和频道配置；配置版本 2 的 byte7 为保留字节，保存时写 0。
@@ -69,7 +69,7 @@ receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 
 ## 输出策略
 
 - AT8236 电机只由 `P3.3/PWM7` 和 `P3.4/PWM8` 控制。
-- `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；controller 当前始终发送 `0`，所以默认关闭。
+- `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；与 AT8236 共用 PWM-B 频率，controller 当前始终发送 `0`，所以默认关闭。
 - 舵机使用 `P1.0/PWM1P`，50Hz，安全态回中。
 - 灯光和蜂鸣器低电平有效，安全态关闭。
 - receiver LED 高电平亮，用于生命周期状态提示。

@@ -85,7 +85,8 @@ pio run -t upload --upload-port /dev/cu.usbserial-120
 
 ## 关键编译期配置
 
-- `APP_OUTPUT_MOTOR_MIN_DUTY`：电机最低有效 PWM 占空比，默认 `20u`。
+- `APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD`：AT8236 和辅助 PWM 共用的 PWM-B 频率配置，默认 `5u` / `91u`，11.0592MHz 下约 20.03kHz。
+- `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT`：电机最低有效 PWM 占空比百分比，默认 `20u`。
 - `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`：是否启用 receiver P30/P31 本机频道维护键，默认关闭。
 - `APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS`：是否启用 receiver P30+P31 上电清绑定，默认开启。
 - `APP_RADIO_ENABLE_STATS`：RF 轻量统计，默认关闭。
