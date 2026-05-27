@@ -11,6 +11,7 @@
 #include "stc8h_interrupt.h"
 #include "stc8h_sfr.h"
 #include "stc8h_spi.h"
+#include "toy_remote_channels.h"
 #include "toy_remote_protocol.h"
 
 #ifndef APP_INPUT_DIAG_DISPLAY
@@ -67,7 +68,7 @@ static STC8H_XDATA stc8h_u8 config_item;
 #define APP_STATE_TRY_SAVED 0u
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
-#define APP_BUTTON_LONG_NORMAL_TICKS 500u
+#define APP_BUTTON_LONG_NORMAL_TICKS 300u
 #define APP_BUTTON_LONG_CONFIG_TICKS 300u
 #define APP_BUTTON_DOUBLE_TICKS 30u
 #define APP_RADIO_FAILURE_LIMIT 3u
@@ -451,24 +452,42 @@ static stc8h_u8 probe_current_channel(void)
     return 0u;
 }
 
+static stc8h_u8 scan_one_channel(stc8h_u8 channel)
+{
+    app_radio_set_channel(channel);
+    current_channel = channel;
+    display_state_channel(APP_DISPLAY_S);
+    rx_status.tx_id = 0u;
+    if (probe_current_channel() != 0u) {
+        if (config.last_channel != channel) {
+            config.last_channel = channel;
+            (void)app_config_save(&config);
+        }
+        display_state_channel(APP_DISPLAY_F);
+        stc8h_delay_ms(750u);
+        return 1u;
+    }
+    return 0u;
+}
+
 static void scan_channels(void)
 {
     stc8h_u8 channel;
+    stc8h_u8 index;
 
     while (1) {
-        for (channel = 0u; channel <= 125u; ++channel) {
-            app_radio_set_channel(channel);
-            current_channel = channel;
-            display_state_channel(APP_DISPLAY_S);
-            rx_status.tx_id = 0u;
-            if (probe_current_channel() != 0u) {
-                if (config.last_channel != channel) {
-                    config.last_channel = channel;
-                    (void)app_config_save(&config);
-                }
-                display_state_channel(APP_DISPLAY_F);
-                stc8h_delay_ms(750u);
+        for (index = 0u; index < TOY_REMOTE_CHANNEL_POOL_COUNT; ++index) {
+            if (scan_one_channel(toy_remote_channel_pool_value(index)) != 0u) {
                 return;
+            }
+        }
+        for (channel = 0u; channel <= 125u; ++channel) {
+            if ((channel < 16u) ||
+                (channel > TOY_REMOTE_DEFAULT_RF_CHANNEL) ||
+                ((channel & 0x03u) != 0u)) {
+                if (scan_one_channel(channel) != 0u) {
+                    return;
+                }
             }
         }
     }

@@ -7,8 +7,8 @@ SOURCE = ROOT / "controller" / "src" / "main.c"
 
 
 def function_body(source: str, name: str) -> str:
-    marker = f"static stc8h_u8 {name}(void)"
-    start = source.index(marker)
+    marker = f"{name}(void)"
+    start = source.rindex("static ", 0, source.index(marker))
     brace = source.index("{", start)
     depth = 0
     for pos in range(brace, len(source)):
@@ -23,8 +23,11 @@ def function_body(source: str, name: str) -> str:
 
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    assert "#define APP_BUTTON_LONG_NORMAL_TICKS 300u" in source
+
     send_body = function_body(source, "send_control_packet")
     probe_body = function_body(source, "probe_current_channel")
+    scan_body = function_body(source, "scan_channels")
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
@@ -36,6 +39,12 @@ def main() -> None:
     ack_delay = probe_body.index("if (result == 2u)")
     fixed_delay = probe_body.index("stc8h_delay_ms(5u);")
     assert ack_delay < fixed_delay, "5ms scan delay must only follow app-level ACK mismatch"
+
+    pool_loop = scan_body.index("index < TOY_REMOTE_CHANNEL_POOL_COUNT")
+    full_loop = scan_body.index("channel <= 125u")
+    assert pool_loop < full_loop, "scan must try the built-in channel pool before full fallback"
+    assert "toy_remote_channel_pool_value(index)" in scan_body
+    assert "((channel & 0x03u) != 0u)" in scan_body
 
 
 if __name__ == "__main__":
