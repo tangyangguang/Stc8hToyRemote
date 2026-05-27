@@ -91,7 +91,8 @@ stc8h_status_t app_radio_init_tx(stc8h_u8 channel)
 void app_radio_set_channel(stc8h_u8 channel)
 {
     (void)drv_nrf24l01_set_channel(channel);
-    app_radio_recover_tx();
+    drv_nrf24l01_flush_rx();
+    drv_nrf24l01_clear_irq(DRV_NRF24L01_IRQ_MASK);
 }
 
 void app_radio_recover_tx(void)

@@ -428,6 +428,7 @@ static stc8h_u8 send_control_packet(void)
         if (handle_ack_status() != 0u) {
             return 1u;
         }
+        return 2u;
     }
     return 0u;
 }
@@ -435,13 +436,17 @@ static stc8h_u8 send_control_packet(void)
 static stc8h_u8 probe_current_channel(void)
 {
     stc8h_u8 i;
+    stc8h_u8 result;
 
     for (i = 0u; i < 2u; ++i) {
         rx_status.tx_id = 0u;
-        if (send_control_packet() != 0u) {
+        result = send_control_packet();
+        if (result == 1u) {
             return 1u;
         }
-        stc8h_delay_ms(5u);
+        if (result == 2u) {
+            stc8h_delay_ms(5u);
+        }
     }
     return 0u;
 }
