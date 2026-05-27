@@ -36,6 +36,7 @@ tools/       检查、尺寸和烧录辅助脚本
 
 ## 文档
 
+- `遥控器与接收机核心逻辑说明.md`：系统核心逻辑、遥控器操作、接收机动作、数据包格式、配置和取值范围。
 - `docs/01-requirements.md`：最终需求和非目标。
 - `docs/02-architecture.md`：分层、模块、资源和配置策略。
 - `docs/03-protocol.md`：RF 链路、业务 payload、绑定和安全字段。
