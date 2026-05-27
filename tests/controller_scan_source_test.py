@@ -23,7 +23,7 @@ def function_body(source: str, name: str) -> str:
 
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
-    assert "#define APP_BUTTON_LONG_NORMAL_TICKS 300u" in source
+    assert "#define APP_BUTTON_LONG_NORMAL_TICKS 500u" in source
 
     send_body = function_body(source, "send_control_packet")
     probe_body = function_body(source, "probe_current_channel")
@@ -44,7 +44,10 @@ def main() -> None:
     full_loop = scan_body.index("channel <= 125u")
     assert pool_loop < full_loop, "scan must try the built-in channel pool before full fallback"
     assert "toy_remote_channel_pool_value(index)" in scan_body
-    assert "((channel & 0x03u) != 0u)" in scan_body
+    assert "scan_one_channel(channel)" in scan_body
+    assert "((channel & 0x03u) != 0u)" not in scan_body
+
+    assert "app_button_update(&ec11_button" in source
 
 
 if __name__ == "__main__":

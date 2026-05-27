@@ -68,7 +68,7 @@ static STC8H_XDATA stc8h_u8 config_item;
 #define APP_STATE_TRY_SAVED 0u
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
-#define APP_BUTTON_LONG_NORMAL_TICKS 300u
+#define APP_BUTTON_LONG_NORMAL_TICKS 500u
 #define APP_BUTTON_LONG_CONFIG_TICKS 300u
 #define APP_BUTTON_DOUBLE_TICKS 30u
 #define APP_RADIO_FAILURE_LIMIT 3u
@@ -482,12 +482,8 @@ static void scan_channels(void)
             }
         }
         for (channel = 0u; channel <= 125u; ++channel) {
-            if ((channel < 16u) ||
-                (channel > TOY_REMOTE_DEFAULT_RF_CHANNEL) ||
-                ((channel & 0x03u) != 0u)) {
-                if (scan_one_channel(channel) != 0u) {
-                    return;
-                }
+            if (scan_one_channel(channel) != 0u) {
+                return;
             }
         }
     }
