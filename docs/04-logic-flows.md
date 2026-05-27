@@ -116,7 +116,7 @@ receiver 默认关闭 P30/P31 运行期频道维护键，但默认保留 P30+P31
 - AT8236 IN1：`P3.3/PWM7`
 - AT8236 IN2：`P3.4/PWM8`
 - AT8236 PWM-B 默认约 20.03kHz；`APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD` 控制频率。
-- 电机速度 `speed < 5` 时 duty 为 0；`speed >= 5` 时从 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 对应的最低 duty 线性映射到 100%，默认最低 20%。
+- 电机速度 `speed < 5` 时 duty 为 0；`speed >= 5` 时从 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 对应的最低 duty 线性映射到 100%，默认最低 35%。
 - 刹车时 IN1/IN2 同时输出 100% duty。
 - 舵机：`P1.0/PWM1P`，50Hz，安全态回中。
 - 灯：`P3.5`，低电平亮。

@@ -91,7 +91,7 @@ controller：
 receiver：
 
 - 速度小于 5 时电机不转。
-- 速度等于 5 时电机 duty 为 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 对应的最低占空比，默认 20%。
+- 速度等于 5 时电机 duty 为 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 对应的最低占空比，默认 35%。
 - 速度 100 时 duty 为 100%。
 - 前进时 P3.3/PWM7 输出，P3.4/PWM8 为 0。
 - 后退时 P3.4/PWM8 输出，P3.3/PWM7 为 0。
