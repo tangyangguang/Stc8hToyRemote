@@ -39,6 +39,14 @@ cc -std=c99 -Wall -Wextra \
     -o /tmp/app_outputs_calc_test_min15
 /tmp/app_outputs_calc_test_min15
 
+sdcc -mmcs51 --std-c99 \
+    -DAPP_OUTPUT_FAST_PWM_PERIOD=655u \
+    -DAPP_OUTPUT_MOTOR_MIN_DUTY_PERCENT=100u \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -c "$ROOT_DIR/tests/app_outputs_calc_sdcc_width_test.c" \
+    -o /tmp/app_outputs_calc_sdcc_width_test.rel
+
 cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
     -DTEST_STEPS=4 \
     -I"$ROOT_DIR/../Stc8hBase/core" \
