@@ -6,10 +6,10 @@
 
 static void app_outputs_write_pwm(stc8h_u16 servo, stc8h_u16 aux, stc8h_u16 fwd, stc8h_u16 rev)
 {
-    (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1, servo);
-    (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_6, aux);
-    (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_7, fwd);
-    (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_8, rev);
+    stc8h_pwm_set_duty_a1(servo);
+    stc8h_pwm_set_duty_b6(aux);
+    stc8h_pwm_set_duty_b7(fwd);
+    stc8h_pwm_set_duty_b8(rev);
 }
 
 void app_outputs_apply_safe(void)
@@ -38,20 +38,20 @@ void app_outputs_init(void)
     P5M0 |= 0x10u;
     P5M1 &= (stc8h_u8)~0x10u;
 
-    (void)stc8h_pwm_set_prescaler(STC8H_PWM_GROUP_A, APP_OUTPUT_SERVO_PRESCALER);
-    (void)stc8h_pwm_set_period(STC8H_PWM_GROUP_A, APP_OUTPUT_SERVO_PERIOD);
-    (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1, STC8H_PWM_PIN_PWM1_P10);
-    (void)stc8h_pwm_set_duty(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1, APP_OUTPUT_SERVO_CENTER_DUTY);
-    (void)stc8h_pwm_enable(STC8H_PWM_GROUP_A, STC8H_PWM_CHANNEL_1);
+    stc8h_pwm_set_prescaler_a(APP_OUTPUT_SERVO_PRESCALER);
+    stc8h_pwm_set_period_a(APP_OUTPUT_SERVO_PERIOD);
+    stc8h_pwm_init_a1(STC8H_PWM_PIN_PWM1_P10);
+    stc8h_pwm_set_duty_a1(APP_OUTPUT_SERVO_CENTER_DUTY);
+    stc8h_pwm_enable_a1();
 
-    (void)stc8h_pwm_set_prescaler(STC8H_PWM_GROUP_B, APP_OUTPUT_FAST_PWM_PRESCALER);
-    (void)stc8h_pwm_set_period(STC8H_PWM_GROUP_B, APP_OUTPUT_FAST_PWM_PERIOD);
-    (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_6, STC8H_PWM_PIN_PWM6_P54);
-    (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_7, STC8H_PWM_PIN_PWM7_P33);
-    (void)stc8h_pwm_init_channel(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_8, STC8H_PWM_PIN_PWM8_P34);
-    (void)stc8h_pwm_enable(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_6);
-    (void)stc8h_pwm_enable(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_7);
-    (void)stc8h_pwm_enable(STC8H_PWM_GROUP_B, STC8H_PWM_CHANNEL_8);
+    stc8h_pwm_set_prescaler_b(APP_OUTPUT_FAST_PWM_PRESCALER);
+    stc8h_pwm_set_period_b(APP_OUTPUT_FAST_PWM_PERIOD);
+    stc8h_pwm_init_b6(STC8H_PWM_PIN_PWM6_P54);
+    stc8h_pwm_init_b7(STC8H_PWM_PIN_PWM7_P33);
+    stc8h_pwm_init_b8(STC8H_PWM_PIN_PWM8_P34);
+    stc8h_pwm_enable_b6();
+    stc8h_pwm_enable_b7();
+    stc8h_pwm_enable_b8();
 
     app_outputs_apply_safe();
 }

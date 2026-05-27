@@ -113,7 +113,11 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
     app_radio_stats_inc(tx_count);
 
     drv_nrf24l01_flush_tx();
+#if DRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API
+    (void)drv_nrf24l01_write_payload_fixed(packet);
+#else
     (void)drv_nrf24l01_write_payload(packet, APP_RADIO_PACKET_SIZE);
+#endif
     drv_nrf24l01_pulse_ce();
 
     for (wait = 0u; wait < APP_RADIO_TX_WAIT_LIMIT; ++wait) {

@@ -56,7 +56,11 @@ app_radio_rx_result_t app_radio_receive_packet(stc8h_u8 *packet)
         return APP_RADIO_RX_NONE;
     }
 
+#if DRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API
+    (void)drv_nrf24l01_read_payload_fixed(packet);
+#else
     (void)drv_nrf24l01_read_payload(packet, APP_RADIO_PACKET_SIZE);
+#endif
     drv_nrf24l01_flush_rx();
     drv_nrf24l01_clear_irq(status);
     return APP_RADIO_RX_PACKET;
