@@ -108,6 +108,7 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
     stc8h_u16 wait;
     app_radio_tx_result_t result;
     stc8h_u8 width;
+    stc8h_u8 ack_ready;
 
     app_radio_ack_len = 0u;
     app_radio_stats_inc(tx_count);
@@ -128,20 +129,27 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
                 drv_nrf24l01_flush_tx();
                 drv_nrf24l01_clear_irq(DRV_NRF24L01_STATUS_MAX_RETRY);
                 result = APP_RADIO_TX_MAX_RETRY;
-            } else if ((status & DRV_NRF24L01_STATUS_RX_READY) != 0u) {
-                width = drv_nrf24l01_read_dynamic_payload_size();
-                if (width == APP_RADIO_STATUS_ACK_SIZE) {
-                    (void)drv_nrf24l01_read_payload(app_radio_ack_packet, width);
-                    app_radio_ack_len = width;
-                    result = APP_RADIO_TX_ACK_PAYLOAD_OK;
-                } else {
-                    drv_nrf24l01_flush_rx();
-                    result = (width == 0u) ? APP_RADIO_TX_ACK_EMPTY : APP_RADIO_TX_ACK_BAD;
-                }
-                drv_nrf24l01_clear_irq((stc8h_u8)(status | DRV_NRF24L01_STATUS_RX_READY));
             } else {
-                drv_nrf24l01_clear_irq(status);
-                result = APP_RADIO_TX_ACK_EMPTY;
+                ack_ready = (stc8h_u8)(status & DRV_NRF24L01_STATUS_RX_READY);
+                if ((ack_ready == 0u) &&
+                    ((drv_nrf24l01_read_fifo_status() & DRV_NRF24L01_FIFO_RX_EMPTY) == 0u)) {
+                    ack_ready = DRV_NRF24L01_STATUS_RX_READY;
+                }
+                if (ack_ready != 0u) {
+                    width = drv_nrf24l01_read_dynamic_payload_size();
+                    if (width == APP_RADIO_STATUS_ACK_SIZE) {
+                        (void)drv_nrf24l01_read_payload(app_radio_ack_packet, width);
+                        app_radio_ack_len = width;
+                        result = APP_RADIO_TX_ACK_PAYLOAD_OK;
+                    } else {
+                        drv_nrf24l01_flush_rx();
+                        result = (width == 0u) ? APP_RADIO_TX_ACK_EMPTY : APP_RADIO_TX_ACK_BAD;
+                    }
+                    drv_nrf24l01_clear_irq((stc8h_u8)(status | DRV_NRF24L01_STATUS_RX_READY));
+                } else {
+                    drv_nrf24l01_clear_irq(status);
+                    result = APP_RADIO_TX_ACK_EMPTY;
+                }
             }
             app_radio_stats_sample(status);
             app_radio_record_result(result);

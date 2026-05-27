@@ -10,6 +10,10 @@ static stc8h_u8 enable_ack_payload_calls;
 static stc8h_u8 enter_tx_calls;
 static stc8h_u8 flush_rx_calls;
 static stc8h_u8 clear_irq_calls;
+static stc8h_u8 read_payload_calls;
+static stc8h_u8 read_status_value;
+static stc8h_u8 fifo_status_value;
+static stc8h_u8 payload_width;
 
 static void reset_stubs(void)
 {
@@ -20,6 +24,10 @@ static void reset_stubs(void)
     enter_tx_calls = 0u;
     flush_rx_calls = 0u;
     clear_irq_calls = 0u;
+    read_payload_calls = 0u;
+    read_status_value = 0u;
+    fifo_status_value = DRV_NRF24L01_FIFO_RX_EMPTY;
+    payload_width = 0u;
 }
 
 void drv_nrf24l01_init_pins(void) { }
@@ -66,12 +74,17 @@ stc8h_u8 drv_nrf24l01_write_payload(const stc8h_u8 *data, stc8h_u8 len)
     return 0u;
 }
 void drv_nrf24l01_pulse_ce(void) { }
-stc8h_u8 drv_nrf24l01_read_status(void) { return 0u; }
-stc8h_u8 drv_nrf24l01_read_dynamic_payload_size(void) { return 0u; }
+stc8h_u8 drv_nrf24l01_read_status(void) { return read_status_value; }
+stc8h_u8 drv_nrf24l01_read_fifo_status(void) { return fifo_status_value; }
+stc8h_u8 drv_nrf24l01_read_dynamic_payload_size(void) { return payload_width; }
 stc8h_u8 drv_nrf24l01_read_payload(stc8h_u8 *data, stc8h_u8 len)
 {
-    (void)data;
-    (void)len;
+    stc8h_u8 i;
+
+    ++read_payload_calls;
+    for (i = 0u; i < len; ++i) {
+        data[i] = (stc8h_u8)(i + 1u);
+    }
     return 0u;
 }
 
@@ -119,11 +132,27 @@ static void test_set_channel_stays_in_existing_tx_mode(void)
     assert(enter_tx_calls == 0u);
 }
 
+static void test_send_reads_ack_payload_when_rx_ready_lags_fifo(void)
+{
+    stc8h_u8 packet[APP_RADIO_PACKET_SIZE] = {0u};
+
+    reset_stubs();
+    read_status_value = DRV_NRF24L01_STATUS_TX_DONE;
+    fifo_status_value = DRV_NRF24L01_FIFO_TX_EMPTY;
+    payload_width = APP_RADIO_STATUS_ACK_SIZE;
+
+    assert(app_radio_send_packet_with_ack(packet) == APP_RADIO_TX_ACK_PAYLOAD_OK);
+    assert(app_radio_ack_len == APP_RADIO_STATUS_ACK_SIZE);
+    assert(app_radio_ack_packet[0] == 1u);
+    assert(read_payload_calls == 1u);
+}
+
 int main(void)
 {
     test_init_fails_when_radio_absent();
     test_init_fails_when_ack_payload_enable_fails();
     test_init_enters_tx_after_required_checks();
     test_set_channel_stays_in_existing_tx_mode();
+    test_send_reads_ack_payload_when_rx_ready_lags_fifo();
     return 0;
 }

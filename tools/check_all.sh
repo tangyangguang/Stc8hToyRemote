@@ -41,6 +41,7 @@ cc -std=c99 -Wall -Wextra \
 
 python3 "$ROOT_DIR/tests/check_firmware_size_test.py"
 python3 "$ROOT_DIR/tests/controller_scan_source_test.py"
+python3 "$ROOT_DIR/tests/controller_radio_tx_result_source_test.py"
 
 sdcc -mmcs51 --std-c99 \
     -DAPP_OUTPUT_FAST_PWM_PERIOD=655u \
