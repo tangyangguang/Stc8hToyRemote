@@ -11,16 +11,16 @@
 - host C 单元测试。
 - `proto_rf_link` 集成测试。
 - controller 和 receiver 正常固件构建。
-- 固件尺寸阈值检查。
+- 固件尺寸和 internal RAM 余量阈值检查。
 - controller/receiver 诊断固件构建。
 - 关键 ISR 和 nRF24 pin codegen 检查。
 
-固件尺寸：
+固件资源基线：
 
-| 固件 | 大小 | 阈值 |
-| --- | --- | --- |
-| controller | 7788/8192 | <= 7950 |
-| receiver | 6902/8192 | <= 6904 |
+| 固件 | Flash | Flash 阈值 | Stack 可用 | 最大连续 internal RAM |
+| --- | --- | --- | --- | --- |
+| controller | 7788/8192 | <= 7950 | >= 135 bytes | >= 0 bytes |
+| receiver | 6902/8192 | <= 6904 | >= 145 bytes | >= 2 bytes |
 
 ## 单独构建
 
@@ -41,8 +41,7 @@ pio run
 期望：
 
 - 编译和链接通过。
-- flash 不超过阈值。
-- 不出现 DSEG/OSEG 连续空间不足。
+- flash、stack 可用空间和最大连续 internal RAM 不低于阈值。
 
 ## 烧录
 

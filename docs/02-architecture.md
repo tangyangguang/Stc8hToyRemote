@@ -78,5 +78,5 @@ receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 
 
 - 不复制基础库代码，不在应用层绕开已确认属于基础库的问题。
 - 不为旧 API 或旧 EEPROM 布局保留兼容负担。
-- 新增功能必须同时评估 controller 和 receiver flash 余量。
+- 新增功能必须同时评估 controller 和 receiver flash、stack 可用空间和最大连续 internal RAM 余量。
 - 无线 payload 必须按字节手工打包，不直接发送 C struct。

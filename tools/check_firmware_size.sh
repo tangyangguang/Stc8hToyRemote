@@ -3,35 +3,21 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
+(cd "$ROOT_DIR/controller" && pio run >/dev/null)
+(cd "$ROOT_DIR/receiver" && pio run >/dev/null)
+
 check_one() {
     name=$1
     map_file=$2
     limit=$3
     target=$4
+    min_stack=$5
+    min_spare_internal_ram=$6
 
     mem_file=${map_file%.map}.mem
-    used=$(python3 - "$mem_file" <<'PY'
-import sys
-
-with open(sys.argv[1], "r", encoding="utf-8", errors="ignore") as fh:
-    for line in fh:
-        if "ROM/EPROM/FLASH" in line:
-            print(int(line.split()[3]))
-            break
-    else:
-        raise SystemExit("ROM/EPROM/FLASH line not found")
-PY
-)
-    printf '%s flash: %s/%s target<=%s\n' "$name" "$used" "$limit" "$target"
-    if [ "$used" -gt "$limit" ]; then
-        echo "$name exceeds hard limit" >&2
-        exit 1
-    fi
-    if [ "$used" -gt "$target" ]; then
-        echo "$name exceeds target" >&2
-        exit 1
-    fi
+    python3 "$ROOT_DIR/tools/check_firmware_size.py" \
+        "$name" "$mem_file" "$limit" "$target" "$min_stack" "$min_spare_internal_ram"
 }
 
-check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7950
-check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6904
+check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7950 135 0
+check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6904 145 2

@@ -61,7 +61,7 @@ tools/       检查、尺寸和烧录辅助脚本
 (cd receiver && pio run)
 ```
 
-尺寸阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash，新增功能必须先确认 controller 和 receiver 均不过界。
+资源阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash 和紧张的 internal RAM，新增功能必须先确认 controller 和 receiver 的 flash、stack 可用空间和最大连续 internal RAM 均不过界。
 
 ## 烧录
 
