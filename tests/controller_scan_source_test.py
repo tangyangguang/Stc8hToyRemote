@@ -7,9 +7,8 @@ SOURCE = ROOT / "controller" / "src" / "main.c"
 INPUT_SOURCE = ROOT / "controller" / "src" / "app_input.c"
 
 
-def function_body(source: str, name: str) -> str:
-    marker = f"{name}(void)"
-    start = source.rindex("static ", 0, source.index(marker))
+def body_from_marker(source: str, marker: str) -> str:
+    start = source.index(marker)
     brace = source.index("{", start)
     depth = 0
     for pos in range(brace, len(source)):
@@ -19,7 +18,13 @@ def function_body(source: str, name: str) -> str:
             depth -= 1
             if depth == 0:
                 return source[brace + 1:pos]
-    raise AssertionError(f"{name} body not found")
+    raise AssertionError(f"{marker} body not found")
+
+
+def function_body(source: str, name: str) -> str:
+    marker = f"{name}(void)"
+    start = source.rindex("static ", 0, source.index(marker))
+    return body_from_marker(source, source[start:source.index("{", start)].strip())
 
 
 def main() -> None:
@@ -30,7 +35,7 @@ def main() -> None:
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
     assert "#define APP_BUTTON_DOUBLE_TICKS 600u" in source
     assert "#define APP_LOOP_INTERVAL_MS 20u" in source
-    assert "#define APP_INPUT_ADC_DIVIDER 1u" in input_source
+    assert "APP_INPUT_ADC_DIVIDER" not in input_source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
 
     send_body = function_body(source, "send_control_packet")
@@ -39,14 +44,19 @@ def main() -> None:
     ui_body = function_body(source, "run_ui_slice")
     enter_config_body = function_body(source, "enter_config_mode")
     exit_config_body = function_body(source, "exit_config_mode_save")
+    input_update_body = body_from_marker(input_source, "stc8h_s16 app_input_update(toy_remote_control_t *control)")
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
+    assert "app_input_update_speed(&control);" in send_body
     assert "app_input_update_discrete(&control);" in send_body
     assert "app_input_update_steering(&control);" in send_body
+    assert send_body.index("app_input_update_speed(&control);") < send_body.index("app_input_update_discrete(&control);")
     assert send_body.index("app_input_update_discrete(&control);") < send_body.index("make_control_packet();")
     assert send_body.index("app_input_update_steering(&control);") < send_body.index("make_control_packet();")
+    assert "stc8h_s16 app_input_update_speed(toy_remote_control_t *control)" in input_source
     assert "void app_input_update_discrete(toy_remote_control_t *control)" in input_source
+    assert "app_input_update_steering(control);" not in input_update_body
     assert "for (i = 0u; i < 2u; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body
     assert "if (result == 2u)" in probe_body

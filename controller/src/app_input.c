@@ -10,7 +10,6 @@
 #define APP_INPUT_DIAG_DISPLAY 0
 #endif
 
-#define APP_INPUT_ADC_DIVIDER 1u
 #define APP_INPUT_P3_BUTTON_MASK (TOY_REMOTE_TX_BRAKE_MASK | TOY_REMOTE_TX_FN_MASK | \
                                   TOY_REMOTE_TX_BUZZER_MASK | TOY_REMOTE_TX_LIGHT_MASK | \
                                   TOY_REMOTE_TX_DIR_MASK)
@@ -21,7 +20,6 @@ static volatile STC8H_XDATA stc8h_u16 speed_encoder_tick_half_ms;
 static volatile STC8H_XDATA stc8h_u16 speed_encoder_last_step_tick_half_ms;
 static volatile stc8h_u8 speed_encoder_step_tick_valid;
 static volatile stc8h_u8 speed_encoder_accel_enabled;
-static stc8h_u8 adc_divider;
 
 void app_input_init(toy_remote_control_t *control)
 {
@@ -107,6 +105,15 @@ stc8h_u16 app_input_tick_half_ms(void)
 stc8h_s16 app_input_update(toy_remote_control_t *control)
 {
     stc8h_s16 delta;
+
+    delta = app_input_update_speed(control);
+    app_input_update_discrete(control);
+    return delta;
+}
+
+stc8h_s16 app_input_update_speed(toy_remote_control_t *control)
+{
+    stc8h_s16 delta;
     stc8h_s16 speed;
 
     EA = 0;
@@ -125,13 +132,6 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
         }
     }
 
-    app_input_update_discrete(control);
-
-    ++adc_divider;
-    if (adc_divider >= APP_INPUT_ADC_DIVIDER) {
-        adc_divider = 0u;
-        app_input_update_steering(control);
-    }
     return delta;
 }
 
