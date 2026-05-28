@@ -9,7 +9,7 @@ STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构
 - receiver 接收控制包，驱动 AT8236 电机、舵机、灯、蜂鸣器和辅助 PWM。
 - nRF24L01 使用固定地址 `TOYR1`、默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
 - receiver 未绑定时绑定第一台合法 `tx_id` 的 controller；已绑定后拒绝其他 `tx_id`。
-- receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机回中。
+- receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机保持最后角度。
 - controller 丢链后显示 `Lxxx` 并锁定该频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 ## 目录

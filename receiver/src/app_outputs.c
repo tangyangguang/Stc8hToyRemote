@@ -14,7 +14,9 @@ static void app_outputs_write_pwm(stc8h_u16 servo, stc8h_u16 aux, stc8h_u16 fwd,
 
 void app_outputs_apply_safe(void)
 {
-    app_outputs_write_pwm(APP_OUTPUT_SERVO_CENTER_DUTY, 0u, 0u, 0u);
+    stc8h_pwm_set_duty_b6(0u);
+    stc8h_pwm_set_duty_b7(0u);
+    stc8h_pwm_set_duty_b8(0u);
     TOY_REMOTE_RX_MOTOR_STOP();
     TOY_REMOTE_RX_LIGHT_OFF();
     TOY_REMOTE_RX_BUZZER_OFF();

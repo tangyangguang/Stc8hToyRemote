@@ -96,7 +96,7 @@ receiver：
 - 前进时 P3.3/PWM7 输出，P3.4/PWM8 为 0。
 - 后退时 P3.4/PWM8 输出，P3.3/PWM7 为 0。
 - 刹车时 P3.3/PWM7 和 P3.4/PWM8 同时 100%。
-- 掉线后 AT8236 duty、灯、蜂鸣器和辅助 PWM 均关闭，舵机回中。
+- 掉线后 AT8236 duty、灯、蜂鸣器和辅助 PWM 均关闭，舵机保持最后角度。
 - AT8236 PWM-B 频率默认约 20.03kHz；若修改 `APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD`，需重新核对低速起步、噪声和温升。
 
 ## 诊断固件

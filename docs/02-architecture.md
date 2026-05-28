@@ -70,7 +70,7 @@ receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 
 
 - AT8236 电机只由 `P3.3/PWM7` 和 `P3.4/PWM8` 控制。
 - `P5.4/PWM6` 是保留辅助 PWM，来自 `aux_pwm` 字段；与 AT8236 共用 PWM-B 频率，controller 默认发送 `0`，所以默认关闭。
-- 舵机使用 `P1.0/PWM1P`，50Hz，安全态回中。
+- 舵机使用 `P1.0/PWM1P`，50Hz，receiver 安全态不改写舵机 PWM，保持最后角度。
 - 灯光和蜂鸣器低电平有效，安全态关闭。
 - receiver LED 高电平亮，用于生命周期状态提示。
 

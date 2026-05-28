@@ -44,6 +44,7 @@ python3 "$ROOT_DIR/tests/controller_config_source_test.py"
 python3 "$ROOT_DIR/tests/controller_scan_source_test.py"
 python3 "$ROOT_DIR/tests/controller_radio_tx_result_source_test.py"
 python3 "$ROOT_DIR/tests/receiver_link_timeout_source_test.py"
+python3 "$ROOT_DIR/tests/receiver_safe_state_source_test.py"
 
 sdcc -mmcs51 --std-c99 \
     -DAPP_OUTPUT_FAST_PWM_PERIOD=655u \

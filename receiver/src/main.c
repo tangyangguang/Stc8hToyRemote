@@ -109,7 +109,6 @@ static void apply_safe_state(void)
     control.direction = TOY_REMOTE_DIRECTION_FORWARD;
     control.speed = 0u;
     control.brake = 0u;
-    control.steering_angle = TOY_REMOTE_STEERING_CENTER;
     control.light = 0u;
     control.buzzer = 0u;
     control.aux_pwm = 0u;

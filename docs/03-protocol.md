@@ -126,4 +126,4 @@ request_voltage  0
 tx_id            0
 ```
 
-receiver 进入安全状态时，输出层会把 AT8236 duty、灯、蜂鸣器和辅助 PWM 清零，并让舵机回中。
+receiver 进入安全状态时，输出层会把 AT8236 duty、灯、蜂鸣器和辅助 PWM 清零；舵机 PWM 不改写，保持最后角度。上面的安全控制基线仍用于构造中性的控制数据，不代表 receiver 丢控时强制回中。
