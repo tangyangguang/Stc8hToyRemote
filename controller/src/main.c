@@ -266,7 +266,6 @@ static void enter_config_mode(void)
     config_mode = 1u;
     config_draft = config;
     app_input_set_speed_accel_enabled(0u);
-    app_button_init(&ec11_button);
     config_item = APP_CONFIG_ITEM_DIRECTION_REVERSE;
     control.speed = 0u;
     control.brake = 1u;
@@ -293,7 +292,6 @@ static void exit_config_mode_save(void)
     config_mode = 0u;
     app_state = APP_STATE_CONNECTED;
     app_input_set_speed_accel_enabled(1u);
-    app_button_init(&ec11_button);
 }
 
 static void handle_config_mode(stc8h_s16 delta, app_button_event_t button_event)

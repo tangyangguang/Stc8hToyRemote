@@ -78,6 +78,20 @@ static void test_zero_double_window_emits_short_on_release(void)
     assert(app_button_update(&button, 0u, 300u, 0u) == APP_BUTTON_EVENT_SHORT);
 }
 
+static void test_long_press_state_waits_for_release_across_mode_switch(void)
+{
+    app_button_t button;
+
+    app_button_init(&button);
+
+    assert(update_many(&button, 1u, 499u, 500u, 30u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update(&button, 1u, 500u, 30u) == APP_BUTTON_EVENT_LONG);
+    assert(update_many(&button, 1u, 350u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update(&button, 0u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(update_many(&button, 1u, 299u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update(&button, 1u, 300u, 0u) == APP_BUTTON_EVENT_LONG);
+}
+
 int main(void)
 {
     test_short_press_emits_after_double_window();
@@ -85,5 +99,6 @@ int main(void)
     test_long_press_5s_emits_once_without_release();
     test_long_press_3s_emits_once_without_release();
     test_zero_double_window_emits_short_on_release();
+    test_long_press_state_waits_for_release_across_mode_switch();
     return 0;
 }

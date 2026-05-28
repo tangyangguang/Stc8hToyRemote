@@ -28,6 +28,8 @@ def main() -> None:
     send_body = function_body(source, "send_control_packet")
     probe_body = function_body(source, "probe_current_channel")
     scan_body = function_body(source, "scan_channels")
+    enter_config_body = function_body(source, "enter_config_mode")
+    exit_config_body = function_body(source, "exit_config_mode_save")
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
@@ -48,6 +50,8 @@ def main() -> None:
     assert "((channel & 0x03u) != 0u)" not in scan_body
 
     assert "app_button_update(&ec11_button" in source
+    assert "app_button_init(&ec11_button)" not in enter_config_body
+    assert "app_button_init(&ec11_button)" not in exit_config_body
 
 
 if __name__ == "__main__":
