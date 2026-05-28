@@ -54,6 +54,7 @@ static stc8h_u8 display_dirty;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_divider;
 static stc8h_u8 show_rx_voltage;
+static stc8h_u8 voltage_display_active;
 static stc8h_u8 current_channel;
 static stc8h_u8 radio_failures;
 static stc8h_u8 app_state;
@@ -85,6 +86,7 @@ static stc8h_u8 config_item;
 #define APP_LOOP_INTERVAL_MS 20u
 #define APP_UI_UPDATE_MS 10u
 #define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
+#define APP_VOLTAGE_DISPLAY_TICKS 100u
 #define APP_TIMER0_ENCODER_RELOAD 0xFE33u
 #define APP_AUXR_T0_1T 0x80u
 #define APP_INTCLKO_T0CLKO 0x01u
@@ -513,11 +515,19 @@ static void update_voltage_display(void)
     if (control.request_voltage == 0u) {
         voltage_display_divider = 0u;
         show_rx_voltage = 0u;
+        voltage_display_active = 0u;
         return;
     }
 
+    if (voltage_display_active == 0u) {
+        voltage_display_active = 1u;
+        voltage_display_divider = 0u;
+        show_rx_voltage = 0u;
+        tx_battery_centivolts = app_input_read_tx_battery_centivolts();
+    }
+
     ++voltage_display_divider;
-    if (voltage_display_divider >= 10u) {
+    if (voltage_display_divider >= APP_VOLTAGE_DISPLAY_TICKS) {
         voltage_display_divider = 0u;
         show_rx_voltage = (show_rx_voltage == 0u) ? 1u : 0u;
         if (show_rx_voltage == 0u) {
@@ -569,12 +579,12 @@ static void run_ui_slice(void)
             scan_requested = 1u;
         }
 
-        if (app_state == APP_STATE_TRY_SAVED) {
+        if (control.request_voltage != 0u) {
+            update_voltage_display();
+        } else if (app_state == APP_STATE_TRY_SAVED) {
             display_state_channel(APP_DISPLAY_C);
         } else if (app_state == APP_STATE_LOST) {
             display_state_channel(APP_DISPLAY_L);
-        } else if ((app_state == APP_STATE_CONNECTED) && (control.request_voltage != 0u)) {
-            update_voltage_display();
         } else if (app_state == APP_STATE_CONNECTED) {
             display_control();
         }
