@@ -110,6 +110,27 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/controller_steering_step_test.c" \
+    -o /tmp/controller_steering_step_test
+/tmp/controller_steering_step_test
+
+cc -std=c99 -Wall -Wextra \
+    -DAPP_STEERING_MIN_STEP_DEGREES=3u \
+    -DAPP_STEERING_STEP_EXPECTED_DEFAULT=3u \
+    -DAPP_STEERING_STEP_EXPECTED_SMALL_MOVE=90u \
+    -DAPP_STEERING_STEP_EXPECTED_EDGE_MOVE=90u \
+    -DAPP_STEERING_STEP_EXPECTED_LARGE_MOVE=93u \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/controller_steering_step_test.c" \
+    -o /tmp/controller_steering_step_test_step3
+/tmp/controller_steering_step_test_step3
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_radio_config_test.c" \
     -o /tmp/controller_radio_config_test

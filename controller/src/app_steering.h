@@ -4,6 +4,30 @@
 #include "app_config.h"
 #include "toy_remote_protocol.h"
 
+#ifndef APP_STEERING_MIN_STEP_DEGREES
+#define APP_STEERING_MIN_STEP_DEGREES 1u
+#endif
+
+#if (APP_STEERING_MIN_STEP_DEGREES < 1u) || \
+    (APP_STEERING_MIN_STEP_DEGREES > TOY_REMOTE_STEERING_MAX)
+#error "APP_STEERING_MIN_STEP_DEGREES must be 1..180"
+#endif
+
+#if APP_STEERING_MIN_STEP_DEGREES <= 1u
+#define app_steering_apply_min_step(last_angle, next_angle) ((stc8h_u8)(next_angle))
+#else
+static stc8h_u8 app_steering_apply_min_step(stc8h_u8 last_angle, stc8h_u8 next_angle)
+{
+    stc8h_u8 diff;
+
+    diff = (next_angle > last_angle) ?
+        (stc8h_u8)(next_angle - last_angle) :
+        (stc8h_u8)(last_angle - next_angle);
+
+    return (diff < APP_STEERING_MIN_STEP_DEGREES) ? last_angle : next_angle;
+}
+#endif
+
 static stc8h_u8 app_steering_apply_config(stc8h_u8 raw_angle,
                                           stc8h_u8 flags,
                                           stc8h_s8 steering_trim,

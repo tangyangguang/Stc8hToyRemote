@@ -42,6 +42,9 @@
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
 static STC8H_XDATA toy_remote_control_t control;
+#if APP_STEERING_MIN_STEP_DEGREES > 1u
+static stc8h_u8 steering_output_angle = TOY_REMOTE_STEERING_CENTER;
+#endif
 static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
@@ -357,6 +360,7 @@ static void make_control_packet(void)
     stc8h_s8 steering_trim;
     stc8h_u8 steering_deadband;
     stc8h_u8 steering_reduce;
+    stc8h_u8 steering_angle;
 
     flags = config.flags;
     steering_trim = config.steering_trim;
@@ -373,8 +377,13 @@ static void make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = direction;
     payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
     payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
-    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] =
+    steering_angle =
         app_steering_apply_config(control.steering_angle, flags, steering_trim, steering_deadband, steering_reduce);
+#if APP_STEERING_MIN_STEP_DEGREES > 1u
+    steering_angle = app_steering_apply_min_step(steering_output_angle, steering_angle);
+    steering_output_angle = steering_angle;
+#endif
+    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = steering_angle;
     payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
