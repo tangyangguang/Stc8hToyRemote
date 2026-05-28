@@ -10,7 +10,7 @@
 #define APP_INPUT_DIAG_DISPLAY 0
 #endif
 
-#define APP_INPUT_ADC_DIVIDER 16u
+#define APP_INPUT_ADC_DIVIDER 1u
 #define APP_INPUT_P3_BUTTON_MASK (TOY_REMOTE_TX_BRAKE_MASK | TOY_REMOTE_TX_FN_MASK | \
                                   TOY_REMOTE_TX_BUZZER_MASK | TOY_REMOTE_TX_LIGHT_MASK | \
                                   TOY_REMOTE_TX_DIR_MASK)
@@ -142,17 +142,24 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     ++adc_divider;
     if (adc_divider >= APP_INPUT_ADC_DIVIDER) {
         adc_divider = 0u;
-        adc_value = stc8h_adc_read(TOY_REMOTE_TX_ADC_STEERING_CHANNEL);
-        if (adc_value != STC8H_ADC_INVALID_VALUE) {
-            if (adc_value > TOY_REMOTE_STEERING_ADC_MAX) {
-                adc_value = TOY_REMOTE_STEERING_ADC_MAX;
-            }
-            adc_value = (stc8h_u16)(((adc_value * 45u) + 128u) >> 8);
-            control->steering_angle = (adc_value > TOY_REMOTE_STEERING_MAX) ?
-                TOY_REMOTE_STEERING_MAX : (stc8h_u8)adc_value;
-        }
+        app_input_update_steering(control);
     }
     return delta;
+}
+
+void app_input_update_steering(toy_remote_control_t *control)
+{
+    stc8h_u16 adc_value;
+
+    adc_value = stc8h_adc_read(TOY_REMOTE_TX_ADC_STEERING_CHANNEL);
+    if (adc_value != STC8H_ADC_INVALID_VALUE) {
+        if (adc_value > TOY_REMOTE_STEERING_ADC_MAX) {
+            adc_value = TOY_REMOTE_STEERING_ADC_MAX;
+        }
+        adc_value = (stc8h_u16)(((adc_value * 45u) + 128u) >> 8);
+        control->steering_angle = (adc_value > TOY_REMOTE_STEERING_MAX) ?
+            TOY_REMOTE_STEERING_MAX : (stc8h_u8)adc_value;
+    }
 }
 
 stc8h_u16 app_input_read_tx_battery_centivolts(void)

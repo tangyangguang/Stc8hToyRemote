@@ -42,6 +42,7 @@ cc -std=c99 -Wall -Wextra \
 python3 "$ROOT_DIR/tests/check_firmware_size_test.py"
 python3 "$ROOT_DIR/tests/controller_scan_source_test.py"
 python3 "$ROOT_DIR/tests/controller_radio_tx_result_source_test.py"
+python3 "$ROOT_DIR/tests/receiver_link_timeout_source_test.py"
 
 sdcc -mmcs51 --std-c99 \
     -DAPP_OUTPUT_FAST_PWM_PERIOD=655u \
@@ -83,10 +84,19 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/shared" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_display_test.c" \
     -o /tmp/controller_display_test
 /tmp/controller_display_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/controller/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/controller_steering_config_test.c" \
+    -o /tmp/controller_steering_config_test
+/tmp/controller_steering_config_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \

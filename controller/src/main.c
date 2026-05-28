@@ -5,6 +5,7 @@
 #include "app_display.h"
 #include "app_input.h"
 #include "app_radio.h"
+#include "app_steering.h"
 #include "board_pins.h"
 #include "drv_nrf24l01.h"
 #include "drv_tm1637.h"
@@ -76,7 +77,7 @@ static stc8h_u8 config_item;
 #define APP_BUTTON_DOUBLE_TICKS 600u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
-#define APP_LOOP_INTERVAL_MS 50u
+#define APP_LOOP_INTERVAL_MS 20u
 #define APP_UI_UPDATE_MS 10u
 #define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
 #define APP_TIMER0_ENCODER_RELOAD 0xFE33u
@@ -333,30 +334,33 @@ static void handle_config_mode(stc8h_s16 delta, app_button_event_t button_event)
 
 static void make_control_packet(void)
 {
-    stc8h_s16 angle;
     stc8h_u8 direction;
+    stc8h_u8 flags;
+    stc8h_u8 steering_middle;
+    stc8h_u8 steering_reduce;
+
+    if (config_mode != 0u) {
+        flags = config_draft.flags;
+        steering_middle = config_draft.steering_middle;
+        steering_reduce = config_draft.steering_reduce;
+    } else {
+        flags = config.flags;
+        steering_middle = config.steering_middle;
+        steering_reduce = config.steering_reduce;
+    }
 
     control.tx_id = config.tx_id;
     direction = control.direction;
-    if ((((config_mode != 0u) ? config_draft.flags : config.flags) & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) {
+    if ((flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) {
         direction = (direction == 0u) ? 1u : 0u;
-    }
-    angle = (stc8h_s16)control.steering_angle;
-    if ((((config_mode != 0u) ? config_draft.flags : config.flags) & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
-        angle = (stc8h_s16)(180 - angle);
-    }
-    angle = (stc8h_s16)(angle + ((stc8h_s16)((config_mode != 0u) ? config_draft.steering_middle : config.steering_middle) << 1) - 90);
-    if (angle < (stc8h_s16)((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce)) {
-        angle = (stc8h_s16)((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce);
-    } else if (angle > (stc8h_s16)(180 - ((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce))) {
-        angle = (stc8h_s16)(180 - ((config_mode != 0u) ? config_draft.steering_reduce : config.steering_reduce));
     }
 
     payload[TOY_REMOTE_CONTROL_OFFSET_VERSION] = TOY_REMOTE_PROTOCOL_VERSION;
     payload[TOY_REMOTE_CONTROL_OFFSET_DIRECTION] = direction;
     payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
     payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
-    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] = (stc8h_u8)angle;
+    payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] =
+        app_steering_apply_config(control.steering_angle, flags, steering_middle, steering_reduce);
     payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
@@ -410,6 +414,7 @@ static stc8h_u8 send_control_packet(void)
 {
     app_radio_tx_result_t result;
 
+    app_input_update_steering(&control);
     make_control_packet();
     result = app_radio_send_packet_with_ack(packet);
     if (result == APP_RADIO_TX_ACK_PAYLOAD_OK) {

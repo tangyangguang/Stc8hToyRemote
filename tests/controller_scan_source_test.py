@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "controller" / "src" / "main.c"
+INPUT_SOURCE = ROOT / "controller" / "src" / "app_input.c"
 
 
 def function_body(source: str, name: str) -> str:
@@ -23,10 +24,13 @@ def function_body(source: str, name: str) -> str:
 
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    input_source = INPUT_SOURCE.read_text(encoding="utf-8")
     assert "#define APP_BUTTON_RELEASE_TICKS 100u" in source
     assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
     assert "#define APP_BUTTON_DOUBLE_TICKS 600u" in source
+    assert "#define APP_LOOP_INTERVAL_MS 20u" in source
+    assert "#define APP_INPUT_ADC_DIVIDER 1u" in input_source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
 
     send_body = function_body(source, "send_control_packet")
@@ -38,6 +42,8 @@ def main() -> None:
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
+    assert "app_input_update_steering(&control);" in send_body
+    assert send_body.index("app_input_update_steering(&control);") < send_body.index("make_control_packet();")
     assert "for (i = 0u; i < 2u; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body
     assert "if (result == 2u)" in probe_body

@@ -22,7 +22,7 @@ static STC8H_XDATA toy_remote_status_t status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 status_packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[PROTO_RF_LINK_PAYLOAD_MAX];
-static stc8h_u16 idle_polls;
+static stc8h_u16 last_packet_tick;
 static stc8h_u8 radio_error;
 static stc8h_u8 link_lost;
 static stc8h_u8 last_control_seq;
@@ -31,7 +31,7 @@ static stc8h_u8 ch_add_pressed;
 static stc8h_u8 ch_minus_pressed;
 #endif
 
-#define APP_RECEIVER_IDLE_POLL_LIMIT 60000u
+#define APP_RECEIVER_LINK_TIMEOUT_MS 300u
 
 #if APP_RADIO_ENABLE_STATS
 typedef struct {
@@ -245,7 +245,7 @@ static void handle_packet(void)
             }
             last_control_seq = packet[3];
             receiver_stats_track_packet();
-            idle_polls = 0u;
+            last_packet_tick = app_tick_now();
             link_lost = 0u;
             app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, app_tick_now());
             app_outputs_apply_control(&control);
@@ -294,13 +294,16 @@ static void handle_channel_buttons(void)
 
 static void handle_idle_poll(void)
 {
-    if (idle_polls < APP_RECEIVER_IDLE_POLL_LIMIT) {
-        ++idle_polls;
-        if (idle_polls == APP_RECEIVER_IDLE_POLL_LIMIT) {
-            apply_safe_state();
-            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
-            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
-        }
+    stc8h_u16 elapsed_ms;
+
+    if (link_lost != 0u) {
+        return;
+    }
+    elapsed_ms = (stc8h_u16)(app_tick_now() - last_packet_tick);
+    if (elapsed_ms >= APP_RECEIVER_LINK_TIMEOUT_MS) {
+        apply_safe_state();
+        app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
+        prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
     }
 }
 
