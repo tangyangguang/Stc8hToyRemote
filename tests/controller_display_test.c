@@ -119,8 +119,8 @@ static void test_voltage_source_display_uses_prefix_and_dashes(void)
 {
     stc8h_u8 segments[4];
 
-    app_display_source_segments(APP_DISPLAY_T, segments);
-    assert(segments[0] == APP_DISPLAY_T);
+    app_display_source_segments(APP_DISPLAY_C, segments);
+    assert(segments[0] == APP_DISPLAY_C);
     assert(segments[1] == APP_DISPLAY_DASH);
     assert(segments[2] == APP_DISPLAY_DASH);
     assert(segments[3] == APP_DISPLAY_DASH);

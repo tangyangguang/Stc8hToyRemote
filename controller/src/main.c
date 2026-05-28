@@ -52,7 +52,7 @@ static stc8h_u8 display_segments[4];
 static stc8h_u8 display_last_segments[4];
 static stc8h_u8 display_dirty;
 static stc8h_u16 tx_battery_centivolts;
-static stc8h_u8 voltage_display_divider;
+static stc8h_u8 voltage_display_start_128ms;
 static stc8h_u8 show_rx_voltage;
 static stc8h_u8 voltage_display_active;
 static stc8h_u8 current_channel;
@@ -86,8 +86,8 @@ static stc8h_u8 config_item;
 #define APP_LOOP_INTERVAL_MS 20u
 #define APP_UI_UPDATE_MS 10u
 #define APP_UI_UPDATES_PER_LOOP (APP_LOOP_INTERVAL_MS / APP_UI_UPDATE_MS)
-#define APP_VOLTAGE_DISPLAY_TICKS 100u
-#define APP_VOLTAGE_LABEL_TICKS 25u
+#define APP_VOLTAGE_DISPLAY_128MS_TICKS 8u
+#define APP_VOLTAGE_LABEL_128MS_TICKS 2u
 #define APP_TIMER0_ENCODER_RELOAD 0xFE33u
 #define APP_AUXR_T0_1T 0x80u
 #define APP_INTCLKO_T0CLKO 0x01u
@@ -240,19 +240,6 @@ static void display_voltage(stc8h_u16 value)
         display_segments[1] |= APP_DISPLAY_COLON;
     }
     display_commit_raw4();
-}
-
-static void display_voltage_source(stc8h_u8 source)
-{
-    app_display_source_segments(source, display_segments);
-    display_commit_raw4();
-}
-
-static void reset_voltage_display(void)
-{
-    voltage_display_divider = 0u;
-    show_rx_voltage = 0u;
-    voltage_display_active = 0u;
 }
 
 static void display_config(void)
@@ -524,36 +511,39 @@ static void scan_channels(void)
     }
 }
 
-static void update_voltage_display(void)
+static void update_voltage_display(stc8h_u16 now_half_ms)
 {
+    stc8h_u8 now_128ms;
+    stc8h_u8 elapsed_128ms;
+
+    now_128ms = (stc8h_u8)(now_half_ms >> 8);
+
     if (voltage_display_active == 0u) {
         voltage_display_active = 1u;
-        voltage_display_divider = 0u;
+        voltage_display_start_128ms = now_128ms;
         show_rx_voltage = 0u;
         tx_battery_centivolts = app_input_read_tx_battery_centivolts();
     }
 
-    if (voltage_display_divider < APP_VOLTAGE_LABEL_TICKS) {
-        if (show_rx_voltage != 0u) {
-            display_voltage_source(APP_DISPLAY_R);
-        } else {
-            display_voltage_source(APP_DISPLAY_T);
-        }
-    } else if (show_rx_voltage != 0u) {
-        display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
-    } else {
-        display_voltage(tx_battery_centivolts);
-    }
-
-    ++voltage_display_divider;
-    if (voltage_display_divider >= APP_VOLTAGE_DISPLAY_TICKS) {
-        voltage_display_divider = 0u;
+    elapsed_128ms = (stc8h_u8)(now_128ms - voltage_display_start_128ms);
+    if (elapsed_128ms >= APP_VOLTAGE_DISPLAY_128MS_TICKS) {
+        voltage_display_start_128ms = now_128ms;
+        elapsed_128ms = 0u;
         if (show_rx_voltage != 0u) {
             show_rx_voltage = 0u;
             tx_battery_centivolts = app_input_read_tx_battery_centivolts();
         } else {
             show_rx_voltage = 1u;
         }
+    }
+
+    if (elapsed_128ms < APP_VOLTAGE_LABEL_128MS_TICKS) {
+        app_display_source_segments((show_rx_voltage != 0u) ? APP_DISPLAY_R : APP_DISPLAY_C, display_segments);
+        display_commit_raw4();
+    } else if (show_rx_voltage != 0u) {
+        display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
+    } else {
+        display_voltage(tx_battery_centivolts);
     }
 }
 
@@ -595,9 +585,9 @@ static void run_ui_slice(void)
         }
 
         if (control.request_voltage != 0u) {
-            update_voltage_display();
+            update_voltage_display(ui_tick_half_ms);
         } else {
-            reset_voltage_display();
+            voltage_display_active = 0u;
             if (app_state == APP_STATE_TRY_SAVED) {
                 display_state_channel(APP_DISPLAY_C);
             } else if (app_state == APP_STATE_LOST) {
