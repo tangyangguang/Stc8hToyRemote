@@ -10,6 +10,7 @@
 #include "stc8h_sfr.h"
 #include "stc8h_spi.h"
 #include "stc8h_timer.h"
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_VALUE 0
 #include "toy_remote_channels.h"
 #include "toy_remote_protocol.h"
 

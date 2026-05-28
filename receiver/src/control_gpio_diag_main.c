@@ -26,15 +26,15 @@ static void control_gpio_diag_stop(void)
 
 static void control_gpio_diag_forward(void)
 {
-    P3 |= TOY_REMOTE_RX_MOTOR_IN1_MASK;
-    P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN2_MASK;
+    TOY_REMOTE_RX_MOTOR_IN1_BIT = 1;
+    TOY_REMOTE_RX_MOTOR_IN2_BIT = 0;
     TOY_REMOTE_RX_LED_ON();
 }
 
 static void control_gpio_diag_reverse(void)
 {
-    P3 &= (stc8h_u8)~TOY_REMOTE_RX_MOTOR_IN1_MASK;
-    P3 |= TOY_REMOTE_RX_MOTOR_IN2_MASK;
+    TOY_REMOTE_RX_MOTOR_IN1_BIT = 0;
+    TOY_REMOTE_RX_MOTOR_IN2_BIT = 1;
     TOY_REMOTE_RX_LED_ON();
 }
 

@@ -107,7 +107,7 @@ stc8h_u16 app_input_tick_half_ms(void)
 stc8h_s16 app_input_update(toy_remote_control_t *control)
 {
     stc8h_s16 delta;
-    stc8h_u16 adc_value;
+    stc8h_s16 speed;
 
     EA = 0;
     delta = speed_encoder_delta_accum;
@@ -115,13 +115,13 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     EA = 1;
 
     if (delta != 0) {
-        adc_value = (stc8h_u16)((stc8h_s16)control->speed + delta);
-        if (((stc8h_s16)adc_value) < 0) {
+        speed = (stc8h_s16)((stc8h_s16)control->speed + delta);
+        if (speed < 0) {
             control->speed = 0u;
-        } else if (adc_value > TOY_REMOTE_CONTROL_SPEED_MAX) {
+        } else if (speed > TOY_REMOTE_CONTROL_SPEED_MAX) {
             control->speed = TOY_REMOTE_CONTROL_SPEED_MAX;
         } else {
-            control->speed = (stc8h_u8)adc_value;
+            control->speed = (stc8h_u8)speed;
         }
     }
 

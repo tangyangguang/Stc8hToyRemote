@@ -14,6 +14,8 @@
 #include "stc8h_interrupt.h"
 #include "stc8h_sfr.h"
 #include "stc8h_spi.h"
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_NEXT 0
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_PREV 0
 #include "toy_remote_channels.h"
 #include "toy_remote_protocol.h"
 
