@@ -42,8 +42,11 @@ def main() -> None:
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
+    assert "app_input_update_discrete(&control);" in send_body
     assert "app_input_update_steering(&control);" in send_body
+    assert send_body.index("app_input_update_discrete(&control);") < send_body.index("make_control_packet();")
     assert send_body.index("app_input_update_steering(&control);") < send_body.index("make_control_packet();")
+    assert "void app_input_update_discrete(toy_remote_control_t *control)" in input_source
     assert "for (i = 0u; i < 2u; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body
     assert "if (result == 2u)" in probe_body

@@ -125,6 +125,18 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
         }
     }
 
+    app_input_update_discrete(control);
+
+    ++adc_divider;
+    if (adc_divider >= APP_INPUT_ADC_DIVIDER) {
+        adc_divider = 0u;
+        app_input_update_steering(control);
+    }
+    return delta;
+}
+
+void app_input_update_discrete(toy_remote_control_t *control)
+{
     if (TOY_REMOTE_TX_EC11_SW_ACTIVE() != 0u) {
         control->brake = 1u;
         control->speed = 0u;
@@ -138,13 +150,6 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     control->light = TOY_REMOTE_TX_LIGHT_ACTIVE();
     control->buzzer = TOY_REMOTE_TX_BUZZER_ACTIVE();
     control->request_voltage = TOY_REMOTE_TX_FN_ACTIVE();
-
-    ++adc_divider;
-    if (adc_divider >= APP_INPUT_ADC_DIVIDER) {
-        adc_divider = 0u;
-        app_input_update_steering(control);
-    }
-    return delta;
 }
 
 void app_input_update_steering(toy_remote_control_t *control)

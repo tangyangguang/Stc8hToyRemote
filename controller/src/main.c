@@ -428,6 +428,9 @@ static stc8h_u8 send_control_packet(void)
 {
     app_radio_tx_result_t result;
 
+    if (config_mode == 0u) {
+        app_input_update_discrete(&control);
+    }
     app_input_update_steering(&control);
     make_control_packet();
     result = app_radio_send_packet_with_ack(packet);
