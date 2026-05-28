@@ -115,6 +115,23 @@ static void test_control_display_keeps_zero_speed_digits_while_braking(void)
     assert(segments[3] == app_display_digit(0u));
 }
 
+static void test_voltage_source_display_uses_prefix_and_dashes(void)
+{
+    stc8h_u8 segments[4];
+
+    app_display_source_segments(APP_DISPLAY_T, segments);
+    assert(segments[0] == APP_DISPLAY_T);
+    assert(segments[1] == APP_DISPLAY_DASH);
+    assert(segments[2] == APP_DISPLAY_DASH);
+    assert(segments[3] == APP_DISPLAY_DASH);
+
+    app_display_source_segments(APP_DISPLAY_R, segments);
+    assert(segments[0] == APP_DISPLAY_R);
+    assert(segments[1] == APP_DISPLAY_DASH);
+    assert(segments[2] == APP_DISPLAY_DASH);
+    assert(segments[3] == APP_DISPLAY_DASH);
+}
+
 int main(void)
 {
     test_channel_display_uses_status_prefix_and_three_digits();
@@ -123,5 +140,6 @@ int main(void)
     test_decimal_helpers_format_without_losing_leading_zeroes();
     test_config_display_shows_p_item_colon_value();
     test_control_display_keeps_zero_speed_digits_while_braking();
+    test_voltage_source_display_uses_prefix_and_dashes();
     return 0;
 }

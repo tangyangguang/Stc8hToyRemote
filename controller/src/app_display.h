@@ -12,7 +12,9 @@
 #define APP_DISPLAY_H 0x76u
 #define APP_DISPLAY_L 0x38u
 #define APP_DISPLAY_P 0x73u
+#define APP_DISPLAY_R 0x50u
 #define APP_DISPLAY_S 0x6Du
+#define APP_DISPLAY_T 0x78u
 #define APP_DISPLAY_UP 0x23u
 #define APP_DISPLAY_DOWN 0x1Cu
 #define APP_DISPLAY_COLON 0x80u
@@ -98,6 +100,13 @@ static void app_display_channel_segments(stc8h_u8 channel, stc8h_u8 colon, stc8h
 #define app_display_error_segments(code, segments) do { \
     (segments)[0] = APP_DISPLAY_E; \
     app_display_set_3_digits((code), &(segments)[1]); \
+} while (0)
+
+#define app_display_source_segments(prefix, segments) do { \
+    (segments)[0] = (prefix); \
+    (segments)[1] = APP_DISPLAY_DASH; \
+    (segments)[2] = APP_DISPLAY_DASH; \
+    (segments)[3] = APP_DISPLAY_DASH; \
 } while (0)
 
 #define app_display_config_segments(item, value, segments) do { \
