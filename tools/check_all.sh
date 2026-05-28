@@ -21,6 +21,16 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/hal" \
+    "$ROOT_DIR/tests/receiver_status_test.c" \
+    "$ROOT_DIR/receiver/src/app_status.c" \
+    -o /tmp/receiver_status_test
+/tmp/receiver_status_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_board_pins_test.c" \
     -o /tmp/receiver_board_pins_test

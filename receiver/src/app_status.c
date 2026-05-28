@@ -3,6 +3,8 @@
 #include "stc8h_adc.h"
 
 #define APP_STATUS_VOLTAGE_SAMPLE_DIVIDER 6u
+#define APP_STATUS_VOLTAGE_FULL_SCALE_CENTIVOLTS 1329u
+#define APP_STATUS_ADC_FULL_SCALE_COUNTS 1024u
 
 static stc8h_u8 sample_divider;
 
@@ -22,11 +24,14 @@ static stc8h_u16 app_status_read_rx_battery_centivolts(void)
     }
 
     adc = (stc8h_u16)(sum >> 3);
-    return (stc8h_u16)(adc * 13u);
+    return (stc8h_u16)(((stc8h_u32)adc * APP_STATUS_VOLTAGE_FULL_SCALE_CENTIVOLTS) /
+                       APP_STATUS_ADC_FULL_SCALE_COUNTS);
 }
 
 void app_status_init(toy_remote_status_t *status)
 {
+    P1M0 &= (stc8h_u8)~TOY_REMOTE_RX_ADC_VOLTAGE_MASK;
+    P1M1 |= TOY_REMOTE_RX_ADC_VOLTAGE_MASK;
     stc8h_adc_init();
     sample_divider = 0u;
 
