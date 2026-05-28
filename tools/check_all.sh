@@ -22,6 +22,13 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
+    "$ROOT_DIR/tests/receiver_board_pins_test.c" \
+    -o /tmp/receiver_board_pins_test
+/tmp/receiver_board_pins_test
+
+cc -std=c99 -Wall -Wextra \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
     "$ROOT_DIR/tests/app_outputs_calc_test.c" \
     -o /tmp/app_outputs_calc_test
 /tmp/app_outputs_calc_test
