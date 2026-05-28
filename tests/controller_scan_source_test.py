@@ -44,18 +44,20 @@ def main() -> None:
     ui_body = function_body(source, "run_ui_slice")
     enter_config_body = function_body(source, "enter_config_mode")
     exit_config_body = function_body(source, "exit_config_mode_save")
-    input_update_body = body_from_marker(input_source, "stc8h_s16 app_input_update(toy_remote_control_t *control)")
+    input_update_body = body_from_marker(input_source, "stc8h_s16 app_input_update(STC8H_XDATA toy_remote_control_t *control)")
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
+    assert "rx_status.tx_id" not in source
+    assert "(void)send_control_packet();" not in source
     assert "app_input_update_speed(&control);" in send_body
     assert "app_input_update_discrete(&control);" in send_body
     assert "app_input_update_steering(&control);" in send_body
     assert send_body.index("app_input_update_speed(&control);") < send_body.index("app_input_update_discrete(&control);")
     assert send_body.index("app_input_update_discrete(&control);") < send_body.index("make_control_packet();")
     assert send_body.index("app_input_update_steering(&control);") < send_body.index("make_control_packet();")
-    assert "stc8h_s16 app_input_update_speed(toy_remote_control_t *control)" in input_source
-    assert "void app_input_update_discrete(toy_remote_control_t *control)" in input_source
+    assert "stc8h_s16 app_input_update_speed(STC8H_XDATA toy_remote_control_t *control)" in input_source
+    assert "void app_input_update_discrete(STC8H_XDATA toy_remote_control_t *control)" in input_source
     assert "app_input_update_steering(control);" not in input_update_body
     assert "for (i = 0u; i < 2u; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body

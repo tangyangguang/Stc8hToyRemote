@@ -45,13 +45,13 @@ static STC8H_XDATA toy_remote_control_t control;
 #if APP_STEERING_MIN_STEP_DEGREES > 1u
 static stc8h_u8 steering_output_angle = TOY_REMOTE_STEERING_CENTER;
 #endif
-static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
 static stc8h_u8 display_segments[4];
 static stc8h_u8 display_last_segments[4];
 static stc8h_u8 display_dirty;
 static STC8H_BIT rx_voltage_valid;
+static stc8h_u16 rx_battery_centivolts;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_start_128ms;
 static stc8h_u8 show_rx_voltage;
@@ -431,11 +431,11 @@ static stc8h_u8 handle_ack_status(void)
     }
 
     if (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] != 0u) {
-        rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
-        rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+        rx_battery_centivolts =
+            (stc8h_u16)((stc8h_u16)body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] * 100u +
+                        body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC]);
         rx_voltage_valid = 1u;
     }
-    rx_status.tx_id = config.tx_id;
     return 1u;
 }
 
@@ -465,7 +465,6 @@ static stc8h_u8 probe_current_channel(void)
     stc8h_u8 result;
 
     for (i = 0u; i < 2u; ++i) {
-        rx_status.tx_id = 0u;
         result = send_control_packet();
         if (result == 1u) {
             return 1u;
@@ -482,7 +481,6 @@ static stc8h_u8 scan_one_channel(stc8h_u8 channel)
     app_radio_set_channel(channel);
     current_channel = channel;
     display_state_channel(APP_DISPLAY_S);
-    rx_status.tx_id = 0u;
     if (probe_current_channel() != 0u) {
         if (config.last_channel != channel) {
             config.last_channel = channel;
@@ -551,7 +549,7 @@ static void update_voltage_display(stc8h_u16 now_half_ms)
             app_display_source_segments(APP_DISPLAY_DASH, display_segments);
             display_commit_raw4();
         } else {
-            display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
+            display_voltage(rx_battery_centivolts);
         }
     } else {
         display_voltage(tx_battery_centivolts);
@@ -726,10 +724,9 @@ void main(void)
     }
 
     while (1) {
-        rx_status.tx_id = 0u;
-        (void)send_control_packet();
+        i = send_control_packet();
 
-        if (rx_status.tx_id == config.tx_id) {
+        if (i == 1u) {
             radio_failures = 0u;
             link_warning = 0u;
             if (config_mode == 0u) {

@@ -35,6 +35,8 @@ def main() -> None:
     assert "#define APP_VOLTAGE_LABEL_128MS_TICKS 2u" in source
     assert "static stc8h_u8 voltage_display_active;" in source
     assert "static stc8h_u8 voltage_display_start_128ms;" in source
+    assert "static stc8h_u16 rx_battery_centivolts;" in source
+    assert "static STC8H_XDATA toy_remote_status_t rx_status;" not in source
     assert "static STC8H_BIT rx_voltage_valid;" in source
     assert "static void update_voltage_display(stc8h_u16 now_half_ms)" in source
 
@@ -60,8 +62,7 @@ def main() -> None:
     assert "elapsed_128ms >= APP_VOLTAGE_DISPLAY_128MS_TICKS" in voltage_body
     assert "APP_VOLTAGE_DISPLAY_TICKS" not in source
     assert "APP_VOLTAGE_LABEL_TICKS" not in source
-    assert "rx_status.voltage_int" in voltage_body
-    assert "rx_status.voltage_dec" in voltage_body
+    assert "display_voltage(rx_battery_centivolts);" in voltage_body
     assert "rx_voltage_valid = 1u;" in source
 
 

@@ -21,7 +21,7 @@ static volatile STC8H_XDATA stc8h_u16 speed_encoder_last_step_tick_half_ms;
 static volatile stc8h_u8 speed_encoder_step_tick_valid;
 static volatile stc8h_u8 speed_encoder_accel_enabled;
 
-void app_input_init(toy_remote_control_t *control)
+void app_input_init(STC8H_XDATA toy_remote_control_t *control)
 {
     P1M1 &= (stc8h_u8)~(TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
     P1M0 &= (stc8h_u8)~(TOY_REMOTE_TX_EC11_A_MASK | TOY_REMOTE_TX_EC11_B_MASK);
@@ -102,7 +102,7 @@ stc8h_u16 app_input_tick_half_ms(void)
     return tick;
 }
 
-stc8h_s16 app_input_update(toy_remote_control_t *control)
+stc8h_s16 app_input_update(STC8H_XDATA toy_remote_control_t *control)
 {
     stc8h_s16 delta;
 
@@ -111,7 +111,7 @@ stc8h_s16 app_input_update(toy_remote_control_t *control)
     return delta;
 }
 
-stc8h_s16 app_input_update_speed(toy_remote_control_t *control)
+stc8h_s16 app_input_update_speed(STC8H_XDATA toy_remote_control_t *control)
 {
     stc8h_s16 delta;
     stc8h_s16 speed;
@@ -135,7 +135,7 @@ stc8h_s16 app_input_update_speed(toy_remote_control_t *control)
     return delta;
 }
 
-void app_input_update_discrete(toy_remote_control_t *control)
+void app_input_update_discrete(STC8H_XDATA toy_remote_control_t *control)
 {
     if (TOY_REMOTE_TX_EC11_SW_ACTIVE() != 0u) {
         control->brake = 1u;
@@ -152,7 +152,7 @@ void app_input_update_discrete(toy_remote_control_t *control)
     control->request_voltage = TOY_REMOTE_TX_FN_ACTIVE();
 }
 
-void app_input_update_steering(toy_remote_control_t *control)
+void app_input_update_steering(STC8H_XDATA toy_remote_control_t *control)
 {
     stc8h_u16 adc_value;
 
