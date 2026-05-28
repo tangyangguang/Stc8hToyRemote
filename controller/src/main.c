@@ -1,4 +1,6 @@
 #include "app_config.h"
+#define APP_BUTTON_RELEASE_TICKS 100u
+#define APP_BUTTON_FIXED_LONG_TICKS 10000u
 #include "app_button.h"
 #include "app_display.h"
 #include "app_input.h"
@@ -41,8 +43,8 @@ static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
 static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
-static STC8H_XDATA stc8h_u8 display_segments[4];
-static STC8H_XDATA stc8h_u8 display_last_segments[4];
+static stc8h_u8 display_segments[4];
+static stc8h_u8 display_last_segments[4];
 static stc8h_u8 display_dirty;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_divider;
@@ -55,12 +57,13 @@ static stc8h_u8 link_blink;
 static stc8h_u8 scan_requested;
 static app_button_t ec11_button;
 static stc8h_u8 ec11_button_press_speed;
+static stc8h_u16 ui_last_tick_half_ms;
 #if APP_INPUT_DIAG_DISPLAY
 static stc8h_u8 input_diag_blink;
 static stc8h_u8 input_diag_delta_hold;
 #endif
-static STC8H_XDATA stc8h_u8 config_mode;
-static STC8H_XDATA stc8h_u8 config_item;
+static stc8h_u8 config_mode;
+static stc8h_u8 config_item;
 
 #define APP_CONFIG_ITEM_DIRECTION_REVERSE 1u
 #define APP_CONFIG_ITEM_STEERING_REVERSE 2u
@@ -69,8 +72,8 @@ static STC8H_XDATA stc8h_u8 config_item;
 #define APP_STATE_TRY_SAVED 0u
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
-#define APP_BUTTON_LONG_NORMAL_TICKS 500u
-#define APP_BUTTON_DOUBLE_TICKS 30u
+#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS
+#define APP_BUTTON_DOUBLE_TICKS 600u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 50u
@@ -503,9 +506,14 @@ static void run_ui_slice(void)
 #if !APP_INPUT_DIAG_DISPLAY
     app_button_event_t button_event;
     stc8h_u8 ec11_active;
+    stc8h_u16 ui_tick_half_ms;
+    stc8h_u16 elapsed_ticks;
 #endif
 
 #if !APP_INPUT_DIAG_DISPLAY
+    ui_tick_half_ms = app_input_tick_half_ms();
+    elapsed_ticks = (stc8h_u16)(ui_tick_half_ms - ui_last_tick_half_ms);
+    ui_last_tick_half_ms = ui_tick_half_ms;
     ec11_active = TOY_REMOTE_TX_EC11_SW_ACTIVE();
     if ((config_mode == 0u) && (ec11_active != 0u) && (ec11_button.was_active == 0u)) {
         ec11_button_press_speed = control.speed;
@@ -515,10 +523,10 @@ static void run_ui_slice(void)
 #if APP_INPUT_DIAG_DISPLAY
     display_input_diag(delta);
 #else
-    button_event = app_button_update(&ec11_button,
-                                     ec11_active,
-                                     APP_BUTTON_LONG_NORMAL_TICKS,
-                                     (config_mode != 0u) ? 0u : APP_BUTTON_DOUBLE_TICKS);
+    button_event = app_button_update_elapsed(&ec11_button,
+                                             ec11_active,
+                                             elapsed_ticks,
+                                             (config_mode != 0u) ? 0u : APP_BUTTON_DOUBLE_TICKS);
     if (config_mode != 0u) {
         handle_config_mode(delta, button_event);
     } else {

@@ -112,6 +112,17 @@ static void test_long_press_tolerates_short_inactive_noise(void)
     assert(app_button_update(&button, 1u, 500u, 30u) == APP_BUTTON_EVENT_LONG);
 }
 
+static void test_elapsed_update_counts_blocked_ui_time_once(void)
+{
+    app_button_t button;
+
+    app_button_init(&button);
+
+    assert(app_button_update_elapsed(&button, 1u, 490u, 500u, 30u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update_elapsed(&button, 1u, 15u, 500u, 30u) == APP_BUTTON_EVENT_LONG);
+    assert(app_button_update_elapsed(&button, 1u, 20u, 500u, 30u) == APP_BUTTON_EVENT_NONE);
+}
+
 int main(void)
 {
     test_short_press_emits_after_double_window();
@@ -121,5 +132,6 @@ int main(void)
     test_zero_double_window_emits_short_on_release();
     test_long_press_state_waits_for_release_across_mode_switch();
     test_long_press_tolerates_short_inactive_noise();
+    test_elapsed_update_counts_blocked_ui_time_once();
     return 0;
 }

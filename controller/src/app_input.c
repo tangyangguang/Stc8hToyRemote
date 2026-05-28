@@ -94,6 +94,16 @@ void app_input_encoder_tick_isr(void)
     }
 }
 
+stc8h_u16 app_input_tick_half_ms(void)
+{
+    stc8h_u16 tick;
+
+    EA = 0;
+    tick = speed_encoder_tick_half_ms;
+    EA = 1;
+    return tick;
+}
+
 stc8h_s16 app_input_update(toy_remote_control_t *control)
 {
     stc8h_s16 delta;

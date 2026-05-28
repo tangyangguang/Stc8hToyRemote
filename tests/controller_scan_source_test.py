@@ -23,7 +23,10 @@ def function_body(source: str, name: str) -> str:
 
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
-    assert "#define APP_BUTTON_LONG_NORMAL_TICKS 500u" in source
+    assert "#define APP_BUTTON_RELEASE_TICKS 100u" in source
+    assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
+    assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
+    assert "#define APP_BUTTON_DOUBLE_TICKS 600u" in source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
 
     send_body = function_body(source, "send_control_packet")
@@ -51,15 +54,19 @@ def main() -> None:
     assert "scan_one_channel(channel)" in scan_body
     assert "((channel & 0x03u) != 0u)" not in scan_body
 
-    assert "app_button_update(&ec11_button" in source
+    assert "app_button_update_elapsed(&ec11_button" in source
+    assert "app_input_tick_half_ms()" in ui_body
     assert "app_button_init(&ec11_button)" not in enter_config_body
     assert "app_button_init(&ec11_button)" not in exit_config_body
     assert "ec11_button_press_speed" in source
     assert "ec11_active" in ui_body
     assert "ec11_button_press_speed = control.speed;" in ui_body
     assert ui_body.index("ec11_button_press_speed = control.speed;") < ui_body.index("app_input_update(&control)")
+    assert ui_body.index("app_input_tick_half_ms()") < ui_body.index("app_button_update_elapsed(&ec11_button")
     assert "button_event == APP_BUTTON_EVENT_LONG" in ui_body
     assert "ec11_button_press_speed == 0u" in ui_body
+    assert "TOY_REMOTE_TX_BRAKE_ACTIVE() && TOY_REMOTE_TX_EC11_SW_ACTIVE()" not in source
+    assert "TOY_REMOTE_TX_BRAKE_ACTIVE() || TOY_REMOTE_TX_EC11_SW_ACTIVE()" not in source
 
 
 if __name__ == "__main__":
