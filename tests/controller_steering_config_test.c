@@ -11,7 +11,7 @@ static void expect_angle(stc8h_u8 raw, stc8h_u8 flags, stc8h_u8 deadband, stc8h_
 
 int main(void)
 {
-    assert(APP_CONFIG_STEERING_DEADBAND_MIN == 10u);
+    assert(APP_CONFIG_STEERING_DEADBAND_MIN == 3u);
 
     expect_angle(0u, 0u, APP_CONFIG_DEFAULT_STEERING_DEADBAND, APP_CONFIG_DEFAULT_STEERING_REDUCE, 20u);
     expect_angle(80u, 0u, APP_CONFIG_DEFAULT_STEERING_DEADBAND, APP_CONFIG_DEFAULT_STEERING_REDUCE, 90u);
