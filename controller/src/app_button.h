@@ -16,7 +16,10 @@ typedef struct {
     stc8h_u8 was_active;
     stc8h_u8 click_pending;
     stc8h_u8 long_sent;
+    stc8h_u8 release_ticks;
 } app_button_t;
+
+#define APP_BUTTON_RELEASE_TICKS 5u
 
 static void app_button_init(app_button_t *button)
 {
@@ -25,6 +28,7 @@ static void app_button_init(app_button_t *button)
     button->was_active = 0u;
     button->click_pending = 0u;
     button->long_sent = 0u;
+    button->release_ticks = 0u;
 }
 
 static app_button_event_t app_button_update(app_button_t *button,
@@ -36,6 +40,7 @@ static app_button_event_t app_button_update(app_button_t *button,
 
     event = APP_BUTTON_EVENT_NONE;
     if (active != 0u) {
+        button->release_ticks = 0u;
         if (button->press_ticks < long_ticks) {
             ++button->press_ticks;
             if ((button->press_ticks >= long_ticks) && (button->long_sent == 0u)) {
@@ -44,8 +49,15 @@ static app_button_event_t app_button_update(app_button_t *button,
                 event = APP_BUTTON_EVENT_LONG;
             }
         }
+        button->was_active = 1u;
     } else {
         if (button->was_active != 0u) {
+            if (button->release_ticks < APP_BUTTON_RELEASE_TICKS) {
+                ++button->release_ticks;
+            }
+            if (button->release_ticks < APP_BUTTON_RELEASE_TICKS) {
+                return event;
+            }
             if (button->long_sent == 0u) {
                 if (double_ticks == 0u) {
                     event = APP_BUTTON_EVENT_SHORT;
@@ -59,6 +71,8 @@ static app_button_event_t app_button_update(app_button_t *button,
             }
             button->press_ticks = 0u;
             button->long_sent = 0u;
+            button->release_ticks = 0u;
+            button->was_active = 0u;
         } else if ((button->click_pending != 0u) && (double_ticks != 0u)) {
             ++button->click_ticks;
             if (button->click_ticks >= double_ticks) {
@@ -68,7 +82,6 @@ static app_button_event_t app_button_update(app_button_t *button,
         }
     }
 
-    button->was_active = (active != 0u) ? 1u : 0u;
     return event;
 }
 

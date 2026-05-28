@@ -146,21 +146,7 @@ static void display_init(void)
 
 static void display_control(void)
 {
-    display_segments[1] = APP_DISPLAY_BLANK;
-    if (control.brake != 0u) {
-        display_segments[0] = APP_DISPLAY_DASH;
-    } else {
-        display_segments[0] = (control.direction == TOY_REMOTE_DIRECTION_REVERSE) ? APP_DISPLAY_DOWN : APP_DISPLAY_UP;
-    }
-    if ((control.brake != 0u) && (control.speed == 0u)) {
-        display_segments[2] = APP_DISPLAY_DASH;
-        display_segments[3] = APP_DISPLAY_DASH;
-    } else if (control.speed >= 100u) {
-        display_segments[2] = APP_DISPLAY_A;
-        display_segments[3] = app_display_digit(0u);
-    } else {
-        app_display_set_2_digits(control.speed, &display_segments[2]);
-    }
+    app_display_control_segments(control.direction, control.speed, control.brake, display_segments);
 
     ++link_blink;
     if (link_blink >= APP_LINK_BLINK_TICKS) {

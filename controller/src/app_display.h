@@ -109,4 +109,16 @@ static void app_display_channel_segments(stc8h_u8 channel, stc8h_u8 colon, stc8h
     } \
 } while (0)
 
+#define app_display_control_segments(direction, speed, brake, segments) do { \
+    (segments)[0] = ((brake) != 0u) ? APP_DISPLAY_DASH : \
+        (((direction) != 0u) ? APP_DISPLAY_DOWN : APP_DISPLAY_UP); \
+    (segments)[1] = APP_DISPLAY_BLANK; \
+    if ((speed) >= 100u) { \
+        (segments)[2] = APP_DISPLAY_A; \
+        (segments)[3] = app_display_digit(0u); \
+    } else { \
+        app_display_set_2_digits((speed), &(segments)[2]); \
+    } \
+} while (0)
+
 #endif

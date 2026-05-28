@@ -97,6 +97,18 @@ static void test_config_display_shows_p_item_colon_value(void)
     assert(segments[3] == app_display_digit(5u));
 }
 
+static void test_control_display_keeps_zero_speed_digits_while_braking(void)
+{
+    stc8h_u8 segments[4];
+
+    app_display_control_segments(0u, 0u, 1u, segments);
+
+    assert(segments[0] == APP_DISPLAY_DASH);
+    assert(segments[1] == APP_DISPLAY_BLANK);
+    assert(segments[2] == app_display_digit(0u));
+    assert(segments[3] == app_display_digit(0u));
+}
+
 int main(void)
 {
     test_channel_display_uses_status_prefix_and_three_digits();
@@ -104,5 +116,6 @@ int main(void)
     test_error_display_shows_e001();
     test_decimal_helpers_format_without_losing_leading_zeroes();
     test_config_display_shows_p_item_colon_value();
+    test_control_display_keeps_zero_speed_digits_while_braking();
     return 0;
 }
