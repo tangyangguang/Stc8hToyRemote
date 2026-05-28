@@ -95,6 +95,12 @@ static void test_config_display_shows_p_item_colon_value(void)
     assert(segments[1] == (stc8h_u8)(app_display_digit(3u) | APP_DISPLAY_COLON));
     assert(segments[2] == app_display_digit(4u));
     assert(segments[3] == app_display_digit(5u));
+
+    app_display_config_segments(5u, 20u, segments);
+    assert(segments[0] == APP_DISPLAY_P);
+    assert(segments[1] == (stc8h_u8)(app_display_digit(5u) | APP_DISPLAY_COLON));
+    assert(segments[2] == app_display_digit(2u));
+    assert(segments[3] == app_display_digit(0u));
 }
 
 static void test_control_display_keeps_zero_speed_digits_while_braking(void)

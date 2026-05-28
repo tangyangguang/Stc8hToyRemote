@@ -39,7 +39,6 @@
 
 static STC8H_XDATA proto_rf_link_t link;
 static STC8H_XDATA app_config_t config;
-static STC8H_XDATA app_config_t config_draft;
 static STC8H_XDATA toy_remote_control_t control;
 static STC8H_XDATA toy_remote_status_t rx_status;
 static STC8H_XDATA stc8h_u8 packet[PROTO_RF_LINK_PACKET_SIZE];
@@ -68,8 +67,9 @@ static stc8h_u8 config_item;
 
 #define APP_CONFIG_ITEM_DIRECTION_REVERSE 1u
 #define APP_CONFIG_ITEM_STEERING_REVERSE 2u
-#define APP_CONFIG_ITEM_DEADBAND 3u
-#define APP_CONFIG_ITEM_REDUCE 4u
+#define APP_CONFIG_ITEM_STEERING_TRIM 3u
+#define APP_CONFIG_ITEM_DEADBAND 4u
+#define APP_CONFIG_ITEM_REDUCE 5u
 #define APP_STATE_TRY_SAVED 0u
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
@@ -239,13 +239,23 @@ static void display_config(void)
     stc8h_u8 value;
 
     if (config_item == APP_CONFIG_ITEM_DIRECTION_REVERSE) {
-        value = ((config_draft.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) ? 1u : 0u;
+        value = ((config.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) ? 1u : 0u;
     } else if (config_item == APP_CONFIG_ITEM_STEERING_REVERSE) {
-        value = ((config_draft.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) ? 1u : 0u;
+        value = ((config.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) ? 1u : 0u;
+    } else if (config_item == APP_CONFIG_ITEM_STEERING_TRIM) {
+        if (config.steering_trim < 0) {
+            value = (stc8h_u8)(0 - config.steering_trim);
+            display_segments[0] = APP_DISPLAY_P;
+            display_segments[1] = APP_DISPLAY_DASH;
+            app_display_set_2_digits(value, &display_segments[2]);
+            display_commit_raw4();
+            return;
+        }
+        value = (stc8h_u8)config.steering_trim;
     } else if (config_item == APP_CONFIG_ITEM_DEADBAND) {
-        value = config_draft.steering_deadband;
+        value = config.steering_deadband;
     } else {
-        value = config_draft.steering_reduce;
+        value = config.steering_reduce;
     }
     app_display_config_segments(config_item, value, display_segments);
     display_commit_raw4();
@@ -254,7 +264,6 @@ static void display_config(void)
 static void enter_config_mode(void)
 {
     config_mode = 1u;
-    config_draft = config;
     app_input_set_speed_accel_enabled(0u);
     config_item = APP_CONFIG_ITEM_DIRECTION_REVERSE;
     control.speed = 0u;
@@ -269,15 +278,14 @@ static void enter_config_mode(void)
 static void config_set_draft_flag(stc8h_u8 mask, stc8h_u8 enabled)
 {
     if (enabled != 0u) {
-        config_draft.flags |= mask;
+        config.flags |= mask;
     } else {
-        config_draft.flags &= (stc8h_u8)~mask;
+        config.flags &= (stc8h_u8)~mask;
     }
 }
 
 static void exit_config_mode_save(void)
 {
-    config = config_draft;
     (void)app_config_save(&config);
     config_mode = 0u;
     app_state = APP_STATE_CONNECTED;
@@ -310,22 +318,30 @@ static void handle_config_mode(stc8h_s16 delta, app_button_event_t button_event)
             config_set_draft_flag(APP_CONFIG_FLAG_DIRECTION_REVERSE, (delta > 0) ? 1u : 0u);
         } else if (config_item == APP_CONFIG_ITEM_STEERING_REVERSE) {
             config_set_draft_flag(APP_CONFIG_FLAG_STEERING_REVERSE, (delta > 0) ? 1u : 0u);
+        } else if (config_item == APP_CONFIG_ITEM_STEERING_TRIM) {
+            value = (stc8h_s16)((stc8h_s16)config.steering_trim + delta);
+            if (value < APP_CONFIG_STEERING_TRIM_MIN) {
+                value = APP_CONFIG_STEERING_TRIM_MIN;
+            } else if (value > APP_CONFIG_STEERING_TRIM_MAX) {
+                value = APP_CONFIG_STEERING_TRIM_MAX;
+            }
+            config.steering_trim = (stc8h_s8)value;
         } else if (config_item == APP_CONFIG_ITEM_REDUCE) {
-            value = (stc8h_s16)((stc8h_s16)config_draft.steering_reduce + delta);
+            value = (stc8h_s16)((stc8h_s16)config.steering_reduce + delta);
             if (value < 0) {
                 value = 0;
             } else if (value > APP_CONFIG_STEERING_REDUCE_MAX) {
                 value = APP_CONFIG_STEERING_REDUCE_MAX;
             }
-            config_draft.steering_reduce = (stc8h_u8)value;
+            config.steering_reduce = (stc8h_u8)value;
         } else {
-            value = (stc8h_s16)((stc8h_s16)config_draft.steering_deadband + delta);
+            value = (stc8h_s16)((stc8h_s16)config.steering_deadband + delta);
             if (value < APP_CONFIG_STEERING_DEADBAND_MIN) {
                 value = APP_CONFIG_STEERING_DEADBAND_MIN;
             } else if (value > APP_CONFIG_STEERING_DEADBAND_MAX) {
                 value = APP_CONFIG_STEERING_DEADBAND_MAX;
             }
-            config_draft.steering_deadband = (stc8h_u8)value;
+            config.steering_deadband = (stc8h_u8)value;
         }
     }
 
@@ -336,18 +352,14 @@ static void make_control_packet(void)
 {
     stc8h_u8 direction;
     stc8h_u8 flags;
+    stc8h_s8 steering_trim;
     stc8h_u8 steering_deadband;
     stc8h_u8 steering_reduce;
 
-    if (config_mode != 0u) {
-        flags = config_draft.flags;
-        steering_deadband = config_draft.steering_deadband;
-        steering_reduce = config_draft.steering_reduce;
-    } else {
-        flags = config.flags;
-        steering_deadband = config.steering_deadband;
-        steering_reduce = config.steering_reduce;
-    }
+    flags = config.flags;
+    steering_trim = config.steering_trim;
+    steering_deadband = config.steering_deadband;
+    steering_reduce = config.steering_reduce;
 
     control.tx_id = config.tx_id;
     direction = control.direction;
@@ -360,7 +372,7 @@ static void make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
     payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
     payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] =
-        app_steering_apply_config(control.steering_angle, flags, steering_deadband, steering_reduce);
+        app_steering_apply_config(control.steering_angle, flags, steering_trim, steering_deadband, steering_reduce);
     payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
