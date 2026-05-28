@@ -65,15 +65,15 @@ static void test_long_press_5s_emits_once_without_release(void)
     assert(release_many(&button, 5u, 500u, 30u) == APP_BUTTON_EVENT_NONE);
 }
 
-static void test_long_press_3s_emits_once_without_release(void)
+static void test_config_mode_long_press_uses_same_5s_threshold(void)
 {
     app_button_t button;
 
     app_button_init(&button);
 
-    assert(update_many(&button, 1u, 299u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
-    assert(app_button_update(&button, 1u, 300u, 0u) == APP_BUTTON_EVENT_LONG);
-    assert(release_many(&button, 5u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(update_many(&button, 1u, 499u, 500u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update(&button, 1u, 500u, 0u) == APP_BUTTON_EVENT_LONG);
+    assert(release_many(&button, 5u, 500u, 0u) == APP_BUTTON_EVENT_NONE);
 }
 
 static void test_zero_double_window_emits_short_on_release(void)
@@ -94,10 +94,10 @@ static void test_long_press_state_waits_for_release_across_mode_switch(void)
 
     assert(update_many(&button, 1u, 499u, 500u, 30u) == APP_BUTTON_EVENT_NONE);
     assert(app_button_update(&button, 1u, 500u, 30u) == APP_BUTTON_EVENT_LONG);
-    assert(update_many(&button, 1u, 350u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
-    assert(release_many(&button, 5u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
-    assert(update_many(&button, 1u, 299u, 300u, 0u) == APP_BUTTON_EVENT_NONE);
-    assert(app_button_update(&button, 1u, 300u, 0u) == APP_BUTTON_EVENT_LONG);
+    assert(update_many(&button, 1u, 550u, 500u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(release_many(&button, 5u, 500u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(update_many(&button, 1u, 499u, 500u, 0u) == APP_BUTTON_EVENT_NONE);
+    assert(app_button_update(&button, 1u, 500u, 0u) == APP_BUTTON_EVENT_LONG);
 }
 
 static void test_long_press_tolerates_short_inactive_noise(void)
@@ -117,7 +117,7 @@ int main(void)
     test_short_press_emits_after_double_window();
     test_double_press_emits_double_without_short();
     test_long_press_5s_emits_once_without_release();
-    test_long_press_3s_emits_once_without_release();
+    test_config_mode_long_press_uses_same_5s_threshold();
     test_zero_double_window_emits_short_on_release();
     test_long_press_state_waits_for_release_across_mode_switch();
     test_long_press_tolerates_short_inactive_noise();

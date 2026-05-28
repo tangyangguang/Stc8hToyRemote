@@ -24,10 +24,12 @@ def function_body(source: str, name: str) -> str:
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS 500u" in source
+    assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
 
     send_body = function_body(source, "send_control_packet")
     probe_body = function_body(source, "probe_current_channel")
     scan_body = function_body(source, "scan_channels")
+    ui_body = function_body(source, "run_ui_slice")
     enter_config_body = function_body(source, "enter_config_mode")
     exit_config_body = function_body(source, "exit_config_mode_save")
 
@@ -52,6 +54,12 @@ def main() -> None:
     assert "app_button_update(&ec11_button" in source
     assert "app_button_init(&ec11_button)" not in enter_config_body
     assert "app_button_init(&ec11_button)" not in exit_config_body
+    assert "ec11_button_press_speed" in source
+    assert "ec11_active" in ui_body
+    assert "ec11_button_press_speed = control.speed;" in ui_body
+    assert ui_body.index("ec11_button_press_speed = control.speed;") < ui_body.index("app_input_update(&control)")
+    assert "button_event == APP_BUTTON_EVENT_LONG" in ui_body
+    assert "ec11_button_press_speed == 0u" in ui_body
 
 
 if __name__ == "__main__":

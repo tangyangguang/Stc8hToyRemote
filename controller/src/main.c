@@ -54,6 +54,7 @@ static stc8h_u8 link_warning;
 static stc8h_u8 link_blink;
 static stc8h_u8 scan_requested;
 static app_button_t ec11_button;
+static stc8h_u8 ec11_button_press_speed;
 #if APP_INPUT_DIAG_DISPLAY
 static stc8h_u8 input_diag_blink;
 static stc8h_u8 input_diag_delta_hold;
@@ -69,7 +70,6 @@ static STC8H_XDATA stc8h_u8 config_item;
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
 #define APP_BUTTON_LONG_NORMAL_TICKS 500u
-#define APP_BUTTON_LONG_CONFIG_TICKS 300u
 #define APP_BUTTON_DOUBLE_TICKS 30u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
@@ -502,20 +502,28 @@ static void run_ui_slice(void)
     stc8h_s16 delta;
 #if !APP_INPUT_DIAG_DISPLAY
     app_button_event_t button_event;
+    stc8h_u8 ec11_active;
 #endif
 
+#if !APP_INPUT_DIAG_DISPLAY
+    ec11_active = TOY_REMOTE_TX_EC11_SW_ACTIVE();
+    if ((config_mode == 0u) && (ec11_active != 0u) && (ec11_button.was_active == 0u)) {
+        ec11_button_press_speed = control.speed;
+    }
+#endif
     delta = app_input_update(&control);
 #if APP_INPUT_DIAG_DISPLAY
     display_input_diag(delta);
 #else
     button_event = app_button_update(&ec11_button,
-                                     TOY_REMOTE_TX_EC11_SW_ACTIVE(),
-                                     (config_mode != 0u) ? APP_BUTTON_LONG_CONFIG_TICKS : APP_BUTTON_LONG_NORMAL_TICKS,
+                                     ec11_active,
+                                     APP_BUTTON_LONG_NORMAL_TICKS,
                                      (config_mode != 0u) ? 0u : APP_BUTTON_DOUBLE_TICKS);
     if (config_mode != 0u) {
         handle_config_mode(delta, button_event);
     } else {
-        if (button_event == APP_BUTTON_EVENT_LONG) {
+        if ((button_event == APP_BUTTON_EVENT_LONG) &&
+            (ec11_button_press_speed == 0u)) {
             enter_config_mode();
         } else if ((button_event == APP_BUTTON_EVENT_DOUBLE) && (app_state == APP_STATE_LOST)) {
             scan_requested = 1u;
