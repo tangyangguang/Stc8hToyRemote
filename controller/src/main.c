@@ -68,7 +68,7 @@ static stc8h_u8 config_item;
 
 #define APP_CONFIG_ITEM_DIRECTION_REVERSE 1u
 #define APP_CONFIG_ITEM_STEERING_REVERSE 2u
-#define APP_CONFIG_ITEM_MIDDLE 3u
+#define APP_CONFIG_ITEM_DEADBAND 3u
 #define APP_CONFIG_ITEM_REDUCE 4u
 #define APP_STATE_TRY_SAVED 0u
 #define APP_STATE_CONNECTED 1u
@@ -242,8 +242,8 @@ static void display_config(void)
         value = ((config_draft.flags & APP_CONFIG_FLAG_DIRECTION_REVERSE) != 0u) ? 1u : 0u;
     } else if (config_item == APP_CONFIG_ITEM_STEERING_REVERSE) {
         value = ((config_draft.flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) ? 1u : 0u;
-    } else if (config_item == APP_CONFIG_ITEM_MIDDLE) {
-        value = config_draft.steering_middle;
+    } else if (config_item == APP_CONFIG_ITEM_DEADBAND) {
+        value = config_draft.steering_deadband;
     } else {
         value = config_draft.steering_reduce;
     }
@@ -319,13 +319,13 @@ static void handle_config_mode(stc8h_s16 delta, app_button_event_t button_event)
             }
             config_draft.steering_reduce = (stc8h_u8)value;
         } else {
-            value = (stc8h_s16)((stc8h_s16)config_draft.steering_middle + delta);
-            if (value < APP_CONFIG_STEERING_MIDDLE_MIN) {
-                value = APP_CONFIG_STEERING_MIDDLE_MIN;
-            } else if (value > APP_CONFIG_STEERING_MIDDLE_MAX) {
-                value = APP_CONFIG_STEERING_MIDDLE_MAX;
+            value = (stc8h_s16)((stc8h_s16)config_draft.steering_deadband + delta);
+            if (value < APP_CONFIG_STEERING_DEADBAND_MIN) {
+                value = APP_CONFIG_STEERING_DEADBAND_MIN;
+            } else if (value > APP_CONFIG_STEERING_DEADBAND_MAX) {
+                value = APP_CONFIG_STEERING_DEADBAND_MAX;
             }
-            config_draft.steering_middle = (stc8h_u8)value;
+            config_draft.steering_deadband = (stc8h_u8)value;
         }
     }
 
@@ -336,16 +336,16 @@ static void make_control_packet(void)
 {
     stc8h_u8 direction;
     stc8h_u8 flags;
-    stc8h_u8 steering_middle;
+    stc8h_u8 steering_deadband;
     stc8h_u8 steering_reduce;
 
     if (config_mode != 0u) {
         flags = config_draft.flags;
-        steering_middle = config_draft.steering_middle;
+        steering_deadband = config_draft.steering_deadband;
         steering_reduce = config_draft.steering_reduce;
     } else {
         flags = config.flags;
-        steering_middle = config.steering_middle;
+        steering_deadband = config.steering_deadband;
         steering_reduce = config.steering_reduce;
     }
 
@@ -360,7 +360,7 @@ static void make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_SPEED] = control.speed;
     payload[TOY_REMOTE_CONTROL_OFFSET_BRAKE] = control.brake;
     payload[TOY_REMOTE_CONTROL_OFFSET_STEERING] =
-        app_steering_apply_config(control.steering_angle, flags, steering_middle, steering_reduce);
+        app_steering_apply_config(control.steering_angle, flags, steering_deadband, steering_reduce);
     payload[TOY_REMOTE_CONTROL_OFFSET_LIGHT] = control.light;
     payload[TOY_REMOTE_CONTROL_OFFSET_BUZZER] = control.buzzer;
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;

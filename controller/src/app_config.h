@@ -14,17 +14,17 @@
 #define APP_CONFIG_FLAG_STEERING_REVERSE 0x01u
 #define APP_CONFIG_FLAG_DIRECTION_REVERSE 0x02u
 #define APP_CONFIG_STEERING_REDUCE_MAX 60u
-#define APP_CONFIG_STEERING_MIDDLE_MIN 20u
-#define APP_CONFIG_STEERING_MIDDLE_MAX 70u
+#define APP_CONFIG_STEERING_DEADBAND_MIN 10u
+#define APP_CONFIG_STEERING_DEADBAND_MAX 45u
 #define APP_CONFIG_DEFAULT_STEERING_REDUCE 20u
-#define APP_CONFIG_DEFAULT_STEERING_MIDDLE 45u
+#define APP_CONFIG_DEFAULT_STEERING_DEADBAND 10u
 
 typedef struct {
     stc8h_u16 tx_id;
     stc8h_u8 last_channel;
     stc8h_u8 flags;
     stc8h_u8 steering_reduce;
-    stc8h_u8 steering_middle;
+    stc8h_u8 steering_deadband;
 } app_config_t;
 
 stc8h_status_t app_config_load(app_config_t *config);

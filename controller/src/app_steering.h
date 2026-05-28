@@ -6,12 +6,14 @@
 
 static stc8h_u8 app_steering_apply_config(stc8h_u8 raw_angle,
                                           stc8h_u8 flags,
-                                          stc8h_u8 steering_middle,
+                                          stc8h_u8 steering_deadband,
                                           stc8h_u8 steering_reduce)
 {
     stc8h_u8 min_angle;
     stc8h_u8 max_angle;
-    stc8h_u16 center;
+    stc8h_u8 lower_center;
+    stc8h_u8 upper_center;
+    stc8h_u8 denominator;
     stc8h_u16 angle;
 
     if ((flags & APP_CONFIG_FLAG_STEERING_REVERSE) != 0u) {
@@ -20,27 +22,24 @@ static stc8h_u8 app_steering_apply_config(stc8h_u8 raw_angle,
 
     min_angle = steering_reduce;
     max_angle = (stc8h_u8)(TOY_REMOTE_STEERING_MAX - steering_reduce);
-    center = (stc8h_u16)steering_middle << 1;
-    if (center < min_angle) {
-        center = min_angle;
-    } else if (center > max_angle) {
-        center = max_angle;
+    lower_center = (stc8h_u8)(TOY_REMOTE_STEERING_CENTER - steering_deadband);
+    upper_center = (stc8h_u8)(TOY_REMOTE_STEERING_CENTER + steering_deadband);
+
+    if ((raw_angle >= lower_center) && (raw_angle <= upper_center)) {
+        return TOY_REMOTE_STEERING_CENTER;
     }
 
-    if (raw_angle <= TOY_REMOTE_STEERING_CENTER) {
+    if (raw_angle < lower_center) {
         angle = (stc8h_u16)(min_angle +
-            ((((stc8h_u16)raw_angle * (stc8h_u16)(center - min_angle)) + 45u) /
-             TOY_REMOTE_STEERING_CENTER));
+            (((stc8h_u16)raw_angle * (stc8h_u16)(TOY_REMOTE_STEERING_CENTER - min_angle)) /
+             lower_center));
     } else {
-        angle = (stc8h_u16)(center +
-            ((((stc8h_u16)(raw_angle - TOY_REMOTE_STEERING_CENTER) *
-               (stc8h_u16)(max_angle - center)) + 45u) /
-             TOY_REMOTE_STEERING_CENTER));
+        denominator = (stc8h_u8)(TOY_REMOTE_STEERING_MAX - upper_center);
+        angle = (stc8h_u16)(raw_angle - upper_center);
+        angle = (stc8h_u16)(TOY_REMOTE_STEERING_CENTER +
+            ((angle * (stc8h_u16)(max_angle - TOY_REMOTE_STEERING_CENTER)) / denominator));
     }
 
-    if (angle > max_angle) {
-        angle = max_angle;
-    }
     return (stc8h_u8)angle;
 }
 
