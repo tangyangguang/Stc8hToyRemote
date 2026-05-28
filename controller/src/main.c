@@ -51,6 +51,7 @@ static STC8H_XDATA stc8h_u8 payload[TOY_REMOTE_CONTROL_PAYLOAD_SIZE];
 static stc8h_u8 display_segments[4];
 static stc8h_u8 display_last_segments[4];
 static stc8h_u8 display_dirty;
+static STC8H_BIT rx_voltage_valid;
 static stc8h_u16 tx_battery_centivolts;
 static stc8h_u8 voltage_display_start_128ms;
 static stc8h_u8 show_rx_voltage;
@@ -429,9 +430,11 @@ static stc8h_u8 handle_ack_status(void)
         return 0u;
     }
 
-    rx_status.link_state = body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE];
-    rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
-    rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+    if (body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT] != 0u) {
+        rx_status.voltage_int = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_INT];
+        rx_status.voltage_dec = body[TOY_REMOTE_STATUS_OFFSET_VOLTAGE_DEC];
+        rx_voltage_valid = 1u;
+    }
     rx_status.tx_id = config.tx_id;
     return 1u;
 }
@@ -538,10 +541,18 @@ static void update_voltage_display(stc8h_u16 now_half_ms)
     }
 
     if (elapsed_128ms < APP_VOLTAGE_LABEL_128MS_TICKS) {
-        app_display_source_segments((show_rx_voltage != 0u) ? APP_DISPLAY_R : APP_DISPLAY_C, display_segments);
+        app_display_source_segments(
+            (show_rx_voltage == 0u) ? APP_DISPLAY_C :
+            ((app_state == APP_STATE_CONNECTED) ? APP_DISPLAY_R : APP_DISPLAY_H),
+            display_segments);
         display_commit_raw4();
     } else if (show_rx_voltage != 0u) {
-        display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
+        if (rx_voltage_valid == 0u) {
+            app_display_source_segments(APP_DISPLAY_DASH, display_segments);
+            display_commit_raw4();
+        } else {
+            display_voltage((stc8h_u16)((stc8h_u16)rx_status.voltage_int * 100u + rx_status.voltage_dec));
+        }
     } else {
         display_voltage(tx_battery_centivolts);
     }
@@ -688,10 +699,6 @@ void main(void)
 #if APP_FRAME_DISPLAY_DIAG
     display_frame_patterns();
 #endif
-    rx_status.link_state = TOY_REMOTE_LINK_STATE_LOST;
-    rx_status.voltage_int = 0u;
-    rx_status.voltage_dec = 0u;
-    rx_status.tx_id = 0u;
     app_state = APP_STATE_TRY_SAVED;
     tx_battery_centivolts = app_input_read_tx_battery_centivolts();
 

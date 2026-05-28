@@ -2,7 +2,8 @@
 #include "board_pins.h"
 #include "stc8h_adc.h"
 
-#define APP_STATUS_VOLTAGE_SAMPLE_DIVIDER 6u
+#define APP_STATUS_VOLTAGE_REQUEST_SAMPLE_DIVIDER 6u
+#define APP_STATUS_VOLTAGE_IDLE_SAMPLE_DIVIDER 50u
 #define APP_STATUS_VOLTAGE_FULL_SCALE_CENTIVOLTS 1329u
 #define APP_STATUS_ADC_FULL_SCALE_COUNTS 1024u
 
@@ -43,15 +44,16 @@ void app_status_init(toy_remote_status_t *status)
 void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *control, stc8h_u8 link_lost)
 {
     stc8h_u16 centivolts;
+    stc8h_u8 sample_limit;
 
     status->link_state = (link_lost == 0u) ? TOY_REMOTE_LINK_STATE_CONNECTED : TOY_REMOTE_LINK_STATE_LOST;
 
-    if (control->request_voltage == 0u) {
-        return;
-    }
+    sample_limit = (control->request_voltage != 0u) ?
+        APP_STATUS_VOLTAGE_REQUEST_SAMPLE_DIVIDER :
+        APP_STATUS_VOLTAGE_IDLE_SAMPLE_DIVIDER;
 
     ++sample_divider;
-    if (sample_divider < APP_STATUS_VOLTAGE_SAMPLE_DIVIDER) {
+    if (sample_divider < sample_limit) {
         return;
     }
     sample_divider = 0u;
