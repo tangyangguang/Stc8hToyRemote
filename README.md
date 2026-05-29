@@ -65,6 +65,12 @@ tools/       检查、尺寸和烧录辅助脚本
 
 资源阈值由 `tools/check_firmware_size.sh` 校验。STC8H1K08 只有 8KB flash 和紧张的 internal RAM，新增功能必须先确认 controller 和 receiver 的 flash、stack 可用空间和最大连续 internal RAM 均不过界。
 
+### 固件体积优化经验
+
+STC8H/SDCC 下要优先检查编译产物里的通用指针访问。`*.rst` 中出现大量 `__gptrget` / `__gptrput` 时，通常说明某个热路径函数参数仍是 generic pointer；如果调用方实际只传 `DATA` 或 `XDATA` 中的静态对象，应把接口签名显式标成 `STC8H_DATA` 或 `STC8H_XDATA`，再用 `pio run` 和 `tools/check_firmware_size.sh` 验证体积、栈余量和 internal RAM 布局。
+
+本项目的经验是：先从 `firmware.map` 找大函数，再在对应 `*.rst` 里确认 `__gptrget` / `__gptrput` 来源。把 controller 的按键状态机指针收窄到 `STC8H_DATA`、把 receiver 业务对象指针收窄到 `STC8H_XDATA` 后，在不删功能的情况下明显减少 flash。做这类优化时必须加源码测试锁定地址空间约束，避免后续改回 generic pointer。
+
 ## 烧录
 
 controller 默认上传口：
