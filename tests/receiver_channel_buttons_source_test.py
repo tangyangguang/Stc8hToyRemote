@@ -5,6 +5,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN_SOURCE = ROOT / "receiver" / "src" / "main.c"
 CONFIG_H = ROOT / "receiver" / "src" / "app_config.h"
+CORE_DOC = ROOT / "遥控器与接收机核心逻辑说明.md"
+OPS_DOC = ROOT / "遥控器操作与界面配置说明.md"
 
 
 def function_body(source: str, name: str) -> str:
@@ -53,9 +55,12 @@ def block_after(source: str, marker: str) -> str:
 def main() -> None:
     source = MAIN_SOURCE.read_text(encoding="utf-8")
     config_h = CONFIG_H.read_text(encoding="utf-8")
+    core_doc = CORE_DOC.read_text(encoding="utf-8")
+    ops_doc = OPS_DOC.read_text(encoding="utf-8")
 
     assert "#define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 1" in config_h
-    assert "#define APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS 50u" in source
+    assert "#define APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS 500u" in source
+    assert "P3 |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
 
     change_body = function_body_by_signature(source, "static void apply_receiver_channel_change(stc8h_u8 channel)")
     assert "if (channel == config.rf_channel)" in change_body
@@ -70,11 +75,13 @@ def main() -> None:
     assert change_body.index("apply_safe_state();") < change_body.index("prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);")
 
     button_body = function_body(source, "handle_channel_buttons")
-    assert "add_active = TOY_REMOTE_RX_RF_CH_ADD_ACTIVE();" in button_body
-    assert "minus_active = TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE();" in button_body
-    assert "if (add_active == minus_active)" in button_body
-    assert "channel_button_pressed = add_active;" in button_body
-    assert "elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS" in button_body
+    assert "button_bits = (stc8h_u8)(P3 & (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));" in button_body
+    assert "button_bits == 0u" in button_body
+    assert "button_bits == (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK)" in button_body
+    assert "APP_RECEIVER_CHANNEL_BUTTON_LOCKED" in button_body
+    assert "button_bits == TOY_REMOTE_RX_RF_CH_MINUS_MASK" in button_body
+    assert "if (channel_button_pressed != next_state)" in button_body
+    assert "elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS" in button_body
     assert "toy_remote_channel_pool_next(config.rf_channel)" in button_body
     assert "toy_remote_channel_pool_prev(config.rf_channel)" in button_body
     assert "apply_receiver_channel_change(toy_remote_channel_pool_next(config.rf_channel));" in button_body
@@ -87,6 +94,12 @@ def main() -> None:
     assert "config.bound_tx_id = 0u;" in clear_block
     assert "app_config_save(&config)" in clear_block
     assert "config.rf_channel" not in clear_block
+
+    for doc in (core_doc, ops_doc):
+        assert "接收机本机频道操作" in doc
+        assert "按住约 0.5 秒" in doc
+        assert "P30+P31" in doc
+        assert "不清绑定、不切频道" in doc
 
 
 if __name__ == "__main__":

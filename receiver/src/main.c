@@ -28,7 +28,10 @@ static stc8h_u8 radio_error;
 static stc8h_u8 link_lost;
 static stc8h_u8 last_control_seq;
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
-#define APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS 50u
+#define APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS 500u
+#define APP_RECEIVER_CHANNEL_BUTTON_ADD 1u
+#define APP_RECEIVER_CHANNEL_BUTTON_MINUS 2u
+#define APP_RECEIVER_CHANNEL_BUTTON_LOCKED 3u
 static stc8h_u8 channel_button_pressed;
 static stc8h_u16 last_channel_button_tick;
 #endif
@@ -278,32 +281,39 @@ static void apply_receiver_channel_change(stc8h_u8 channel)
 static void handle_channel_buttons(void)
 {
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
-    stc8h_u8 add_active;
-    stc8h_u8 minus_active;
+    stc8h_u8 button_bits;
+    stc8h_u8 next_state;
     stc8h_u16 now;
     stc8h_u16 elapsed_ms;
 
-    add_active = TOY_REMOTE_RX_RF_CH_ADD_ACTIVE();
-    minus_active = TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE();
-
-    if (add_active == minus_active) {
-        channel_button_pressed = add_active;
+    button_bits = (stc8h_u8)(P3 & (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));
+    if ((button_bits == 0u) ||
+        (button_bits == (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK))) {
+        channel_button_pressed = (button_bits == 0u) ? APP_RECEIVER_CHANNEL_BUTTON_LOCKED : 0u;
         return;
     }
 
-    if (channel_button_pressed != 0u) {
+    if (channel_button_pressed == APP_RECEIVER_CHANNEL_BUTTON_LOCKED) {
         return;
     }
 
     now = app_tick_now();
-    elapsed_ms = (stc8h_u16)(now - last_channel_button_tick);
-    if (elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS) {
+    next_state = (button_bits == TOY_REMOTE_RX_RF_CH_MINUS_MASK) ?
+        APP_RECEIVER_CHANNEL_BUTTON_ADD :
+        APP_RECEIVER_CHANNEL_BUTTON_MINUS;
+    if (channel_button_pressed != next_state) {
+        channel_button_pressed = next_state;
+        last_channel_button_tick = now;
         return;
     }
 
-    channel_button_pressed = 1u;
-    last_channel_button_tick = now;
-    if (add_active != 0u) {
+    elapsed_ms = (stc8h_u16)(now - last_channel_button_tick);
+    if (elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS) {
+        return;
+    }
+
+    channel_button_pressed = APP_RECEIVER_CHANNEL_BUTTON_LOCKED;
+    if (next_state == APP_RECEIVER_CHANNEL_BUTTON_ADD) {
         apply_receiver_channel_change(toy_remote_channel_pool_next(config.rf_channel));
     } else {
         apply_receiver_channel_change(toy_remote_channel_pool_prev(config.rf_channel));
@@ -341,6 +351,7 @@ void main(void)
 #if APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS || APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
     P3M1 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
     P3M0 &= (stc8h_u8)~(TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
+    P3 |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);
 #endif
 #if APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS
     if ((TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) && (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u)) {
