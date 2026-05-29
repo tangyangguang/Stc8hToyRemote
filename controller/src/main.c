@@ -1,5 +1,5 @@
 #include "app_config.h"
-#define APP_BUTTON_RELEASE_TICKS 100u
+#define APP_BUTTON_RELEASE_TICKS 20u
 #define APP_BUTTON_FIXED_LONG_TICKS 10000u
 #include "app_button.h"
 #include "app_display.h"
@@ -83,6 +83,7 @@ static stc8h_u8 config_item;
 #define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS
 #define APP_BUTTON_DOUBLE_TICKS 1000u
 #define APP_SCAN_PROBE_PACKETS 4u
+#define APP_SCAN_POOL_PASSES 2u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 20u
@@ -498,11 +499,14 @@ static void scan_channels(void)
 {
     stc8h_u8 channel;
     stc8h_u8 index;
+    stc8h_u8 pool_pass;
 
     while (1) {
-        for (index = 0u; index < TOY_REMOTE_CHANNEL_POOL_COUNT; ++index) {
-            if (scan_one_channel(toy_remote_channel_pool_value(index)) != 0u) {
-                return;
+        for (pool_pass = 0u; pool_pass < APP_SCAN_POOL_PASSES; ++pool_pass) {
+            for (index = 0u; index < TOY_REMOTE_CHANNEL_POOL_COUNT; ++index) {
+                if (scan_one_channel(toy_remote_channel_pool_value(index)) != 0u) {
+                    return;
+                }
             }
         }
         for (channel = 0u; channel <= 125u; ++channel) {

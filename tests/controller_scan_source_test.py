@@ -31,11 +31,12 @@ def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     input_source = INPUT_SOURCE.read_text(encoding="utf-8")
     button_source = (ROOT / "controller" / "src" / "app_button.h").read_text(encoding="utf-8")
-    assert "#define APP_BUTTON_RELEASE_TICKS 100u" in source
+    assert "#define APP_BUTTON_RELEASE_TICKS 20u" in source
     assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
     assert "#define APP_BUTTON_DOUBLE_TICKS 1000u" in source
     assert "#define APP_SCAN_PROBE_PACKETS 4u" in source
+    assert "#define APP_SCAN_POOL_PASSES 2u" in source
     assert "#define APP_LOOP_INTERVAL_MS 20u" in source
     assert "APP_INPUT_ADC_DIVIDER" not in input_source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
@@ -72,8 +73,10 @@ def main() -> None:
     fixed_delay = probe_body.index("stc8h_delay_ms(5u);")
     assert ack_delay < fixed_delay, "5ms scan delay must only follow app-level ACK mismatch"
 
+    pool_pass_loop = scan_body.index("pool_pass < APP_SCAN_POOL_PASSES")
     pool_loop = scan_body.index("index < TOY_REMOTE_CHANNEL_POOL_COUNT")
     full_loop = scan_body.index("channel <= 125u")
+    assert pool_pass_loop < pool_loop
     assert pool_loop < full_loop, "scan must try the built-in channel pool before full fallback"
     assert "toy_remote_channel_pool_value(index)" in scan_body
     assert "scan_one_channel(channel)" in scan_body

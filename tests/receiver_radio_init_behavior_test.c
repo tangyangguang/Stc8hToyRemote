@@ -8,6 +8,9 @@ static stc8h_status_t ack_payload_result;
 static stc8h_u8 set_channel_calls;
 static stc8h_u8 enable_ack_payload_calls;
 static stc8h_u8 enter_rx_calls;
+static stc8h_u8 power_down_calls;
+static stc8h_u8 flush_rx_calls;
+static stc8h_u8 clear_irq_calls;
 
 static void reset_stubs(void)
 {
@@ -16,13 +19,16 @@ static void reset_stubs(void)
     set_channel_calls = 0u;
     enable_ack_payload_calls = 0u;
     enter_rx_calls = 0u;
+    power_down_calls = 0u;
+    flush_rx_calls = 0u;
+    clear_irq_calls = 0u;
 }
 
 void drv_nrf24l01_init_pins(void) { }
-void drv_nrf24l01_power_down(void) { }
+void drv_nrf24l01_power_down(void) { ++power_down_calls; }
 void drv_nrf24l01_flush_tx(void) { }
-void drv_nrf24l01_flush_rx(void) { }
-void drv_nrf24l01_clear_irq(stc8h_u8 flags) { (void)flags; }
+void drv_nrf24l01_flush_rx(void) { ++flush_rx_calls; }
+void drv_nrf24l01_clear_irq(stc8h_u8 flags) { (void)flags; ++clear_irq_calls; }
 stc8h_status_t drv_nrf24l01_check_present(void) { return check_present_result; }
 stc8h_status_t drv_nrf24l01_set_channel(stc8h_u8 channel)
 {
@@ -100,10 +106,24 @@ static void test_init_enters_rx_after_required_checks(void)
     assert(enter_rx_calls == 1u);
 }
 
+static void test_set_channel_restarts_rx_after_channel_change(void)
+{
+    reset_stubs();
+
+    app_radio_set_channel(20u);
+
+    assert(power_down_calls == 1u);
+    assert(set_channel_calls == 1u);
+    assert(flush_rx_calls == 1u);
+    assert(clear_irq_calls == 1u);
+    assert(enter_rx_calls == 1u);
+}
+
 int main(void)
 {
     test_init_fails_when_radio_absent();
     test_init_fails_when_ack_payload_enable_fails();
     test_init_enters_rx_after_required_checks();
+    test_set_channel_restarts_rx_after_channel_change();
     return 0;
 }
