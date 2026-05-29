@@ -65,6 +65,24 @@ def test_receiver_excludes_unused_channel_pool_helper() -> None:
     assert "#define TOY_REMOTE_CHANNEL_POOL_ENABLE_VALUE 0" in source
 
 
+def test_receiver_app_pointers_use_xdata_address_space() -> None:
+    config_h = read("receiver/src/app_config.h")
+    config_c = read("receiver/src/app_config.c")
+    status_h = read("receiver/src/app_status.h")
+    status_c = read("receiver/src/app_status.c")
+    outputs_h = read("receiver/src/app_outputs.h")
+    outputs_c = read("receiver/src/app_outputs.c")
+
+    assert "app_config_load(STC8H_XDATA app_config_t *config)" in config_h
+    assert "app_config_save(const STC8H_XDATA app_config_t *config)" in config_h
+    assert "static void app_config_set_defaults(STC8H_XDATA app_config_t *config)" in config_c
+    assert "void app_status_init(STC8H_XDATA toy_remote_status_t *status)" in status_h
+    assert "const STC8H_XDATA toy_remote_control_t *control" in status_h
+    assert "void app_status_update(STC8H_XDATA toy_remote_status_t *status" in status_c
+    assert "void app_outputs_apply_control(const STC8H_XDATA toy_remote_control_t *control)" in outputs_h
+    assert "void app_outputs_apply_control(const STC8H_XDATA toy_remote_control_t *control)" in outputs_c
+
+
 if __name__ == "__main__":
     test_controller_timing_docs_match_source()
     test_receiver_safe_state_docs_match_source()
@@ -72,3 +90,4 @@ if __name__ == "__main__":
     test_speed_update_uses_signed_temp_before_clamp()
     test_controller_excludes_unused_channel_pool_helpers()
     test_receiver_excludes_unused_channel_pool_helper()
+    test_receiver_app_pointers_use_xdata_address_space()

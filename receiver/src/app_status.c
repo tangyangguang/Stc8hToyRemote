@@ -29,7 +29,7 @@ static stc8h_u16 app_status_read_rx_battery_centivolts(void)
                        APP_STATUS_ADC_FULL_SCALE_COUNTS);
 }
 
-void app_status_init(toy_remote_status_t *status)
+void app_status_init(STC8H_XDATA toy_remote_status_t *status)
 {
     P1M0 &= (stc8h_u8)~TOY_REMOTE_RX_ADC_VOLTAGE_MASK;
     P1M1 |= TOY_REMOTE_RX_ADC_VOLTAGE_MASK;
@@ -41,7 +41,9 @@ void app_status_init(toy_remote_status_t *status)
     status->voltage_dec = 0u;
 }
 
-void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *control, stc8h_u8 link_lost)
+void app_status_update(STC8H_XDATA toy_remote_status_t *status,
+                       const STC8H_XDATA toy_remote_control_t *control,
+                       stc8h_u8 link_lost)
 {
     stc8h_u16 centivolts;
     stc8h_u8 sample_limit;

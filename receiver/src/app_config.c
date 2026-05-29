@@ -21,13 +21,13 @@ static stc8h_u8 app_config_checksum(void)
     return (stc8h_u8)(0u - sum);
 }
 
-static void app_config_set_defaults(app_config_t *config)
+static void app_config_set_defaults(STC8H_XDATA app_config_t *config)
 {
     config->bound_tx_id = 0u;
     config->rf_channel = APP_CONFIG_DEFAULT_CHANNEL;
 }
 
-stc8h_status_t app_config_load(app_config_t *config)
+stc8h_status_t app_config_load(STC8H_XDATA app_config_t *config)
 {
     if (stc8h_eeprom_read_fixed(app_config_buf) != STC8H_OK) {
         app_config_set_defaults(config);
@@ -51,7 +51,7 @@ stc8h_status_t app_config_load(app_config_t *config)
     return STC8H_OK;
 }
 
-stc8h_status_t app_config_save(const app_config_t *config)
+stc8h_status_t app_config_save(const STC8H_XDATA app_config_t *config)
 {
     app_config_buf[0] = APP_CONFIG_MAGIC0;
     app_config_buf[1] = APP_CONFIG_MAGIC1;

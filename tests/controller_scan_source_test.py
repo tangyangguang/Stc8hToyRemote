@@ -30,6 +30,7 @@ def function_body(source: str, name: str) -> str:
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     input_source = INPUT_SOURCE.read_text(encoding="utf-8")
+    button_source = (ROOT / "controller" / "src" / "app_button.h").read_text(encoding="utf-8")
     assert "#define APP_BUTTON_RELEASE_TICKS 100u" in source
     assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
@@ -59,6 +60,8 @@ def main() -> None:
     assert "stc8h_s16 app_input_update_speed(STC8H_XDATA toy_remote_control_t *control)" in input_source
     assert "void app_input_update_discrete(STC8H_XDATA toy_remote_control_t *control)" in input_source
     assert "app_input_update_steering(control);" not in input_update_body
+    assert "static void app_button_init(STC8H_DATA app_button_t *button)" in button_source
+    assert "static app_button_event_t app_button_update_elapsed(STC8H_DATA app_button_t *button" in button_source
     assert "for (i = 0u; i < 2u; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body
     assert "if (result == 2u)" in probe_body

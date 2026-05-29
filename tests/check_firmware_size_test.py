@@ -58,6 +58,24 @@ class FirmwareMemCheckTest(unittest.TestCase):
         self.assertEqual(usage.stack_available, 135)
         self.assertEqual(usage.largest_spare_internal_ram, 0)
 
+    def test_parses_single_byte_spare_internal_ram(self):
+        mem_path = self.write_mem(
+            """
+            Internal RAM layout:
+            Stack starts at: 0x5d (sp set to 0x5c) with 163 bytes available.
+            The largest spare internal RAM space starts at 0x1f with 1 byte available.
+
+            Other memory:
+               ROM/EPROM/FLASH  0x0000   0x1895    6294     8192
+            """
+        )
+
+        usage = check_firmware_size.parse_mem_usage(mem_path)
+
+        self.assertEqual(usage.flash_used, 6294)
+        self.assertEqual(usage.stack_available, 163)
+        self.assertEqual(usage.largest_spare_internal_ram, 1)
+
     def test_rejects_stack_or_spare_regressions(self):
         usage = check_firmware_size.MemUsage(
             flash_used=6902,

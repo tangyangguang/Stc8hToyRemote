@@ -23,7 +23,7 @@ typedef struct {
 #define APP_BUTTON_RELEASE_TICKS 5u
 #endif
 
-static void app_button_init(app_button_t *button)
+static void app_button_init(STC8H_DATA app_button_t *button)
 {
     button->press_ticks = 0u;
     button->click_ticks = 0u;
@@ -34,12 +34,12 @@ static void app_button_init(app_button_t *button)
 }
 
 #ifdef APP_BUTTON_FIXED_LONG_TICKS
-static app_button_event_t app_button_update_elapsed(app_button_t *button,
+static app_button_event_t app_button_update_elapsed(STC8H_DATA app_button_t *button,
                                                     stc8h_u8 active,
                                                     stc8h_u16 elapsed_ticks,
                                                     stc8h_u16 double_ticks)
 #else
-static app_button_event_t app_button_update_elapsed(app_button_t *button,
+static app_button_event_t app_button_update_elapsed(STC8H_DATA app_button_t *button,
                                                     stc8h_u8 active,
                                                     stc8h_u16 elapsed_ticks,
                                                     stc8h_u16 long_ticks,
@@ -105,7 +105,7 @@ static app_button_event_t app_button_update_elapsed(app_button_t *button,
 }
 
 #ifdef STC8H_HOSTED
-static app_button_event_t app_button_update(app_button_t *button,
+static app_button_event_t app_button_update(STC8H_DATA app_button_t *button,
                                             stc8h_u8 active,
                                             stc8h_u16 long_ticks,
                                             stc8h_u16 double_ticks)

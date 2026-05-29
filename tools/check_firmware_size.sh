@@ -19,5 +19,5 @@ check_one() {
         "$name" "$mem_file" "$limit" "$target" "$min_stack" "$min_spare_internal_ram"
 }
 
-check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7800 135 0
-check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6904 145 2
+check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7400 135 0
+check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6500 145 1

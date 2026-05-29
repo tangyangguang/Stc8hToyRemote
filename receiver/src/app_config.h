@@ -26,7 +26,7 @@ typedef struct {
 #define app_config_runtime_channel(config) ((void)(config), APP_CONFIG_DEFAULT_CHANNEL)
 #endif
 
-stc8h_status_t app_config_load(app_config_t *config);
-stc8h_status_t app_config_save(const app_config_t *config);
+stc8h_status_t app_config_load(STC8H_XDATA app_config_t *config);
+stc8h_status_t app_config_save(const STC8H_XDATA app_config_t *config);
 
 #endif

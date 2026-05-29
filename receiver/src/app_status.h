@@ -3,7 +3,9 @@
 
 #include "toy_remote_protocol.h"
 
-void app_status_init(toy_remote_status_t *status);
-void app_status_update(toy_remote_status_t *status, const toy_remote_control_t *control, stc8h_u8 link_lost);
+void app_status_init(STC8H_XDATA toy_remote_status_t *status);
+void app_status_update(STC8H_XDATA toy_remote_status_t *status,
+                       const STC8H_XDATA toy_remote_control_t *control,
+                       stc8h_u8 link_lost);
 
 #endif

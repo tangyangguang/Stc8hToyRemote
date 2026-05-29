@@ -24,7 +24,7 @@ def parse_mem_usage(mem_path):
             if line.startswith("Stack starts at:") and stack_match:
                 stack_available = int(stack_match.group(1))
             spare_match = re.search(
-                r"The largest spare internal RAM space starts at .* with ([0-9]+) bytes available\.",
+                r"The largest spare internal RAM space starts at .* with ([0-9]+) bytes? available\.",
                 line,
             )
             if spare_match:

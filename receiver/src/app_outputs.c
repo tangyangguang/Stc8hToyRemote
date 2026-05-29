@@ -58,7 +58,7 @@ void app_outputs_init(void)
     app_outputs_apply_safe();
 }
 
-void app_outputs_apply_control(const toy_remote_control_t *control)
+void app_outputs_apply_control(const STC8H_XDATA toy_remote_control_t *control)
 {
     stc8h_u16 fwd_duty;
     stc8h_u16 rev_duty;
