@@ -59,8 +59,11 @@ def main() -> None:
     ops_doc = OPS_DOC.read_text(encoding="utf-8")
 
     assert "#define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 1" in config_h
-    assert "#define APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS 500u" in source
+    assert "#define APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS 30u" in source
     assert "P3 |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
+    assert "P_SW2 |= 0x80u;" in source
+    assert "P3IE |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
+    assert "P3PU |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
 
     change_body = function_body_by_signature(source, "static void apply_receiver_channel_change(stc8h_u8 channel)")
     assert "if (channel == config.rf_channel)" in change_body
@@ -76,12 +79,13 @@ def main() -> None:
 
     button_body = function_body(source, "handle_channel_buttons")
     assert "button_bits = (stc8h_u8)(P3 & (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));" in button_body
-    assert "button_bits == 0u" in button_body
-    assert "button_bits == (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK)" in button_body
-    assert "APP_RECEIVER_CHANNEL_BUTTON_LOCKED" in button_body
-    assert "button_bits == TOY_REMOTE_RX_RF_CH_MINUS_MASK" in button_body
-    assert "if (channel_button_pressed != next_state)" in button_body
-    assert "elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_HOLD_MS" in button_body
+    assert "next_state = (stc8h_u8)(button_bits ^ (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));" in button_body
+    assert "APP_RECEIVER_CHANNEL_BUTTON_BLOCKED" in button_body
+    assert "channel_button_sample" in button_body
+    assert "channel_button_stable" in button_body
+    assert "if (channel_button_sample != next_state)" in button_body
+    assert "elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS" in button_body
+    assert "if (channel_button_stable == next_state)" in button_body
     assert "toy_remote_channel_pool_next(config.rf_channel)" in button_body
     assert "toy_remote_channel_pool_prev(config.rf_channel)" in button_body
     assert "apply_receiver_channel_change(toy_remote_channel_pool_next(config.rf_channel));" in button_body
@@ -97,7 +101,9 @@ def main() -> None:
 
     for doc in (core_doc, ops_doc):
         assert "接收机本机频道操作" in doc
-        assert "按住约 0.5 秒" in doc
+        assert "稳定约 30ms" in doc
+        assert "内部上拉" in doc
+        assert "烧录时不要按住" in doc
         assert "P30+P31" in doc
         assert "不清绑定、不切频道" in doc
 

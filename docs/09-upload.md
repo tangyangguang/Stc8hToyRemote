@@ -2,6 +2,8 @@
 
 本项目使用 `stcgal` 通过 STC8H UART ISP 烧录 controller 和 receiver。烧录脚本封装在各自项目的 `upload_stcgal.py` 中，实际重试逻辑位于 `tools/upload_stcgal_runner.py`。
 
+receiver 的 P30/P31 频道键复用 P3.0/P3.1。固件运行后会启用内部上拉，但烧录进入 STC Bootloader 时仍应保证这两个脚没有被按键或外部电路强拉低；不要在烧录时按住 P30/P31。单纯外部上拉通常不影响 UART ISP。
+
 ## 默认配置
 
 | 固件 | 默认串口 | 默认下载波特率 | 协议 |
