@@ -21,7 +21,8 @@ def test_controller_timing_docs_match_source() -> None:
             "遥控器与接收机核心逻辑说明.md",
         )
     )
-    assert "50ms" not in docs
+    assert "每 50ms" not in docs
+    assert "约 50ms" not in docs
     assert "160ms" not in docs
     assert "6.25Hz" not in docs
     assert "约 20Hz" not in docs

@@ -9,6 +9,10 @@ static void test_default_and_pool_order(void)
     assert(toy_remote_channel_pool_value(1u) == 72u);
     assert(toy_remote_channel_pool_value(15u) == 16u);
     assert(toy_remote_channel_pool_value(16u) == 76u);
+    assert(toy_remote_channel_pool_contains(76u) == 1u);
+    assert(toy_remote_channel_pool_contains(16u) == 1u);
+    assert(toy_remote_channel_pool_contains(80u) == 0u);
+    assert(toy_remote_channel_pool_contains(18u) == 0u);
 }
 
 static void test_pool_wraps_from_known_channels(void)

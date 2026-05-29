@@ -28,8 +28,9 @@ static stc8h_u8 radio_error;
 static stc8h_u8 link_lost;
 static stc8h_u8 last_control_seq;
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
-static stc8h_u8 ch_add_pressed;
-static stc8h_u8 ch_minus_pressed;
+#define APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS 50u
+static stc8h_u8 channel_button_pressed;
+static stc8h_u16 last_channel_button_tick;
 #endif
 
 #define APP_RECEIVER_LINK_TIMEOUT_MS 300u
@@ -256,35 +257,56 @@ static void handle_packet(void)
     }
 }
 
+static void apply_receiver_channel_change(stc8h_u8 channel)
+{
+#if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
+    if (channel == config.rf_channel) {
+        return;
+    }
+
+    config.rf_channel = channel;
+    app_radio_set_channel(config.rf_channel);
+    apply_safe_state();
+    app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
+    prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
+    (void)app_config_save(&config);
+#else
+    (void)channel;
+#endif
+}
+
 static void handle_channel_buttons(void)
 {
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
-    if (TOY_REMOTE_RX_RF_CH_ADD_ACTIVE() != 0u) {
-        if (ch_add_pressed == 0u) {
-            ch_add_pressed = 1u;
-            config.rf_channel = toy_remote_channel_pool_next(config.rf_channel);
-            app_radio_set_channel(config.rf_channel);
-            (void)app_config_save(&config);
-            apply_safe_state();
-            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
-            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
-        }
-    } else {
-        ch_add_pressed = 0u;
+    stc8h_u8 add_active;
+    stc8h_u8 minus_active;
+    stc8h_u16 now;
+    stc8h_u16 elapsed_ms;
+
+    add_active = TOY_REMOTE_RX_RF_CH_ADD_ACTIVE();
+    minus_active = TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE();
+
+    if (add_active == minus_active) {
+        channel_button_pressed = add_active;
+        return;
     }
 
-    if (TOY_REMOTE_RX_RF_CH_MINUS_ACTIVE() != 0u) {
-        if (ch_minus_pressed == 0u) {
-            ch_minus_pressed = 1u;
-            config.rf_channel = toy_remote_channel_pool_prev(config.rf_channel);
-            app_radio_set_channel(config.rf_channel);
-            (void)app_config_save(&config);
-            apply_safe_state();
-            app_indicator_set_state(&indicator, app_waiting_indicator_state(), app_tick_now());
-            prepare_ack_status(APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER);
-        }
+    if (channel_button_pressed != 0u) {
+        return;
+    }
+
+    now = app_tick_now();
+    elapsed_ms = (stc8h_u16)(now - last_channel_button_tick);
+    if (elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS) {
+        return;
+    }
+
+    channel_button_pressed = 1u;
+    last_channel_button_tick = now;
+    if (add_active != 0u) {
+        apply_receiver_channel_change(toy_remote_channel_pool_next(config.rf_channel));
     } else {
-        ch_minus_pressed = 0u;
+        apply_receiver_channel_change(toy_remote_channel_pool_prev(config.rf_channel));
     }
 #endif
 }

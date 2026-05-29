@@ -62,6 +62,7 @@ python3 "$ROOT_DIR/tests/controller_voltage_display_source_test.py"
 python3 "$ROOT_DIR/tests/address_space_fast_path_source_test.py"
 python3 "$ROOT_DIR/tests/controller_scan_source_test.py"
 python3 "$ROOT_DIR/tests/controller_radio_tx_result_source_test.py"
+python3 "$ROOT_DIR/tests/receiver_channel_buttons_source_test.py"
 python3 "$ROOT_DIR/tests/receiver_link_timeout_source_test.py"
 python3 "$ROOT_DIR/tests/receiver_safe_state_source_test.py"
 python3 "$ROOT_DIR/tests/project_consistency_source_test.py"
@@ -194,6 +195,19 @@ cc -std=c99 -Wall -Wextra \
     "$ROOT_DIR/tests/receiver_channel_policy_test.c" \
     -o /tmp/receiver_channel_policy_test_fixed
 /tmp/receiver_channel_policy_test_fixed
+
+cc -std=c99 -Wall -Wextra \
+    -DSTC8H_EEPROM_ENABLE_FIXED_BLOCK=1 \
+    -DSTC8H_EEPROM_FIXED_ADDR=0 \
+    -DSTC8H_EEPROM_FIXED_SIZE=9 \
+    -I"$ROOT_DIR/receiver/src" \
+    -I"$ROOT_DIR/shared" \
+    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../Stc8hBase/hal" \
+    "$ROOT_DIR/tests/receiver_config_eeprom_test.c" \
+    "$ROOT_DIR/receiver/src/app_config.c" \
+    -o /tmp/receiver_config_eeprom_test
+/tmp/receiver_config_eeprom_test
 
 cc -std=c99 -Wall -Wextra \
     -DAPP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1 \

@@ -7,9 +7,10 @@ STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构
 - controller 读取 EC11 速度、EC11 中键、方向、刹车、灯、蜂鸣器、Fn、电位器转向输入。
 - controller 通过 TM1637 显示连接状态、方向、速度、配置项和电压。
 - receiver 接收控制包，驱动 AT8236 电机、舵机、灯、蜂鸣器和辅助 PWM。
-- nRF24L01 使用固定地址 `TOYR1`、默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
+- nRF24L01 使用固定地址 `TOYR1`、出厂默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
 - receiver 未绑定时绑定第一台合法 `tx_id` 的 controller；已绑定后拒绝其他 `tx_id`。
 - receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机保持最后角度。
+- receiver 默认启用 P30/P31 本机频道切换，在预设频道池 `76,72,...,16` 中切换并保存；切换后输出进入安全状态，controller 在 `Lxxx` 下双击 EC11 中键手动扫描找回。
 - controller 丢链后显示 `Lxxx` 并锁定该频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 ## 目录
@@ -93,7 +94,7 @@ pio run -t upload --upload-port /dev/cu.usbserial-120
 
 - `APP_OUTPUT_FAST_PWM_PRESCALER` / `APP_OUTPUT_FAST_PWM_PERIOD`：AT8236 和辅助 PWM 共用的 PWM-B 频率配置，默认 `5u` / `91u`，11.0592MHz 下约 20.03kHz。
 - `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT`：电机最低有效 PWM 占空比百分比，默认 `35u`。
-- `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`：是否启用 receiver P30/P31 本机频道维护键，默认关闭。
+- `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS`：是否启用 receiver P30/P31 本机频道维护键，默认开启。
 - `APP_RECEIVER_ENABLE_CLEAR_BINDING_BUTTONS`：是否启用 receiver P30+P31 上电清绑定，默认开启。
 - `APP_RADIO_ENABLE_STATS`：RF 轻量统计，默认关闭。
 - `APP_INPUT_DIAG_DISPLAY`：controller 输入显示诊断，默认关闭。

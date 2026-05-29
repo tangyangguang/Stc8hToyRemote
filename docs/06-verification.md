@@ -66,9 +66,9 @@ pio run -t upload --upload-port /dev/cu.usbserial-120
 1. 先打开 receiver，再打开 controller。
 2. controller 显示 `C076` 后进入正常控制界面。
 3. receiver LED 常亮。
-4. 关闭 receiver 后，controller 显示 `L076`。
+4. 关闭 receiver 后，controller 显示当前频道对应的 `Lxxx`，默认新机为 `L076`。
 5. 再打开 receiver 后，controller 自动恢复正常控制界面。
-6. 只有在 `L076` 下双击 EC11 中键才进入扫描。
+6. 只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 失败判定：
 
@@ -148,11 +148,14 @@ pio run -c platformio_diag.ini -e STC8H1K08_radio_diag -t upload --upload-port /
 
 ## 多接收机和频道验收
 
-默认固件关闭 receiver P30/P31 频道维护键。若启用 `APP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1`：
+默认固件启用 receiver P30/P31 频道维护键：
 
-- P30/P31 在预设频道池中切换并保存。
-- 切换后 receiver 输出保持安全。
-- controller 需要在 `Lxxx` 下双击手动扫描找到新频道。
-- 已连接状态下不做协商换频；误切频道按丢链处理。
+- P30/P31 为 P3.0/P3.1，低电平有效，运行期单键边沿触发，在预设频道池 `76,72,68,64,60,56,52,48,44,40,36,32,28,24,20,16` 中切换并保存。
+- 按住单键不应连续高速切换；双键同时按下不应切换频道，必须全部释放后才允许下一次单键切换。
+- 切换后 receiver 应立即重设 nRF24 RX 频道、flush RX、清 IRQ 并回到 RX。
+- 切换后 receiver 输出保持安全：电机停止，灯/蜂鸣器/辅助 PWM 关闭，舵机保持最后角度。
+- 切换后 LED 应进入未绑定等待或已绑定等待状态，并重新预装 ACK 状态 payload。
+- 已连接状态下不做协商换频；切换频道按丢链/维护处理，controller 显示 `Lxxx` 后，在 `Lxxx` 下双击 EC11 中键手动扫描找到新频道。
+- EEPROM 中 `rf_channel` 若不在预设频道池内，重启后应恢复为 `76`；清绑定不应改变当前保存频道。
 
-默认固件保留 P30+P31 上电清绑定。验收时同时按住 P30/P31 再给 receiver 上电，LED 应快闪 6 次并进入未绑定等待，频道保持默认策略不变。
+默认固件保留 P30+P31 上电清绑定。验收时同时按住 P30/P31 再给 receiver 上电，LED 应快闪 6 次并进入未绑定等待，保存频道不变。

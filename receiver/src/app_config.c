@@ -1,5 +1,9 @@
 #include "app_config.h"
 #include "stc8h_eeprom.h"
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_VALUE 0
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_NEXT 0
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_PREV 0
+#include "toy_remote_channels.h"
 
 #define APP_CONFIG_LEN 9u
 #define APP_CONFIG_MAGIC0 0x52u
@@ -44,8 +48,8 @@ stc8h_status_t app_config_load(STC8H_XDATA app_config_t *config)
 
     config->bound_tx_id = (stc8h_u16)((stc8h_u16)app_config_buf[4] | ((stc8h_u16)app_config_buf[5] << 8));
     config->rf_channel = app_config_buf[6];
-    if (config->rf_channel > 125u) {
-        app_config_set_defaults(config);
+    if (toy_remote_channel_pool_contains(config->rf_channel) == 0u) {
+        config->rf_channel = APP_CONFIG_DEFAULT_CHANNEL;
         return STC8H_ERROR;
     }
     return STC8H_OK;

@@ -102,15 +102,15 @@ check_receiver_runtime_channel() {
     rst_file=$1
 
     if ! awk '
-        /mov[[:space:]]+dpl,[[:space:]]*#0x4c/ { saw_default_channel = NR }
+        /mov[[:space:]]+dptr,#\(_config \+ 0x0002\)/ { saw_runtime_channel = NR }
         /lcall[[:space:]]+_app_radio_init_rx/ {
-            if ((saw_default_channel > 0) && ((NR - saw_default_channel) <= 3)) {
+            if ((saw_runtime_channel > 0) && ((NR - saw_runtime_channel) <= 4)) {
                 saw_init = 1
             }
         }
         END { exit saw_init ? 0 : 1 }
     ' "$rst_file"; then
-        echo "receiver default build must initialize nRF24 RX on fixed channel 76" >&2
+        echo "receiver default build must initialize nRF24 RX from saved runtime channel" >&2
         exit 1
     fi
 }
