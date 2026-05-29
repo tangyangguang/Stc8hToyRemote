@@ -31,7 +31,7 @@ def main() -> None:
     voltage_body = function_body(source, "update_voltage_display")
     ui_body = function_body(source, "run_ui_slice")
 
-    assert "#define APP_VOLTAGE_DISPLAY_128MS_TICKS 8u" in source
+    assert "#define APP_VOLTAGE_DISPLAY_128MS_TICKS 12u" in source
     assert "#define APP_VOLTAGE_LABEL_128MS_TICKS 2u" in source
     assert "static stc8h_u8 voltage_display_active;" in source
     assert "static stc8h_u8 voltage_display_start_128ms;" in source
