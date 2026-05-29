@@ -103,7 +103,7 @@ static void app_display_channel_segments(stc8h_u8 channel, stc8h_u8 colon, stc8h
 
 #define app_display_source_segments(prefix, segments) do { \
     (segments)[0] = (prefix); \
-    (segments)[1] = (segments)[2] = (segments)[3] = APP_DISPLAY_DASH; \
+    (segments)[1] = (segments)[2] = (segments)[3] = APP_DISPLAY_BLANK; \
 } while (0)
 
 #define app_display_config_segments(item, value, segments) do { \

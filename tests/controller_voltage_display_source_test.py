@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "controller" / "src" / "main.c"
+DISPLAY_HEADER = ROOT / "controller" / "src" / "app_display.h"
 
 
 def body_from_marker(source: str, marker: str) -> str:
@@ -28,11 +29,12 @@ def function_body(source: str, name: str) -> str:
 
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    display_header = DISPLAY_HEADER.read_text(encoding="utf-8")
     voltage_body = function_body(source, "update_voltage_display")
     ui_body = function_body(source, "run_ui_slice")
 
     assert "#define APP_VOLTAGE_DISPLAY_128MS_TICKS 12u" in source
-    assert "#define APP_VOLTAGE_LABEL_128MS_TICKS 2u" in source
+    assert "#define APP_VOLTAGE_LABEL_128MS_TICKS 3u" in source
     assert "static stc8h_u8 voltage_display_active;" in source
     assert "static stc8h_u8 voltage_display_start_128ms;" in source
     assert "static stc8h_u16 rx_battery_centivolts;" in source
@@ -64,6 +66,8 @@ def main() -> None:
     assert "APP_VOLTAGE_LABEL_TICKS" not in source
     assert "display_voltage(rx_battery_centivolts);" in voltage_body
     assert "rx_voltage_valid = 1u;" in source
+    assert "(segments)[1] = (segments)[2] = (segments)[3] = APP_DISPLAY_BLANK;" in display_header
+    assert "(segments)[1] = (segments)[2] = (segments)[3] = APP_DISPLAY_DASH;" not in display_header
 
 
 if __name__ == "__main__":
