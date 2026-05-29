@@ -10,7 +10,7 @@ STC8H1K08 玩具遥控器和接收机固件。项目使用 PlatformIO + SDCC 构
 - nRF24L01 使用固定地址 `TOYR1`、出厂默认频道 `76`、250kbps、0dBm、auto ack、15 字节 ACK payload。
 - receiver 未绑定时绑定第一台合法 `tx_id` 的 controller；已绑定后拒绝其他 `tx_id`。
 - receiver 掉线进入安全状态：电机停止、灯/蜂鸣器/辅助 PWM 关闭、舵机保持最后角度。
-- receiver 默认启用 P30/P31 本机频道切换，固件启用内部上拉，单键稳定约 30ms 后在预设频道池 `76,72,...,16` 中切换并保存；切换后输出进入安全状态，controller 在 `Lxxx` 下双击 EC11 中键手动扫描找回。
+- receiver 默认启用 P30/P31 本机频道切换，固件启用内部上拉，单键稳定约 30ms 后在 32 个预设频道中切换并保存；切换后输出进入安全状态，controller 在 `Lxxx` 下双击 EC11 中键手动扫描找回。
 - controller 丢链后显示 `Lxxx` 并锁定该频道重试；只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
 
 ## 目录

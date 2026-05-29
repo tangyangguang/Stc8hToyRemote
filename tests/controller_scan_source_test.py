@@ -35,8 +35,8 @@ def main() -> None:
     assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
     assert "#define APP_BUTTON_DOUBLE_TICKS 1000u" in source
-    assert "#define APP_SCAN_PROBE_PACKETS 4u" in source
-    assert "#define APP_SCAN_POOL_PASSES 2u" in source
+    assert "#define APP_SCAN_PROBE_PACKETS 2u" in source
+    assert "#define APP_SCAN_POOL_PASSES 1u" in source
     assert "#define APP_LOOP_INTERVAL_MS 20u" in source
     assert "APP_INPUT_ADC_DIVIDER" not in input_source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source

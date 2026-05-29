@@ -65,11 +65,11 @@ static void test_load_accepts_saved_channel_from_pool(void)
     app_config_t config;
 
     reset_stubs();
-    seed_config(0x4A21u, 32u);
+    seed_config(0x4A21u, 67u);
 
     assert(app_config_load(&config) == STC8H_OK);
     assert(config.bound_tx_id == 0x4A21u);
-    assert(config.rf_channel == 32u);
+    assert(config.rf_channel == 67u);
 }
 
 static void test_load_recovers_channel_outside_pool_to_default(void)
@@ -77,7 +77,7 @@ static void test_load_recovers_channel_outside_pool_to_default(void)
     app_config_t config;
 
     reset_stubs();
-    seed_config(0x4A21u, 80u);
+    seed_config(0x4A21u, 20u);
 
     assert(app_config_load(&config) == STC8H_ERROR);
     assert(config.bound_tx_id == 0x4A21u);
@@ -90,13 +90,13 @@ static void test_save_writes_current_channel(void)
 
     reset_stubs();
     config.bound_tx_id = 0x1357u;
-    config.rf_channel = 24u;
+    config.rf_channel = 36u;
 
     assert(app_config_save(&config) == STC8H_OK);
     assert(save_calls == 1u);
     assert(saved_image[4] == 0x57u);
     assert(saved_image[5] == 0x13u);
-    assert(saved_image[6] == 24u);
+    assert(saved_image[6] == 36u);
     assert(saved_image[8] == test_checksum(saved_image));
 }
 

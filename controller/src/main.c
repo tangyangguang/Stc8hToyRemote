@@ -14,6 +14,7 @@
 #include "stc8h_interrupt.h"
 #include "stc8h_sfr.h"
 #include "stc8h_spi.h"
+#define TOY_REMOTE_CHANNEL_POOL_ENABLE_CONTAINS 0
 #define TOY_REMOTE_CHANNEL_POOL_ENABLE_NEXT 0
 #define TOY_REMOTE_CHANNEL_POOL_ENABLE_PREV 0
 #include "toy_remote_channels.h"
@@ -82,8 +83,8 @@ static stc8h_u8 config_item;
 #define APP_STATE_LOST 2u
 #define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS
 #define APP_BUTTON_DOUBLE_TICKS 1000u
-#define APP_SCAN_PROBE_PACKETS 4u
-#define APP_SCAN_POOL_PASSES 2u
+#define APP_SCAN_PROBE_PACKETS 2u
+#define APP_SCAN_POOL_PASSES 1u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 20u

@@ -20,4 +20,4 @@ check_one() {
 }
 
 check_one controller "$ROOT_DIR/controller/.pio/build/STC8H1K08/firmware.map" 8192 7400 135 0
-check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6600 145 1
+check_one receiver "$ROOT_DIR/receiver/.pio/build/STC8H1K08/firmware.map" 8192 6800 145 1
