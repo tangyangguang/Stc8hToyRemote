@@ -28,6 +28,6 @@ typedef enum {
 
 stc8h_status_t app_radio_init_rx(stc8h_u8 channel);
 void app_radio_set_channel(stc8h_u8 channel);
-app_radio_rx_result_t app_radio_receive_packet(stc8h_u8 *packet);
+app_radio_rx_result_t app_radio_receive_packet(STC8H_XDATA stc8h_u8 *packet);
 
 #endif

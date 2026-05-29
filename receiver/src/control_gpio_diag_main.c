@@ -93,7 +93,7 @@ static void control_gpio_diag_handle_packet(void)
     stc8h_u16 tx_id;
     stc8h_u8 replace_ack;
 
-    if (proto_rf_link_poll_data_fixed(&link, packet, payload) != STC8H_OK) {
+    if (proto_rf_link_poll_data_fixed_xdata(&link, packet, payload) != STC8H_OK) {
         return;
     }
     if (control_gpio_diag_valid_payload() != STC8H_OK) {
@@ -128,8 +128,8 @@ void main(void)
 
     drv_nrf24l01_init_pins();
     stc8h_spi_init();
-    proto_rf_link_init(&link);
-    proto_rf_link_set_ids(&link, 2u, 1u);
+    proto_rf_link_init_xdata(&link);
+    proto_rf_link_set_ids_xdata(&link, 2u, 1u);
 
     if (app_radio_init_rx(APP_CONFIG_DEFAULT_CHANNEL) != STC8H_OK) {
         while (1) {

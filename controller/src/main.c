@@ -108,7 +108,7 @@ static void display_commit_raw4(void)
         return;
     }
 
-    (void)drv_tm1637_display_raw4(display_segments);
+    (void)drv_tm1637_display_raw4_data(display_segments);
 
     display_last_segments[0] = display_segments[0];
     display_last_segments[1] = display_segments[1];
@@ -393,7 +393,7 @@ static void make_control_packet(void)
     payload[TOY_REMOTE_CONTROL_OFFSET_AUX_PWM] = control.aux_pwm;
     payload[TOY_REMOTE_CONTROL_OFFSET_REQUEST_VOLTAGE] = control.request_voltage;
     TOY_REMOTE_PUT_U16_LE(payload, TOY_REMOTE_CONTROL_OFFSET_TX_ID_L, control.tx_id);
-    (void)proto_rf_link_send_data_fixed(&link, packet, payload);
+    (void)proto_rf_link_send_data_fixed_xdata(&link, packet, payload);
 }
 
 static void display_state_channel(stc8h_u8 prefix)
@@ -675,8 +675,8 @@ void main(void)
 
     drv_nrf24l01_init_pins();
     stc8h_spi_init();
-    proto_rf_link_init(&link);
-    proto_rf_link_set_ids(&link, 1u, 2u);
+    proto_rf_link_init_xdata(&link);
+    proto_rf_link_set_ids_xdata(&link, 1u, 2u);
     app_input_init(&control);
     app_button_init(&ec11_button);
     app_timer0_init_encoder_tick();

@@ -234,7 +234,7 @@ static void handle_packet(void)
 {
     stc8h_u8 save_binding;
 
-    if (proto_rf_link_poll_data_fixed(&link, packet, payload) == STC8H_OK) {
+    if (proto_rf_link_poll_data_fixed_xdata(&link, packet, payload) == STC8H_OK) {
         if (unpack_control_payload() == STC8H_OK) {
             save_binding = 0u;
             if (config.bound_tx_id == 0u) {
@@ -331,8 +331,8 @@ void main(void)
     }
 #endif
     status.tx_id = config.bound_tx_id;
-    proto_rf_link_init(&link);
-    proto_rf_link_set_ids(&link, 2u, 1u);
+    proto_rf_link_init_xdata(&link);
+    proto_rf_link_set_ids_xdata(&link, 2u, 1u);
     apply_safe_state();
 
     if (app_radio_init_rx(app_config_runtime_channel(&config)) != STC8H_OK) {

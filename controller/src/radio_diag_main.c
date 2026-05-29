@@ -17,12 +17,12 @@
 #define APP_RADIO_DIAG_T 0x78u
 
 static STC8H_XDATA stc8h_u8 packet[APP_RADIO_PACKET_SIZE];
-static STC8H_XDATA stc8h_u8 segments[4];
+static stc8h_u8 segments[4];
 static stc8h_u8 seq_tx;
 
 static void display_raw4(void)
 {
-    (void)drv_tm1637_display_raw4(segments);
+    (void)drv_tm1637_display_raw4_data(segments);
 }
 
 static void display_prefixed(stc8h_u8 prefix, stc8h_u8 value)

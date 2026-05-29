@@ -4,7 +4,7 @@
 #define APP_RADIO_ADDR_LEN 5u
 #define APP_RADIO_TX_WAIT_LIMIT 6000u
 
-static const stc8h_u8 app_radio_addr[APP_RADIO_ADDR_LEN] = {'T', 'O', 'Y', 'R', '1'};
+static DRV_NRF24L01_CODE_CONST stc8h_u8 app_radio_addr[APP_RADIO_ADDR_LEN] = {'T', 'O', 'Y', 'R', '1'};
 STC8H_XDATA stc8h_u8 app_radio_ack_packet[APP_RADIO_STATUS_ACK_SIZE];
 stc8h_u8 app_radio_ack_len;
 #if APP_RADIO_ENABLE_TX_DIAG_STATUS
@@ -68,7 +68,7 @@ stc8h_status_t app_radio_init_tx(stc8h_u8 channel)
     if (drv_nrf24l01_set_channel(channel) != STC8H_OK) {
         return STC8H_ERROR;
     }
-    if (drv_nrf24l01_config_pipe0_fixed(app_radio_addr) != STC8H_OK) {
+    if (drv_nrf24l01_config_pipe0_fixed_code(app_radio_addr) != STC8H_OK) {
         return STC8H_ERROR;
     }
     if (drv_nrf24l01_enable_ack_payload(DRV_NRF24L01_PIPE0) != STC8H_OK) {
@@ -102,7 +102,7 @@ void app_radio_recover_tx(void)
     drv_nrf24l01_enter_tx();
 }
 
-app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
+app_radio_tx_result_t app_radio_send_packet_with_ack(const STC8H_XDATA stc8h_u8 *packet)
 {
     stc8h_u8 status;
     stc8h_u16 wait;
@@ -114,8 +114,8 @@ app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet)
     app_radio_stats_inc(tx_count);
 
     drv_nrf24l01_flush_tx();
-#if DRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API
-    (void)drv_nrf24l01_write_payload_fixed(packet);
+#if DRV_NRF24L01_ENABLE_XDATA_PAYLOAD_API
+    (void)drv_nrf24l01_write_payload_fixed_xdata(packet);
 #else
     (void)drv_nrf24l01_write_payload(packet, APP_RADIO_PACKET_SIZE);
 #endif

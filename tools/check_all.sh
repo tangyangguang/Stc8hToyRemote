@@ -59,6 +59,7 @@ cc -std=c99 -Wall -Wextra \
 python3 "$ROOT_DIR/tests/check_firmware_size_test.py"
 python3 "$ROOT_DIR/tests/controller_config_source_test.py"
 python3 "$ROOT_DIR/tests/controller_voltage_display_source_test.py"
+python3 "$ROOT_DIR/tests/address_space_fast_path_source_test.py"
 python3 "$ROOT_DIR/tests/controller_scan_source_test.py"
 python3 "$ROOT_DIR/tests/controller_radio_tx_result_source_test.py"
 python3 "$ROOT_DIR/tests/receiver_link_timeout_source_test.py"
@@ -148,7 +149,10 @@ cc -std=c99 -Wall -Wextra \
 /tmp/controller_radio_config_test
 
 cc -std=c99 -Wall -Wextra \
-    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=1 \
+    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=0 \
+    -DDRV_NRF24L01_ENABLE_CODE_ADDRESS_API=1 \
+    -DDRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API=0 \
+    -DDRV_NRF24L01_ENABLE_XDATA_PAYLOAD_API=1 \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     -I"$ROOT_DIR/../Stc8hBase/drivers" \
@@ -165,7 +169,10 @@ cc -std=c99 -Wall -Wextra \
 /tmp/receiver_radio_config_test
 
 cc -std=c99 -Wall -Wextra \
-    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=1 \
+    -DDRV_NRF24L01_ENABLE_PIPE0_FIXED_API=0 \
+    -DDRV_NRF24L01_ENABLE_CODE_ADDRESS_API=1 \
+    -DDRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API=0 \
+    -DDRV_NRF24L01_ENABLE_XDATA_PAYLOAD_API=1 \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/../Stc8hBase/core" \
     -I"$ROOT_DIR/../Stc8hBase/drivers" \

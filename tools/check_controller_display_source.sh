@@ -6,7 +6,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 if awk '
     /static void display_commit_raw4\(void\)/ { in_fn = 1 }
     in_fn && /EA = 0/ { disables_irq = 1 }
-    in_fn && /drv_tm1637_display_raw4/ { calls_tm1637 = 1 }
+    in_fn && /drv_tm1637_display_raw4_data/ { calls_tm1637 = 1 }
     in_fn && /^}/ {
         if (disables_irq && calls_tm1637) {
             exit 1

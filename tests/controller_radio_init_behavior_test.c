@@ -42,7 +42,7 @@ stc8h_status_t drv_nrf24l01_set_channel(stc8h_u8 channel)
     ++set_channel_calls;
     return STC8H_OK;
 }
-stc8h_status_t drv_nrf24l01_config_pipe0_fixed(const stc8h_u8 *addr)
+stc8h_status_t drv_nrf24l01_config_pipe0_fixed_code(DRV_NRF24L01_CODE_CONST stc8h_u8 *addr)
 {
     (void)addr;
     return STC8H_OK;
@@ -71,6 +71,11 @@ stc8h_u8 drv_nrf24l01_write_payload(const stc8h_u8 *data, stc8h_u8 len)
 {
     (void)data;
     (void)len;
+    return 0u;
+}
+stc8h_u8 drv_nrf24l01_write_payload_fixed_xdata(const STC8H_XDATA stc8h_u8 *data)
+{
+    (void)data;
     return 0u;
 }
 void drv_nrf24l01_pulse_ce(void) { }

@@ -117,7 +117,7 @@ static void control_diag_handle_packet(void)
 {
     stc8h_u8 replace_ack;
 
-    if (proto_rf_link_poll_data_fixed(&link, packet, payload) != STC8H_OK) {
+    if (proto_rf_link_poll_data_fixed_xdata(&link, packet, payload) != STC8H_OK) {
         return;
     }
     if (control_diag_unpack() != STC8H_OK) {
@@ -137,8 +137,8 @@ void main(void)
 {
     drv_nrf24l01_init_pins();
     stc8h_spi_init();
-    proto_rf_link_init(&link);
-    proto_rf_link_set_ids(&link, 2u, 1u);
+    proto_rf_link_init_xdata(&link);
+    proto_rf_link_set_ids_xdata(&link, 2u, 1u);
     app_outputs_init();
     TOY_REMOTE_RX_LED_OFF();
 

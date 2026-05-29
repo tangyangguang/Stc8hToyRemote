@@ -50,7 +50,7 @@ typedef struct {
 
 stc8h_status_t app_radio_init_tx(stc8h_u8 channel);
 void app_radio_set_channel(stc8h_u8 channel);
-app_radio_tx_result_t app_radio_send_packet_with_ack(const stc8h_u8 *packet);
+app_radio_tx_result_t app_radio_send_packet_with_ack(const STC8H_XDATA stc8h_u8 *packet);
 void app_radio_recover_tx(void);
 
 extern STC8H_XDATA stc8h_u8 app_radio_ack_packet[APP_RADIO_STATUS_ACK_SIZE];
