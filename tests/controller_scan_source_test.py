@@ -42,6 +42,7 @@ def main() -> None:
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
 
     send_body = function_body(source, "send_control_packet")
+    ack_body = function_body(source, "handle_ack_status")
     probe_body = function_body(source, "probe_current_channel")
     scan_body = function_body(source, "scan_channels")
     ui_body = function_body(source, "run_ui_slice")
@@ -51,6 +52,7 @@ def main() -> None:
 
     assert "APP_RADIO_TX_ACK_PAYLOAD_OK" in send_body
     assert "return 2u;" in send_body
+    assert "body[TOY_REMOTE_STATUS_OFFSET_LINK_STATE] != TOY_REMOTE_LINK_STATE_CONNECTED" in ack_body
     assert "rx_status.tx_id" not in source
     assert "(void)send_control_packet();" not in source
     assert "app_input_update_speed(&control);" in send_body

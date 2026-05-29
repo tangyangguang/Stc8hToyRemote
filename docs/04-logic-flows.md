@@ -187,4 +187,4 @@ receiver voltage
 bound tx_id
 ```
 
-receiver 启动、恢复和首次绑定后用 replace 方式重置 ACK FIFO；正常收到包后追加下一份 ACK payload，不在每次 RX 后 flush TX。
+receiver 启动、恢复、首次绑定，以及从 lost 恢复到 connected 后用 replace 方式重置 ACK FIFO；正常持续收到包后追加下一份 ACK payload，不在每次 RX 后 flush TX。controller 只有收到 `link_state=connected` 的合法 ACK 状态才进入连接状态，`link_state=lost` 不算连接成功。

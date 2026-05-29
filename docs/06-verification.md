@@ -19,8 +19,8 @@
 
 | 固件 | 当前 Flash | Flash 阈值 | 当前 Stack 可用 / 阈值 | 当前最大连续 internal RAM / 阈值 |
 | --- | --- | --- | --- | --- |
-| controller | 7353/8192 | <= 7400 | 142 / >= 135 bytes | 5 / >= 0 bytes |
-| receiver | 6617/8192 | <= 6800 | 158 / >= 145 bytes | 1 / >= 1 bytes |
+| controller | 7352/8192 | <= 7400 | 142 / >= 135 bytes | 5 / >= 0 bytes |
+| receiver | 6657/8192 | <= 6800 | 158 / >= 145 bytes | 1 / >= 1 bytes |
 
 ## 单独构建
 

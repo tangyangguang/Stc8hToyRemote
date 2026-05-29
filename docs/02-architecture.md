@@ -64,7 +64,7 @@ controller/receiver application
 | Dynamic payload | 用于 ACK payload |
 | SETUP_RETR | ARD 1000us，ARC 15 |
 
-receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定后替换 ACK FIFO，确保回传新的 `tx_id`；正常收到控制包后追加下一份 ACK payload，避免每包 flush TX 造成空 ACK。
+receiver 启动和恢复时预装 3 个 ACK payload 槽；首次绑定或从 lost 恢复到 connected 后替换 ACK FIFO，确保旧的 lost ACK 不会让 controller 误判链路；正常持续收到控制包后追加下一份 ACK payload，避免每包 flush TX 造成空 ACK。
 
 ## 输出策略
 

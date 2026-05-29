@@ -51,14 +51,14 @@ static void test_waiting_bound_slow_blinks_after_boot(void)
     assert(app_indicator_update(&indicator, 1600u) == APP_INDICATOR_LED_ON);
 }
 
-static void test_connected_waits_for_boot_then_stays_on(void)
+static void test_connected_interrupts_boot_then_stays_on(void)
 {
     app_indicator_t indicator;
 
     app_indicator_init(&indicator, 0u);
     app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, 10u);
 
-    run_boot_complete(&indicator);
+    assert(app_indicator_update(&indicator, 100u) == APP_INDICATOR_LED_ON);
     assert(app_indicator_update(&indicator, 5000u) == APP_INDICATOR_LED_ON);
 }
 
@@ -114,7 +114,7 @@ int main(void)
     test_boot_flashes_three_times_then_waits();
     test_waiting_unbound_single_short_flash_after_boot();
     test_waiting_bound_slow_blinks_after_boot();
-    test_connected_waits_for_boot_then_stays_on();
+    test_connected_interrupts_boot_then_stays_on();
     test_connecting_flashes_fast_after_boot();
     test_radio_error_double_flashes_after_boot();
     test_binding_cleared_fast_flashes_then_unbound();

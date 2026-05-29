@@ -236,6 +236,7 @@ static stc8h_status_t unpack_control_payload(void)
 static void handle_packet(void)
 {
     stc8h_u8 save_binding;
+    stc8h_u8 was_link_lost;
 
     if (proto_rf_link_poll_data_fixed_xdata(&link, packet, payload) == STC8H_OK) {
         if (unpack_control_payload() == STC8H_OK) {
@@ -248,12 +249,14 @@ static void handle_packet(void)
             }
             last_control_seq = packet[3];
             receiver_stats_track_packet();
+            was_link_lost = link_lost;
             last_packet_tick = app_tick_now();
             link_lost = 0u;
             app_indicator_set_state(&indicator, APP_INDICATOR_STATE_CONNECTED, app_tick_now());
             app_outputs_apply_control(&control);
             prepare_ack_status((save_binding != 0u) ? APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_BIND :
-                                                   APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX);
+                               ((was_link_lost != 0u) ? APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER :
+                                                        APP_RADIO_ACK_PAYLOAD_REPLACE_AFTER_RX));
             if (save_binding != 0u) {
                 (void)app_config_save(&config);
             }

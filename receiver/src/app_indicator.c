@@ -88,12 +88,15 @@ void app_indicator_init(app_indicator_t STC8H_XDATA *indicator, stc8h_u16 now)
 
 void app_indicator_set_state(app_indicator_t STC8H_XDATA *indicator, app_indicator_state_t state, stc8h_u16 now)
 {
-    if (indicator->requested_state == state) {
+    if ((indicator->requested_state == state) &&
+        ((state != APP_INDICATOR_STATE_CONNECTED) ||
+         (indicator->pattern != APP_INDICATOR_PATTERN_BOOT))) {
         return;
     }
 
     indicator->requested_state = state;
-    if (indicator->pattern != APP_INDICATOR_PATTERN_BOOT) {
+    if ((indicator->pattern != APP_INDICATOR_PATTERN_BOOT) ||
+        (state == APP_INDICATOR_STATE_CONNECTED)) {
         app_indicator_enter_pattern(indicator, state, now);
     }
 }

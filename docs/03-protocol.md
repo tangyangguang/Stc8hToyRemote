@@ -91,6 +91,8 @@ byte5 tx_id high
 
 电压使用百分之一伏表示。例如 7.42V 回传为 `voltage_int=7`、`voltage_dec=42`。
 
+controller 只有在 ACK payload 格式、`tx_id` 和 `link_state=connected` 都匹配时，才把本次控制事务计为连接成功。`link_state=lost` 的 ACK 只说明 receiver 当前处于安全/等待状态，不能让 controller 进入正常控制界面。
+
 ## 绑定规则
 
 - controller 的 `tx_id=0` 无效。

@@ -31,8 +31,13 @@ def main() -> None:
     handle_packet = function_body(source, "handle_packet")
     handle_idle = function_body(source, "handle_idle_poll")
 
+    assert "stc8h_u8 was_link_lost;" in handle_packet
+    assert "was_link_lost = link_lost;" in handle_packet
     assert "last_packet_tick = app_tick_now();" in handle_packet
+    assert handle_packet.index("was_link_lost = link_lost;") < handle_packet.index("link_lost = 0u;")
     assert handle_packet.index("last_packet_tick = app_tick_now();") < handle_packet.index("link_lost = 0u;")
+    assert "was_link_lost != 0u" in handle_packet
+    assert "APP_RADIO_ACK_PAYLOAD_REPLACE_ON_RECOVER" in handle_packet
     assert "elapsed_ms = (stc8h_u16)(app_tick_now() - last_packet_tick);" in handle_idle
     assert "elapsed_ms >= APP_RECEIVER_LINK_TIMEOUT_MS" in handle_idle
     assert "if (link_lost != 0u)" in handle_idle
