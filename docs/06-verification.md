@@ -13,14 +13,14 @@
 - controller 和 receiver 正常固件构建。
 - 固件尺寸和 internal RAM 余量阈值检查。
 - controller/receiver 诊断固件构建。
-- 关键 ISR 和 nRF24 pin codegen 检查。
+- 关键 ISR、nRF24 pin 和 receiver 电压缩放 codegen 检查。
 
 固件资源基线：
 
-| 固件 | Flash | Flash 阈值 | Stack 可用 | 最大连续 internal RAM |
+| 固件 | 当前 Flash | Flash 阈值 | 当前 Stack 可用 / 阈值 | 当前最大连续 internal RAM / 阈值 |
 | --- | --- | --- | --- | --- |
-| controller | 7788/8192 | <= 7950 | >= 135 bytes | >= 0 bytes |
-| receiver | 6902/8192 | <= 6904 | >= 145 bytes | >= 2 bytes |
+| controller | 7313/8192 | <= 7400 | 142 / >= 135 bytes | 5 / >= 0 bytes |
+| receiver | 6288/8192 | <= 6500 | 162 / >= 145 bytes | 1 / >= 1 bytes |
 
 ## 单独构建
 

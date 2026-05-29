@@ -42,7 +42,7 @@
 | AT8236 IN2 | P3.4 / PWM8_2 | 后退 PWM，默认约 20.03kHz |
 | 辅助 PWM | P5.4 / PWM6_2 | 与 AT8236 共用 PWM-B 频率；来自 `aux_pwm`，controller 默认发送 0 |
 | 舵机 | P1.0 / PWM1P | 50Hz 舵机 PWM |
-| 电池电压 | ADC1 / P1.1 | 按请求低频采样并回传 |
+| 电池电压 | ADC1 / P1.1 | 后台低频采样，controller 请求时提升采样频率 |
 
 ## 输出安全态
 

@@ -43,7 +43,7 @@ controller/receiver application
 - `app_outputs`：PWM 和 GPIO 输出，包含舵机、电机、灯、蜂鸣器和辅助 PWM。
 - `app_outputs_calc`：输出曲线宏；PWM-B 默认约 20.03kHz，电机最低有效 duty 由 `APP_OUTPUT_MOTOR_MIN_DUTY_PERCENT` 配置，默认 35%。
 - `app_indicator`：receiver LED 生命周期状态。
-- `app_status`：状态回传数据，按请求低频采样电池电压。
+- `app_status`：状态回传数据，后台低频采样电池电压，controller 请求时提升采样频率。
 - `app_config`：EEPROM fixed-block 配置，保存绑定 `tx_id` 和频道配置；配置版本 2 的 byte7 为保留字节，保存时写 0。
 - `app_radio`：nRF24 PRX 初始化、收包、ACK payload 预装和频道设置。
 - `main`：绑定、收包、输出应用、安全态和 ACK 状态更新。
