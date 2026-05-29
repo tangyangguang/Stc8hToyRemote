@@ -81,7 +81,8 @@ static stc8h_u8 config_item;
 #define APP_STATE_CONNECTED 1u
 #define APP_STATE_LOST 2u
 #define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS
-#define APP_BUTTON_DOUBLE_TICKS 600u
+#define APP_BUTTON_DOUBLE_TICKS 1000u
+#define APP_SCAN_PROBE_PACKETS 4u
 #define APP_RADIO_FAILURE_LIMIT 3u
 #define APP_LINK_BLINK_TICKS 10u
 #define APP_LOOP_INTERVAL_MS 20u
@@ -464,7 +465,7 @@ static stc8h_u8 probe_current_channel(void)
     stc8h_u8 i;
     stc8h_u8 result;
 
-    for (i = 0u; i < 2u; ++i) {
+    for (i = 0u; i < APP_SCAN_PROBE_PACKETS; ++i) {
         result = send_control_packet();
         if (result == 1u) {
             return 1u;

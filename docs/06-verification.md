@@ -68,7 +68,7 @@ pio run -t upload --upload-port /dev/cu.usbserial-120
 3. receiver LED 常亮。
 4. 关闭 receiver 后，controller 显示当前频道对应的 `Lxxx`，默认新机为 `L076`。
 5. 再打开 receiver 后，controller 自动恢复正常控制界面。
-6. 只有在 `Lxxx` 下双击 EC11 中键才进入扫描。
+6. 只有在 `Lxxx` 下约 0.5 秒窗口内双击 EC11 中键才进入扫描。
 
 失败判定：
 
@@ -157,6 +157,7 @@ pio run -c platformio_diag.ini -e STC8H1K08_radio_diag -t upload --upload-port /
 - 切换后 receiver 输出保持安全：电机停止，灯/蜂鸣器/辅助 PWM 关闭，舵机保持最后角度。
 - 切换后 LED 应进入未绑定等待或已绑定等待状态，并重新预装 ACK 状态 payload。
 - 已连接状态下不做协商换频；切换频道按丢链/维护处理，controller 显示 `Lxxx` 后，在 `Lxxx` 下双击 EC11 中键手动扫描找到新频道。
+- 手动扫描每个频道会连续发 4 个探测包，提高低信噪比频道的命中率；如果 `S020` 等低频道反复扫不到而 `S072` 稳定可找到，应优先怀疑 2.4GHz 环境干扰或模块/天线在该频点质量差。
 - EEPROM 中 `rf_channel` 若不在预设频道池内，重启后应恢复为 `76`；清绑定不应改变当前保存频道。
 
 默认固件保留 P30+P31 上电清绑定。验收时同时按住 P30/P31 再给 receiver 上电，LED 应快闪 6 次并进入未绑定等待，保存频道不变。

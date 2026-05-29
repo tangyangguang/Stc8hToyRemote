@@ -34,7 +34,8 @@ def main() -> None:
     assert "#define APP_BUTTON_RELEASE_TICKS 100u" in source
     assert "#define APP_BUTTON_FIXED_LONG_TICKS 10000u" in source
     assert "#define APP_BUTTON_LONG_NORMAL_TICKS APP_BUTTON_FIXED_LONG_TICKS" in source
-    assert "#define APP_BUTTON_DOUBLE_TICKS 600u" in source
+    assert "#define APP_BUTTON_DOUBLE_TICKS 1000u" in source
+    assert "#define APP_SCAN_PROBE_PACKETS 4u" in source
     assert "#define APP_LOOP_INTERVAL_MS 20u" in source
     assert "APP_INPUT_ADC_DIVIDER" not in input_source
     assert "APP_BUTTON_LONG_CONFIG_TICKS" not in source
@@ -62,7 +63,7 @@ def main() -> None:
     assert "app_input_update_steering(control);" not in input_update_body
     assert "static void app_button_init(STC8H_DATA app_button_t *button)" in button_source
     assert "static app_button_event_t app_button_update_elapsed(STC8H_DATA app_button_t *button" in button_source
-    assert "for (i = 0u; i < 2u; ++i)" in probe_body
+    assert "for (i = 0u; i < APP_SCAN_PROBE_PACKETS; ++i)" in probe_body
     assert "if (result == 1u)" in probe_body
     assert "if (result == 2u)" in probe_body
     assert "stc8h_delay_ms(5u);" in probe_body
