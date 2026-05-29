@@ -83,10 +83,36 @@ static void test_idle_voltage_samples_about_once_per_second(void)
     assert(status.voltage_dec == 42u);
 }
 
+static void test_voltage_scale_matches_full_scale_formula_for_adc_range(void)
+{
+    toy_remote_status_t status;
+    toy_remote_control_t control;
+    stc8h_u16 adc;
+    stc8h_u8 i;
+
+    control.request_voltage = 1u;
+    for (adc = 0u; adc <= 1023u; ++adc) {
+        stc8h_u16 expected;
+
+        app_status_init(&status);
+        test_adc_value = adc;
+        test_adc_read_count = 0u;
+        for (i = 0u; i < 6u; ++i) {
+            app_status_update(&status, &control, 0u);
+        }
+
+        expected = (stc8h_u16)(((stc8h_u32)adc * 1329UL) / 1024UL);
+        assert(test_adc_read_count == 8u);
+        assert(status.voltage_int == (stc8h_u8)(expected / 100u));
+        assert(status.voltage_dec == (stc8h_u8)(expected % 100u));
+    }
+}
+
 int main(void)
 {
     test_requested_voltage_uses_centivolt_scale();
     test_idle_voltage_samples_about_once_per_second();
+    test_voltage_scale_matches_full_scale_formula_for_adc_range();
     test_init_configures_voltage_adc_pin_high_impedance();
     return 0;
 }

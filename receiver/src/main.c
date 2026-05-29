@@ -172,9 +172,6 @@ static void prepare_ack_status(stc8h_u8 replace_pending)
     app_status_update(&status, &control, link_lost);
     status.tx_id = config.bound_tx_id;
 
-    for (i = 0u; i < APP_RADIO_STATUS_ACK_SIZE; ++i) {
-        status_packet[i] = 0u;
-    }
     status_packet[0] = PROTO_RF_LINK_MAGIC;
     status_packet[1] = PROTO_RF_LINK_VERSION;
     status_packet[2] = PROTO_RF_LINK_PACKET_STATUS;

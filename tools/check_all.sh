@@ -243,6 +243,7 @@ sh "$ROOT_DIR/tools/check_controller_display_source.sh"
 sh "$ROOT_DIR/tools/check_radio_init_source.sh"
 (cd "$ROOT_DIR/receiver" && pio run)
 "$ROOT_DIR/tools/check_firmware_size.sh"
+sh "$ROOT_DIR/tools/check_receiver_status_codegen.sh"
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_motor_diag)
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_control_diag)
 (cd "$ROOT_DIR/receiver" && pio run -c platformio_diag.ini -e STC8H1K08_radio_motor_diag)

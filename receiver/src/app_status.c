@@ -9,6 +9,16 @@
 
 static stc8h_u8 sample_divider;
 
+static stc8h_u16 app_status_scale_adc_centivolts(stc8h_u16 adc)
+{
+    stc8h_u16 fractional;
+
+    /* Exact form of floor(adc * 1329 / 1024) without 32-bit math. */
+    fractional = (stc8h_u16)((adc & 0x03u) << 8);
+    fractional = (stc8h_u16)(fractional + (adc * 49u));
+    return (stc8h_u16)(adc + (adc >> 2) + (fractional >> 10));
+}
+
 static stc8h_u16 app_status_read_rx_battery_centivolts(void)
 {
     stc8h_u8 i;
@@ -25,8 +35,7 @@ static stc8h_u16 app_status_read_rx_battery_centivolts(void)
     }
 
     adc = (stc8h_u16)(sum >> 3);
-    return (stc8h_u16)(((stc8h_u32)adc * APP_STATUS_VOLTAGE_FULL_SCALE_CENTIVOLTS) /
-                       APP_STATUS_ADC_FULL_SCALE_COUNTS);
+    return app_status_scale_adc_centivolts(adc);
 }
 
 void app_status_init(STC8H_XDATA toy_remote_status_t *status)
