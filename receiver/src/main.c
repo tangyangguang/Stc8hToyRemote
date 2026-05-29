@@ -35,7 +35,7 @@ static stc8h_u8 last_control_seq;
 #define APP_RECEIVER_CHANNEL_BUTTON_BLOCKED 3u
 static stc8h_u8 channel_button_sample;
 static stc8h_u8 channel_button_stable;
-static stc8h_u8 last_channel_button_tick;
+static stc8h_u16 last_channel_button_tick;
 #endif
 
 #define APP_RECEIVER_LINK_TIMEOUT_MS 300u
@@ -285,8 +285,8 @@ static void handle_channel_buttons(void)
 #if APP_RECEIVER_ENABLE_CHANNEL_BUTTONS
     stc8h_u8 button_bits;
     stc8h_u8 next_state;
-    stc8h_u8 now;
-    stc8h_u8 elapsed_ms;
+    stc8h_u16 now;
+    stc8h_u16 elapsed_ms;
 
     button_bits = (stc8h_u8)(P3 & (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));
     next_state = (stc8h_u8)(button_bits ^ (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK));
@@ -296,14 +296,14 @@ static void handle_channel_buttons(void)
         return;
     }
 
-    now = (stc8h_u8)app_tick_now();
+    now = app_tick_now();
     if (channel_button_sample != next_state) {
         channel_button_sample = next_state;
         last_channel_button_tick = now;
         return;
     }
 
-    elapsed_ms = (stc8h_u8)(now - last_channel_button_tick);
+    elapsed_ms = (stc8h_u16)(now - last_channel_button_tick);
     if (elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS) {
         return;
     }

@@ -60,6 +60,7 @@ def main() -> None:
 
     assert "#define APP_RECEIVER_ENABLE_CHANNEL_BUTTONS 1" in config_h
     assert "#define APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS 30u" in source
+    assert "static stc8h_u16 last_channel_button_tick;" in source
     assert "P3 |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
     assert "P_SW2 |= 0x80u;" in source
     assert "P3IE |= (TOY_REMOTE_RX_RF_CH_ADD_MASK | TOY_REMOTE_RX_RF_CH_MINUS_MASK);" in source
@@ -83,6 +84,10 @@ def main() -> None:
     assert "APP_RECEIVER_CHANNEL_BUTTON_BLOCKED" in button_body
     assert "channel_button_sample" in button_body
     assert "channel_button_stable" in button_body
+    assert "stc8h_u16 now;" in button_body
+    assert "stc8h_u16 elapsed_ms;" in button_body
+    assert "now = app_tick_now();" in button_body
+    assert "elapsed_ms = (stc8h_u16)(now - last_channel_button_tick);" in button_body
     assert "if (channel_button_sample != next_state)" in button_body
     assert "elapsed_ms < APP_RECEIVER_CHANNEL_BUTTON_DEBOUNCE_MS" in button_body
     assert "if (channel_button_stable == next_state)" in button_body
