@@ -5,7 +5,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/toy_remote_protocol_test.c" \
     "$ROOT_DIR/shared/toy_remote_protocol.c" \
     -o /tmp/toy_remote_protocol_test
@@ -13,7 +13,7 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/app_indicator_test.c" \
     "$ROOT_DIR/receiver/src/app_indicator.c" \
     -o /tmp/app_indicator_test
@@ -22,8 +22,8 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/hal" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/hal" \
     "$ROOT_DIR/tests/receiver_status_test.c" \
     "$ROOT_DIR/receiver/src/app_status.c" \
     -o /tmp/receiver_status_test
@@ -31,14 +31,14 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_board_pins_test.c" \
     -o /tmp/receiver_board_pins_test
 /tmp/receiver_board_pins_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/app_outputs_calc_test.c" \
     -o /tmp/app_outputs_calc_test
 /tmp/app_outputs_calc_test
@@ -51,7 +51,7 @@ cc -std=c99 -Wall -Wextra \
     -DAPP_OUTPUTS_CALC_EXPECTED_DUTY_39=41u \
     -DAPP_OUTPUTS_CALC_EXPECTED_DUTY_40=42u \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/app_outputs_calc_test.c" \
     -o /tmp/app_outputs_calc_test_min15
 /tmp/app_outputs_calc_test_min15
@@ -71,36 +71,36 @@ sdcc -mmcs51 --std-c99 \
     -DAPP_OUTPUT_FAST_PWM_PERIOD=655u \
     -DAPP_OUTPUT_MOTOR_MIN_DUTY_PERCENT=100u \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     -c "$ROOT_DIR/tests/app_outputs_calc_sdcc_width_test.c" \
     -o /tmp/app_outputs_calc_sdcc_width_test.rel
 
 cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
     -DTEST_STEPS=4 \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/drivers" \
     "$ROOT_DIR/tests/ec11_small_sequence_test.c" \
     -o /tmp/ec11_small_sequence_test_4
 /tmp/ec11_small_sequence_test_4
 
 cc -std=c99 -Wall -Wextra -Wno-duplicate-decl-specifier \
     -DTEST_STEPS=2 \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/drivers" \
     "$ROOT_DIR/tests/ec11_small_sequence_test.c" \
     -o /tmp/ec11_small_sequence_test_2
 /tmp/ec11_small_sequence_test_2
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/ec11_speed_accel_test.c" \
     -o /tmp/ec11_speed_accel_test
 /tmp/ec11_speed_accel_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/button_event_test.c" \
     -o /tmp/button_event_test
 /tmp/button_event_test
@@ -108,7 +108,7 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_display_test.c" \
     -o /tmp/controller_display_test
 /tmp/controller_display_test
@@ -116,7 +116,7 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_steering_config_test.c" \
     -o /tmp/controller_steering_config_test
 /tmp/controller_steering_config_test
@@ -124,7 +124,7 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_steering_step_test.c" \
     -o /tmp/controller_steering_step_test
 /tmp/controller_steering_step_test
@@ -137,14 +137,14 @@ cc -std=c99 -Wall -Wextra \
     -DAPP_STEERING_STEP_EXPECTED_LARGE_MOVE=93u \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_steering_step_test.c" \
     -o /tmp/controller_steering_step_test_step3
 /tmp/controller_steering_step_test_step3
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_radio_config_test.c" \
     -o /tmp/controller_radio_config_test
 /tmp/controller_radio_config_test
@@ -155,8 +155,8 @@ cc -std=c99 -Wall -Wextra \
     -DDRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API=0 \
     -DDRV_NRF24L01_ENABLE_XDATA_PAYLOAD_API=1 \
     -I"$ROOT_DIR/controller/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/drivers" \
     "$ROOT_DIR/tests/controller_radio_init_behavior_test.c" \
     "$ROOT_DIR/controller/src/app_radio.c" \
     -o /tmp/controller_radio_init_behavior_test
@@ -164,7 +164,7 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_radio_config_test.c" \
     -o /tmp/receiver_radio_config_test
 /tmp/receiver_radio_config_test
@@ -175,8 +175,8 @@ cc -std=c99 -Wall -Wextra \
     -DDRV_NRF24L01_ENABLE_FIXED_PAYLOAD_API=0 \
     -DDRV_NRF24L01_ENABLE_XDATA_PAYLOAD_API=1 \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/drivers" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/drivers" \
     "$ROOT_DIR/tests/receiver_radio_init_behavior_test.c" \
     "$ROOT_DIR/receiver/src/app_radio.c" \
     -o /tmp/receiver_radio_init_behavior_test
@@ -184,14 +184,14 @@ cc -std=c99 -Wall -Wextra \
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_board_pins_test.c" \
     -o /tmp/receiver_board_pins_test
 /tmp/receiver_board_pins_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_channel_policy_test.c" \
     -o /tmp/receiver_channel_policy_test_fixed
 /tmp/receiver_channel_policy_test_fixed
@@ -202,8 +202,8 @@ cc -std=c99 -Wall -Wextra \
     -DSTC8H_EEPROM_FIXED_SIZE=9 \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/hal" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/hal" \
     "$ROOT_DIR/tests/receiver_config_eeprom_test.c" \
     "$ROOT_DIR/receiver/src/app_config.c" \
     -o /tmp/receiver_config_eeprom_test
@@ -212,14 +212,14 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -DAPP_RECEIVER_ENABLE_CHANNEL_BUTTONS=1 \
     -I"$ROOT_DIR/receiver/src" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_channel_policy_test.c" \
     -o /tmp/receiver_channel_policy_test_buttons
 /tmp/receiver_channel_policy_test_buttons
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/channel_pool_test.c" \
     -o /tmp/channel_pool_test
 /tmp/channel_pool_test
@@ -227,7 +227,7 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/controller/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/controller_config_defaults_test.c" \
     -o /tmp/controller_config_defaults_test
 /tmp/controller_config_defaults_test
@@ -235,18 +235,18 @@ cc -std=c99 -Wall -Wextra \
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/receiver/src" \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
     "$ROOT_DIR/tests/receiver_config_defaults_test.c" \
     -o /tmp/receiver_config_defaults_test
 /tmp/receiver_config_defaults_test
 
 cc -std=c99 -Wall -Wextra \
     -I"$ROOT_DIR/shared" \
-    -I"$ROOT_DIR/../Stc8hBase/core" \
-    -I"$ROOT_DIR/../Stc8hBase/protocols" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/core" \
+    -I"$ROOT_DIR/../../foundation/Stc8hBase/protocols" \
     "$ROOT_DIR/tests/rf_link_integration_test.c" \
     "$ROOT_DIR/shared/toy_remote_protocol.c" \
-    "$ROOT_DIR/../Stc8hBase/protocols/proto_rf_link.c" \
+    "$ROOT_DIR/../../foundation/Stc8hBase/protocols/proto_rf_link.c" \
     -o /tmp/rf_link_integration_test
 /tmp/rf_link_integration_test
 

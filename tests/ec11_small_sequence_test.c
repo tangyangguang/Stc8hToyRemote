@@ -11,7 +11,7 @@
 #define DRV_EC11_ENABLE_NULL_CHECK 0
 
 #include "drv_ec11.h"
-#include "../../Stc8hBase/drivers/drv_ec11.c"
+#include "../../../foundation/Stc8hBase/drivers/drv_ec11.c"
 
 static stc8h_s8 scan_sequence(drv_ec11_small_t *ec11, const stc8h_u8 *states, stc8h_u8 count)
 {

@@ -1,5 +1,7 @@
 # 项目规则
 
+> 目录于 2026-09-08 从 `/Users/tyg/dir/codex_dir/Stc8hToyRemote` 迁移到 `/Users/tyg/workspace/iot/devices/Stc8hToyRemote`；仓库仍可能包含旧路径，执行相关命令前先按新目录核对并修正，完成本项目的路径清理和验证后删除本条。
+
 - 本项目重写 STC8H 玩具遥控器和接收机固件。
 - `legacy/` 目录只读，只作为需求和行为参考，不能修改其中代码。
 - 新代码必须引用相邻基础库 `../Stc8hBase`，不复制基础库源码。
